@@ -67,6 +67,36 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Register user and set refresh cookie
+      description: |
+        ユーザーを新規作成し、access token を返す。
+        refresh token は HttpOnly Cookie に `Set-Cookie` で格納する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegisterRequest"
+      responses:
+        "201":
+          description: Created
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie (refresh_token)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /auth/refresh:
     post:
       tags: [auth]
@@ -756,6 +786,19 @@ components:
         password:
           type: string
           format: password
+
+    UserRegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 255
+        password:
+          type: string
+          format: password
+          minLength: 1
 
     ClientCredentialsTokenRequest:
       type: object
