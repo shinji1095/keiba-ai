@@ -1,0 +1,1606 @@
+openapi: 3.0.3
+info:
+  title: Keiba AI API
+  version: 0.2.0
+  description: |
+    競馬AI（keiba.go.jp 由来データのスクレイピング → DB 蓄積 → 参照）のAPI。
+
+    - 本リリースのスコープ: reverse-proxy / api-service / scraper-service / postgres
+    - スコープ外: pipeline-service(Prefect), worker-service(Celery), MLflow
+
+    ## Authentication (JWT)
+    - Access Token: JWT（短命 15分）を `Authorization: Bearer <token>` で送信
+    - Refresh Token: JWT（長命 30日）を HttpOnly Cookie（`refresh_token`）に保存
+      - Rotation: refresh のたびに refresh token を更新（毎回更新）
+      - Revocation: Redis で失効管理（jti ベース想定）
+
+    ## Scraper authentication (client_credentials)
+    - scraper-service は `client_id` / `client_secret` による client_credentials で access token を取得する
+    - client_secret は API 側ではハッシュ保存し、払い出し時のみ平文で返す（再表示しない想定）
+servers:
+  - url: /api
+tags:
+  - name: health
+  - name: auth
+  - name: admin
+  - name: venues
+  - name: races
+  - name: scrape
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Login (password) and set refresh cookie
+      description: |
+        認証に成功すると access token を返し、refresh token は HttpOnly Cookie に `Set-Cookie` で格納する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordLoginRequest"
+      responses:
+        "200":
+          description: OK
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie (refresh_token)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Refresh access token (rotate refresh cookie)
+      description: |
+        refresh token は `refresh_token` Cookie から読み取る。
+        成功時に新しい refresh token を `Set-Cookie` で返す（ローテーション）。
+      parameters:
+        - in: cookie
+          name: refresh_token
+          required: true
+          schema:
+            type: string
+          description: HttpOnly refresh token cookie (JWT)
+      responses:
+        "200":
+          description: OK
+          headers:
+            Set-Cookie:
+              description: Rotated HttpOnly refresh token cookie (refresh_token)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Logout (revoke refresh token and clear cookie)
+      description: |
+        refresh token を失効させ、Cookie を削除する。
+      parameters:
+        - in: cookie
+          name: refresh_token
+          required: false
+          schema:
+            type: string
+          description: HttpOnly refresh token cookie (JWT)
+      responses:
+        "204":
+          description: No Content
+          headers:
+            Set-Cookie:
+              description: Clear refresh_token cookie
+              schema:
+                type: string
+
+  /auth/token:
+    post:
+      tags: [auth]
+      summary: Issue access token by client_credentials (for scraper-service)
+      description: |
+        scraper-service が client_credentials で access token を取得するためのエンドポイント。
+        refresh cookie は発行しない。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientCredentialsTokenRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/oauth-clients:
+    post:
+      tags: [admin]
+      summary: Create OAuth client for scraper-service
+      description: |
+        client_credentials 用のクライアントを作成する。
+        client_secret は作成時（およびローテーション時）にのみ返す想定。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthClientCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthClientCreateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [admin]
+      summary: List OAuth clients
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: page_size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthClientListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/oauth-clients/{client_id}:
+    patch:
+      tags: [admin]
+      summary: Update OAuth client (scopes/active)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: client_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthClientUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthClientView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [admin]
+      summary: Revoke OAuth client
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: client_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/oauth-clients/{client_id}/rotate-secret:
+    post:
+      tags: [admin]
+      summary: Rotate client_secret (return new secret once)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: client_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthClientRotateSecretResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /venues:
+    get:
+      tags: [venues]
+      summary: List venues
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VenueListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /races:
+    get:
+      tags: [races]
+      summary: List races by race_date/baba_code
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: race_date
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: baba_code
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: page_size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RaceListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /races/{race_id}:
+    get:
+      tags: [races]
+      summary: Get race
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: race_id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Race"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /races/{race_id}/entries:
+    get:
+      tags: [races]
+      summary: List race entries
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: race_id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RaceEntryListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /races/{race_id}/odds:
+    get:
+      tags: [races]
+      summary: Get odds snapshot items for a race
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: race_id
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - in: query
+          name: snapshot_kind
+          required: true
+          schema:
+            $ref: "#/components/schemas/SnapshotKind"
+        - in: query
+          name: bet_type
+          required: true
+          schema:
+            $ref: "#/components/schemas/BetType"
+        - in: query
+          name: odds_flg
+          required: false
+          schema:
+            type: integer
+            nullable: true
+          description: |
+            表示モード（馬番順/人気順/マトリクス等）。時刻指定ではない。
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OddsSnapshotQueryResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /races/{race_id}/results:
+    get:
+      tags: [races]
+      summary: List race results
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: race_id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RaceResultListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /races/{race_id}/payouts:
+    get:
+      tags: [races]
+      summary: List payouts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: race_id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayoutListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /scrape/races:
+    post:
+      tags: [scrape]
+      summary: Upsert races (RaceList)
+      security:
+        - scraperOAuth: [scrape:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RaceUpsertBatchRequest"
+      responses:
+        "201":
+          description: Created/Upserted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchUpsertResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /scrape/race-entries:
+    post:
+      tags: [scrape]
+      summary: Upsert race entries (DebaTable)
+      security:
+        - scraperOAuth: [scrape:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RaceEntryUpsertBatchRequest"
+      responses:
+        "201":
+          description: Created/Upserted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchUpsertResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /scrape/odds-snapshots:
+    post:
+      tags: [scrape]
+      summary: Upsert odds snapshots and items
+      description: |
+        オッズは発走時刻基準の `snapshot_kind`（t_minus_5m / t_minus_1m / final）でスナップショット保存する。
+      security:
+        - scraperOAuth: [scrape:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OddsSnapshotUpsertRequest"
+      responses:
+        "201":
+          description: Created/Upserted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OddsSnapshotUpsertResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /scrape/race-results:
+    post:
+      tags: [scrape]
+      summary: Upsert race results (RaceMarkTable)
+      security:
+        - scraperOAuth: [scrape:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RaceResultUpsertBatchRequest"
+      responses:
+        "201":
+          description: Created/Upserted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchUpsertResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /scrape/payouts:
+    post:
+      tags: [scrape]
+      summary: Upsert payouts (RefundMoneyList)
+      security:
+        - scraperOAuth: [scrape:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayoutUpsertBatchRequest"
+      responses:
+        "201":
+          description: Created/Upserted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchUpsertResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /scrape/race-changes:
+    post:
+      tags: [scrape]
+      summary: Insert race changes (cancel/jockey change etc.)
+      security:
+        - scraperOAuth: [scrape:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RaceChangeInsertBatchRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchUpsertResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /scrape/raw-fetch-logs:
+    post:
+      tags: [scrape]
+      summary: Insert raw fetch logs (optional raw layer)
+      security:
+        - scraperOAuth: [scrape:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RawFetchLogInsertBatchRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchUpsertResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+    scraperOAuth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /auth/token
+          scopes:
+            scrape:write: Scraper can ingest/insert facts
+            scrape:read: Scraper can read back for verification
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: bad_request
+            message:
+              type: string
+              example: invalid payload
+            details:
+              type: object
+              additionalProperties: true
+
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    # -------------------------
+    # Auth
+    # -------------------------
+    PasswordLoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+
+    ClientCredentialsTokenRequest:
+      type: object
+      required: [grant_type, client_id, client_secret]
+      properties:
+        grant_type:
+          type: string
+          enum: [client_credentials]
+        client_id:
+          type: string
+        client_secret:
+          type: string
+          format: password
+        scope:
+          type: string
+          nullable: true
+          description: Space separated scopes (optional)
+          example: "scrape:write"
+
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in]
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+          description: seconds
+          example: 900
+        issued_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    # -------------------------
+    # Common keys / enums
+    # -------------------------
+    RaceKey:
+      type: object
+      required: [race_date, baba_code, race_no]
+      properties:
+        race_date:
+          type: string
+          format: date
+        baba_code:
+          type: integer
+          format: int32
+          description: 競馬場コード
+          example: 20
+        race_no:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 12
+          example: 3
+
+    BetType:
+      type: string
+      enum:
+        - tansho
+        - fukusho
+        - wakuren
+        - wakutan
+        - umaren
+        - umatan
+        - wide
+        - sanrenpuku
+        - sanrentan
+
+    SnapshotKind:
+      type: string
+      enum: [t_minus_5m, t_minus_1m, final]
+
+    # -------------------------
+    # Admin: OAuth Clients
+    # -------------------------
+    OAuthClientCreateRequest:
+      type: object
+      required: [name, scopes]
+      properties:
+        name:
+          type: string
+          example: scraper-prod
+        scopes:
+          type: array
+          items:
+            type: string
+          example: ["scrape:write"]
+        is_active:
+          type: boolean
+          default: true
+
+    OAuthClientCreateResponse:
+      type: object
+      required: [client]
+      properties:
+        client:
+          $ref: "#/components/schemas/OAuthClientWithSecret"
+
+    OAuthClientRotateSecretResponse:
+      type: object
+      required: [client]
+      properties:
+        client:
+          $ref: "#/components/schemas/OAuthClientWithSecret"
+
+    OAuthClientUpdateRequest:
+      type: object
+      properties:
+        scopes:
+          type: array
+          items:
+            type: string
+          nullable: true
+        is_active:
+          type: boolean
+          nullable: true
+
+    OAuthClientListResponse:
+      type: object
+      required: [items, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OAuthClientView"
+        page:
+          type: integer
+        page_size:
+          type: integer
+
+    OAuthClientView:
+      type: object
+      required: [client_id, name, scopes, is_active, created_at]
+      properties:
+        client_id:
+          type: string
+        name:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    OAuthClientWithSecret:
+      allOf:
+        - $ref: "#/components/schemas/OAuthClientView"
+        - type: object
+          required: [client_secret]
+          properties:
+            client_secret:
+              type: string
+              format: password
+              description: Returned only once
+
+    # -------------------------
+    # Facts: venues / races
+    # -------------------------
+    Venue:
+      type: object
+      required: [baba_code, venue_name]
+      properties:
+        baba_code:
+          type: integer
+          format: int32
+        venue_name:
+          type: string
+
+    VenueListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Venue"
+
+    Race:
+      type: object
+      required: [race_id, race_key]
+      properties:
+        race_id:
+          type: integer
+          format: int64
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+        start_time:
+          type: string
+          format: time
+          nullable: true
+        distance_m:
+          type: integer
+          format: int32
+          nullable: true
+        course:
+          type: string
+          nullable: true
+        weather:
+          type: string
+          nullable: true
+        track_condition:
+          type: string
+          nullable: true
+        race_name:
+          type: string
+          nullable: true
+        field_size:
+          type: integer
+          format: int32
+          nullable: true
+        status:
+          type: string
+          nullable: true
+
+    RaceSummary:
+      type: object
+      required: [race_id, race_key]
+      properties:
+        race_id:
+          type: integer
+          format: int64
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+        start_time:
+          type: string
+          format: time
+          nullable: true
+        race_name:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+
+    RaceListResponse:
+      type: object
+      required: [items, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RaceSummary"
+        page:
+          type: integer
+        page_size:
+          type: integer
+
+    RaceEntry:
+      type: object
+      required: [race_entry_id, race_id, horse_number, horse_name]
+      properties:
+        race_entry_id:
+          type: integer
+          format: int64
+        race_id:
+          type: integer
+          format: int64
+        horse_id:
+          type: integer
+          format: int64
+          nullable: true
+        post_position:
+          type: integer
+          format: int32
+          nullable: true
+        horse_number:
+          type: integer
+          format: int32
+        horse_name:
+          type: string
+        jockey_name:
+          type: string
+          nullable: true
+        trainer_name:
+          type: string
+          nullable: true
+        handicap_kg:
+          type: number
+          format: float
+          nullable: true
+        body_weight:
+          type: integer
+          format: int32
+          nullable: true
+        body_weight_diff:
+          type: integer
+          format: int32
+          nullable: true
+
+    RaceEntryListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RaceEntry"
+
+    RaceChange:
+      type: object
+      required: [race_change_id, race_id, change_type, payload, captured_at]
+      properties:
+        race_change_id:
+          type: integer
+          format: int64
+        race_id:
+          type: integer
+          format: int64
+        change_type:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        captured_at:
+          type: string
+          format: date-time
+
+    # -------------------------
+    # Facts: odds
+    # -------------------------
+    OddsSnapshot:
+      type: object
+      required: [odds_snapshot_id, race_id, bet_type, snapshot_kind, captured_at, source_url, is_final]
+      properties:
+        odds_snapshot_id:
+          type: integer
+          format: int64
+        race_id:
+          type: integer
+          format: int64
+        bet_type:
+          $ref: "#/components/schemas/BetType"
+        snapshot_kind:
+          $ref: "#/components/schemas/SnapshotKind"
+        captured_at:
+          type: string
+          format: date-time
+        source_url:
+          type: string
+        odds_flg:
+          type: integer
+          nullable: true
+        is_final:
+          type: boolean
+
+    OddsItem:
+      type: object
+      required: [odds_item_id, odds_snapshot_id, legs, is_ordered, odds_min]
+      properties:
+        odds_item_id:
+          type: integer
+          format: int64
+        odds_snapshot_id:
+          type: integer
+          format: int64
+        legs:
+          type: array
+          items:
+            type: integer
+            format: int32
+          description: "組合せ（例: [3], [3,7], [3,7,12]）"
+        is_ordered:
+          type: boolean
+        odds_min:
+          type: number
+          format: float
+          nullable: true
+        odds_max:
+          type: number
+          format: float
+          nullable: true
+        popularity:
+          type: integer
+          nullable: true
+        raw_text:
+          type: string
+          nullable: true
+
+    OddsSnapshotQueryResponse:
+      type: object
+      required: [snapshot, items]
+      properties:
+        snapshot:
+          $ref: "#/components/schemas/OddsSnapshot"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OddsItem"
+
+    # -------------------------
+    # Facts: results / payouts
+    # -------------------------
+    RaceResult:
+      type: object
+      required: [race_result_id, race_id, finish_position]
+      properties:
+        race_result_id:
+          type: integer
+          format: int64
+        race_id:
+          type: integer
+          format: int64
+        finish_position:
+          type: integer
+          format: int32
+        horse_number:
+          type: integer
+          format: int32
+          nullable: true
+        time_str:
+          type: string
+          nullable: true
+        margin:
+          type: string
+          nullable: true
+        last3f:
+          type: number
+          format: float
+          nullable: true
+        popularity:
+          type: integer
+          nullable: true
+        corner1:
+          type: string
+          nullable: true
+        corner2:
+          type: string
+          nullable: true
+        corner3:
+          type: string
+          nullable: true
+        corner4:
+          type: string
+          nullable: true
+
+    RaceResultListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RaceResult"
+
+    Payout:
+      type: object
+      required: [payout_id, race_id, bet_type, legs, is_ordered, payout_yen]
+      properties:
+        payout_id:
+          type: integer
+          format: int64
+        race_id:
+          type: integer
+          format: int64
+        bet_type:
+          $ref: "#/components/schemas/BetType"
+        legs:
+          type: array
+          items:
+            type: integer
+            format: int32
+        is_ordered:
+          type: boolean
+        payout_yen:
+          type: integer
+          format: int32
+          nullable: true
+        popularity:
+          type: integer
+          nullable: true
+
+    PayoutListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payout"
+
+    RawFetchLog:
+      type: object
+      required: [raw_fetch_log_id, page_type, url, http_status, fetched_at]
+      properties:
+        raw_fetch_log_id:
+          type: integer
+          format: int64
+        race_id:
+          type: integer
+          format: int64
+          nullable: true
+        page_type:
+          type: string
+        url:
+          type: string
+        http_status:
+          type: integer
+          format: int32
+        sha256:
+          type: string
+          nullable: true
+        storage_path:
+          type: string
+          nullable: true
+        fetched_at:
+          type: string
+          format: date-time
+        note:
+          type: string
+          nullable: true
+
+    # -------------------------
+    # Scrape ingest requests
+    # -------------------------
+    BatchUpsertResponse:
+      type: object
+      required: [accepted, upserted]
+      properties:
+        accepted:
+          type: integer
+          example: 10
+        upserted:
+          type: integer
+          example: 10
+        warnings:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+    RaceUpsert:
+      type: object
+      required: [race_key]
+      properties:
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+        start_time:
+          type: string
+          format: time
+          nullable: true
+        distance_m:
+          type: integer
+          format: int32
+          nullable: true
+        course:
+          type: string
+          nullable: true
+        weather:
+          type: string
+          nullable: true
+        track_condition:
+          type: string
+          nullable: true
+        race_name:
+          type: string
+          nullable: true
+        field_size:
+          type: integer
+          format: int32
+          nullable: true
+        status:
+          type: string
+          nullable: true
+
+    RaceUpsertBatchRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/RaceUpsert"
+
+    RaceEntryUpsert:
+      type: object
+      required: [race_key, horse_number, horse_name]
+      properties:
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+        horse_id:
+          type: integer
+          format: int64
+          nullable: true
+        post_position:
+          type: integer
+          format: int32
+          nullable: true
+        horse_number:
+          type: integer
+          format: int32
+        horse_name:
+          type: string
+        jockey_name:
+          type: string
+          nullable: true
+        trainer_name:
+          type: string
+          nullable: true
+        handicap_kg:
+          type: number
+          format: float
+          nullable: true
+        body_weight:
+          type: integer
+          format: int32
+          nullable: true
+        body_weight_diff:
+          type: integer
+          format: int32
+          nullable: true
+
+    RaceEntryUpsertBatchRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/RaceEntryUpsert"
+
+    OddsItemUpsert:
+      type: object
+      required: [legs, is_ordered]
+      properties:
+        legs:
+          type: array
+          items:
+            type: integer
+            format: int32
+        is_ordered:
+          type: boolean
+        odds_min:
+          type: number
+          format: float
+          nullable: true
+        odds_max:
+          type: number
+          format: float
+          nullable: true
+        popularity:
+          type: integer
+          nullable: true
+        raw_text:
+          type: string
+          nullable: true
+
+    OddsSnapshotUpsertRequest:
+      type: object
+      required: [race_key, bet_type, snapshot_kind, captured_at, source_url, items]
+      properties:
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+        bet_type:
+          $ref: "#/components/schemas/BetType"
+        snapshot_kind:
+          $ref: "#/components/schemas/SnapshotKind"
+        captured_at:
+          type: string
+          format: date-time
+        source_url:
+          type: string
+        odds_flg:
+          type: integer
+          nullable: true
+        is_final:
+          type: boolean
+          default: false
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OddsItemUpsert"
+
+    OddsSnapshotUpsertResponse:
+      type: object
+      required: [race_id, bet_type, snapshot_kind, odds_snapshot_id, num_items]
+      properties:
+        race_id:
+          type: integer
+          format: int64
+        bet_type:
+          $ref: "#/components/schemas/BetType"
+        snapshot_kind:
+          $ref: "#/components/schemas/SnapshotKind"
+        odds_snapshot_id:
+          type: integer
+          format: int64
+        num_items:
+          type: integer
+          minimum: 0
+
+    RaceResultUpsert:
+      type: object
+      required: [race_key, finish_position]
+      properties:
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+        finish_position:
+          type: integer
+          format: int32
+        horse_number:
+          type: integer
+          format: int32
+          nullable: true
+        time_str:
+          type: string
+          nullable: true
+        margin:
+          type: string
+          nullable: true
+        last3f:
+          type: number
+          format: float
+          nullable: true
+        popularity:
+          type: integer
+          nullable: true
+        corner1:
+          type: string
+          nullable: true
+        corner2:
+          type: string
+          nullable: true
+        corner3:
+          type: string
+          nullable: true
+        corner4:
+          type: string
+          nullable: true
+
+    RaceResultUpsertBatchRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/RaceResultUpsert"
+
+    PayoutUpsert:
+      type: object
+      required: [race_key, bet_type, legs, is_ordered]
+      properties:
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+        bet_type:
+          $ref: "#/components/schemas/BetType"
+        legs:
+          type: array
+          items:
+            type: integer
+            format: int32
+        is_ordered:
+          type: boolean
+        payout_yen:
+          type: integer
+          format: int32
+          nullable: true
+        popularity:
+          type: integer
+          nullable: true
+
+    PayoutUpsertBatchRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PayoutUpsert"
+
+    RaceChangeInsert:
+      type: object
+      required: [race_key, change_type, payload, captured_at]
+      properties:
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+        change_type:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        captured_at:
+          type: string
+          format: date-time
+
+    RaceChangeInsertBatchRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/RaceChangeInsert"
+
+    RawFetchLogInsert:
+      type: object
+      required: [page_type, url, http_status, fetched_at]
+      properties:
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+          nullable: true
+        page_type:
+          type: string
+        url:
+          type: string
+        http_status:
+          type: integer
+          format: int32
+        sha256:
+          type: string
+          nullable: true
+        storage_path:
+          type: string
+          nullable: true
+        fetched_at:
+          type: string
+          format: date-time
+        note:
+          type: string
+          nullable: true
+
+    RawFetchLogInsertBatchRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/RawFetchLogInsert"

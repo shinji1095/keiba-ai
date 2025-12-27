@@ -171,6 +171,11 @@ fixtures/
       odds_3renpuku__flg=auto__snap=manual__expected=5xx.html
 ```
 
+> 重要: `OddsTanFuku` / `OddsWakuLenFukuTan` は **1ページ内に2式別** が同居する。
+> - fixture のファイル名 `odds_tanfuku` / `odds_waku` は **page_type（ページ種別）** を表す。
+> - 正規化後の `bet_type` は **別々** に出力する（`tansho` と `fukusho`、`wakuren` と `wakutan`）。
+
+
 > 補足
 > - `RR` は 2桁ゼロ埋め（例: 03）。
 > - 取得結果ログは **必ず append-only**（上書きしない）にする。

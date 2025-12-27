@@ -39,6 +39,7 @@
 - 物理DB: PostgreSQL
 - 方式: SQLマイグレーション（`migrations/sql/0001_init.sql` から順次適用）
 - 主要テーブル: `venues, races, race_entries, odds_snapshots, odds_items, race_results, payouts, race_changes, raw_fetch_logs`
+- `bet_type` は `tansho/fukusho/wakuren/wakutan/umaren/umatan/wide/sanrenpuku/sanrentan` を採用（`tanfuku` の統合表現は使わない）
 - Upsertキーとユニーク制約は `source_shared/25_database_definition.md` に統一
 - Raw HTML はDBに格納せず、**ファイル保存＋`raw_fetch_logs.storage_path`** で参照（容量・運用の観点）
 
