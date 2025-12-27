@@ -4,6 +4,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "./app/layout/AppShell";
 import { RequireToken } from "./app/auth/RequireToken";
 import { LoginPage } from "./features/auth/LoginPage";
+import { RegisterPage } from "./features/auth/RegisterPage";
 import { OverviewPage } from "./features/overview/OverviewPage";
 import { VenuesPage } from "./features/venues/VenuesPage";
 import { RacesPage } from "./features/races/RacesPage";
@@ -17,6 +18,10 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    path: "/register",
+    element: <RegisterPage />,
   },
   {
     path: "/",

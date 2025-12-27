@@ -26,6 +26,7 @@ import {
   RawFetchLogInsertBatchRequest,
   SnapshotKind,
   TokenResponse,
+  UserRegisterRequest,
   VenueListResponse,
 } from "./generated";
 import { apiFetch, UnauthorizedHandler } from "./http";
@@ -43,6 +44,15 @@ export const api = {
     apiFetch<TokenResponse>({
       ...ctx,
       path: "/auth/login",
+      method: "POST",
+      body: req,
+      retryOnUnauthorized: false,
+    }),
+
+  register: (ctx: Omit<ApiCtx, "token" | "onUnauthorized">, req: UserRegisterRequest) =>
+    apiFetch<TokenResponse>({
+      ...ctx,
+      path: "/auth/register",
       method: "POST",
       body: req,
       retryOnUnauthorized: false,

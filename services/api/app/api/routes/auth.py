@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response, Cookie
+from fastapi import APIRouter, Depends, Response, Cookie, status
 
 from app.core.config import settings
 from app.core.errors import AppError
@@ -8,8 +8,10 @@ from app.schemas.auth import (
     ClientCredentialsTokenRequest,
     PasswordLoginRequest,
     TokenResponse,
+    UserRegisterRequest,
 )
 from app.services.auth_service import AuthService
+from app.services.user_service import UserService
 from app.api.deps import get_db
 
 router = APIRouter()
@@ -17,6 +19,17 @@ router = APIRouter()
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: PasswordLoginRequest, response: Response, db=Depends(get_db)) -> TokenResponse:
+    svc = AuthService(db)
+    token, refresh_cookie = svc.password_login(payload.username, payload.password)
+    response.headers.append("Set-Cookie", refresh_cookie)
+    return token
+
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def register(payload: UserRegisterRequest, response: Response, db=Depends(get_db)) -> TokenResponse:
+    users = UserService(db)
+    users.create_user(payload.username, payload.password)
+
     svc = AuthService(db)
     token, refresh_cookie = svc.password_login(payload.username, payload.password)
     response.headers.append("Set-Cookie", refresh_cookie)

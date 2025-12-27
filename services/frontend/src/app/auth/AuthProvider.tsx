@@ -14,6 +14,7 @@ type AuthContextValue = {
   setUseServiceToken: (v: boolean) => void;
 
   login: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string) => Promise<void>;
   refresh: () => Promise<string | null>;
   logout: () => Promise<void>;
 };
@@ -106,6 +107,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     [baseUrl, updateFromTokenResponse],
   );
 
+  const register = React.useCallback(
+    async (username: string, password: string) => {
+      const tr = await api.register({ baseUrl }, { username, password });
+      updateFromTokenResponse(tr);
+    },
+    [baseUrl, updateFromTokenResponse],
+  );
+
   const refreshInFlight = React.useRef<Promise<string | null> | null>(null);
 
   const refresh = React.useCallback(async (): Promise<string | null> => {
@@ -167,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     setUseServiceToken,
 
     login,
+    register,
     refresh,
     logout,
   };

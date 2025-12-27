@@ -35,10 +35,11 @@ npm run dev -- --host 0.0.0.0 --port 5173
 
 ## 使い方
 
-1. `/login` で `POST /auth/login` を実行して user token を取得します。
-2. 401 の場合、user token 使用中のみ `POST /auth/refresh` を自動実行してリトライします。
-3. `OAuth Clients` で client_credentials 用のクライアントを作成し、`/auth/token` で service token を発行できます。
-4. `Scrape Console` で `/scrape/*` 系のバッチ投入を手動で呼び出せます。
+1. `/register` で `POST /auth/register` を実行してユーザーを作成し、user token を取得します。
+2. `/login` で `POST /auth/login` を実行して user token を取得します。
+3. 401 の場合、user token 使用中のみ `POST /auth/refresh` を自動実行してリトライします。
+4. `OAuth Clients` で client_credentials 用のクライアントを作成し、`/auth/token` で service token を発行できます。
+5. `Scrape Console` で `/scrape/*` 系のバッチ投入を手動で呼び出せます。
 
 ## フォルダ構成（保守運用向け）
 

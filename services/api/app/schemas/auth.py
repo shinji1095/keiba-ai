@@ -11,6 +11,11 @@ class PasswordLoginRequest(BaseModel):
     password: str
 
 
+class UserRegisterRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=1)
+
+
 class ClientCredentialsTokenRequest(BaseModel):
     grant_type: Literal["client_credentials"]
     client_id: str

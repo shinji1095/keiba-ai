@@ -18,15 +18,19 @@ docker compose up --build
 
 ## 2. 認証
 
-### 2.1 Password Login（ユーザー向け）
+### 2.1 User Registration（ユーザー向け）
+
+`POST /auth/register` でユーザーを作成し、access token を返します。refresh token は HttpOnly Cookie (`refresh_token`) に設定します。
+
+### 2.2 Password Login（ユーザー向け）
 
 `POST /auth/login` で access token を返し、refresh token を HttpOnly Cookie (`refresh_token`) に設定します。
 
-### 2.2 Refresh（ローテーション）
+### 2.3 Refresh（ローテーション）
 
 `POST /auth/refresh` は Cookie の refresh token を検証し、新しい refresh token を再発行（ローテーション）します。
 
-### 2.3 Client Credentials（scraper-service）
+### 2.4 Client Credentials（scraper-service）
 
 `POST /auth/token` は `client_id / client_secret` により access token を発行します（refresh cookie は発行しません）。
 

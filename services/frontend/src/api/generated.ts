@@ -22,6 +22,11 @@ export interface PasswordLoginRequest {
   "password": string;
 }
 
+export interface UserRegisterRequest {
+  "username": string;
+  "password": string;
+}
+
 export interface ClientCredentialsTokenRequest {
   "grant_type": "client_credentials";
   "client_id": string;
