@@ -15,8 +15,8 @@
 
 ## 3. CD（段階導入）
 - Phase 1（手動デプロイ）:
-  - Ubuntu PC: `docker compose -f deploy/compose/compose.pc.yaml up -d --build`
-  - Pi: `docker compose -f deploy/compose/compose.pi.yaml up -d --build`
+  - Ubuntu PC: `docker compose --env-file .env -f deploy/compose/compose.pc.yaml up -d --build`
+  - Pi: `docker compose --env-file .env -f deploy/compose/compose.pi.yaml up -d --build`
 - Phase 2（自動化）:
   - main マージでイメージをビルドし、レジストリへpush
   - ホスト側は “pull & restart” のみ

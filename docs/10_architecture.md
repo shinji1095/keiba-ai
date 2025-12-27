@@ -23,6 +23,8 @@
 - **scraper-service（Scrapy / Raspberry Pi 常駐）**
   - 低負荷ポリシーに従い定期収集し、api-service へ送信
   - HTMLフィクスチャの採取（TDD用）
+- **frontend（React / Typescript / Vite）**
+  - ダッシュボード
 
 ---
 
