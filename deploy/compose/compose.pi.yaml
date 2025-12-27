@@ -1,0 +1,10 @@
+services:
+  scraper:
+    build:
+      context: ../../services/scraper
+    environment:
+      TZ: ${TZ}
+      PC_API_URL: ${PC_API_URL}
+    volumes:
+      - ../../services/scraper/src:/app/src
+      - ../../services/scraper/scrapy.cfg:/app/scrapy.cfg
