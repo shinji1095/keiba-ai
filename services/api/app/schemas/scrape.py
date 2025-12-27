@@ -1,0 +1,133 @@
+from __future__ import annotations
+
+import datetime as dt
+from typing import Any, Optional
+
+from pydantic import BaseModel, Field
+
+from app.schemas.odds import BetType, SnapshotKind
+from app.schemas.race import RaceKey
+
+
+class BatchUpsertResponse(BaseModel):
+    accepted: int
+    upserted: int
+    warnings: Optional[list[str]] = None
+
+
+class RaceUpsert(BaseModel):
+    race_key: RaceKey
+    start_time: Optional[dt.time] = None
+    distance_m: Optional[int] = None
+    course: Optional[str] = None
+    weather: Optional[str] = None
+    track_condition: Optional[str] = None
+    race_name: Optional[str] = None
+    field_size: Optional[int] = None
+    status: Optional[str] = None
+
+
+class RaceUpsertBatchRequest(BaseModel):
+    items: list[RaceUpsert] = Field(min_length=1)
+
+
+class RaceEntryUpsert(BaseModel):
+    race_key: RaceKey
+    horse_id: Optional[int] = None
+    post_position: Optional[int] = None
+    horse_number: int
+    horse_name: str
+    jockey_name: Optional[str] = None
+    trainer_name: Optional[str] = None
+    handicap_kg: Optional[float] = None
+    body_weight: Optional[int] = None
+    body_weight_diff: Optional[int] = None
+
+
+class RaceEntryUpsertBatchRequest(BaseModel):
+    items: list[RaceEntryUpsert] = Field(min_length=1)
+
+
+class OddsItemUpsert(BaseModel):
+    legs: list[int]
+    is_ordered: bool
+    odds_min: Optional[float] = None
+    odds_max: Optional[float] = None
+    popularity: Optional[int] = None
+    raw_text: Optional[str] = None
+
+
+class OddsSnapshotUpsertRequest(BaseModel):
+    race_key: RaceKey
+    bet_type: BetType
+    snapshot_kind: SnapshotKind
+    captured_at: dt.datetime
+    source_url: str
+    odds_flg: Optional[int] = None
+    is_final: bool = False
+    items: list[OddsItemUpsert]
+
+
+class OddsSnapshotUpsertResponse(BaseModel):
+    race_id: int
+    bet_type: BetType
+    snapshot_kind: SnapshotKind
+    odds_snapshot_id: int
+    num_items: int
+
+
+class RaceResultUpsert(BaseModel):
+    race_key: RaceKey
+    finish_position: int
+    horse_number: Optional[int] = None
+    time_str: Optional[str] = None
+    margin: Optional[str] = None
+    last3f: Optional[float] = None
+    popularity: Optional[int] = None
+    corner1: Optional[str] = None
+    corner2: Optional[str] = None
+    corner3: Optional[str] = None
+    corner4: Optional[str] = None
+
+
+class RaceResultUpsertBatchRequest(BaseModel):
+    items: list[RaceResultUpsert] = Field(min_length=1)
+
+
+class PayoutUpsert(BaseModel):
+    race_key: RaceKey
+    bet_type: BetType
+    legs: list[int]
+    is_ordered: bool
+    payout_yen: Optional[int] = None
+    popularity: Optional[int] = None
+
+
+class PayoutUpsertBatchRequest(BaseModel):
+    items: list[PayoutUpsert] = Field(min_length=1)
+
+
+class RaceChangeInsert(BaseModel):
+    race_key: RaceKey
+    change_type: str
+    payload: dict[str, Any]
+    captured_at: dt.datetime
+
+
+class RaceChangeInsertBatchRequest(BaseModel):
+    items: list[RaceChangeInsert] = Field(min_length=1)
+
+
+class RawFetchLogInsert(BaseModel):
+    race_key: Optional[RaceKey] = None
+    page_type: str
+    url: str
+    http_status: int
+    sha256: Optional[str] = None
+    storage_path: Optional[str] = None
+    fetched_at: dt.datetime
+    note: Optional[str] = None
+
+
+class RawFetchLogInsertBatchRequest(BaseModel):
+    items: list[RawFetchLogInsert] = Field(min_length=1)

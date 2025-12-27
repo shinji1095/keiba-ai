@@ -1,0 +1,25 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=local
+      - DATABASE_URL=sqlite:////app/data/app.db
+      - SECRET_KEY=change-me-in-production
+      - REDIS_ENABLED=true
+      - REDIS_URL=redis://redis:6379/0
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=adminpass
+      - ADMIN_ROLE=admin
+    volumes:
+      - api-data:/app/data
+    depends_on:
+      - redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  api-data:

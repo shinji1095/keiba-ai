@@ -1,0 +1,16 @@
+BOT_NAME = "scraper_service"
+SPIDER_MODULES = ["scraper_service.spiders"]
+NEWSPIDER_MODULE = "scraper_service.spiders"
+
+# Polite scraping defaults
+ROBOTSTXT_OBEY = True
+CONCURRENT_REQUESTS = 2
+DOWNLOAD_DELAY = 1.0
+
+# AutoThrottle（負荷抑制）
+AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_START_DELAY = 1.0
+AUTOTHROTTLE_MAX_DELAY = 10.0
+AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+
+LOG_LEVEL = "INFO"
