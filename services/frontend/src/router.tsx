@@ -1,0 +1,40 @@
+import React from "react";
+import { createBrowserRouter, Navigate } from "react-router-dom";
+
+import { AppShell } from "./app/layout/AppShell";
+import { RequireToken } from "./app/auth/RequireToken";
+import { LoginPage } from "./features/auth/LoginPage";
+import { OverviewPage } from "./features/overview/OverviewPage";
+import { VenuesPage } from "./features/venues/VenuesPage";
+import { RacesPage } from "./features/races/RacesPage";
+import { RaceDetailPage } from "./features/races/RaceDetailPage";
+import { OAuthClientsPage } from "./features/admin/OAuthClientsPage";
+import { ScrapeConsolePage } from "./features/scrape/ScrapeConsolePage";
+import { SettingsPage } from "./features/settings/SettingsPage";
+import { NotFoundPage } from "./features/system/NotFoundPage";
+
+export const router = createBrowserRouter([
+  {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
+    path: "/",
+    element: (
+      <RequireToken>
+        <AppShell />
+      </RequireToken>
+    ),
+    children: [
+      { index: true, element: <OverviewPage /> },
+      { path: "venues", element: <VenuesPage /> },
+      { path: "races", element: <RacesPage /> },
+      { path: "races/:raceId", element: <RaceDetailPage /> },
+      { path: "admin/oauth-clients", element: <OAuthClientsPage /> },
+      { path: "scrape", element: <ScrapeConsolePage /> },
+      { path: "settings", element: <SettingsPage /> },
+    ],
+  },
+  { path: "/404", element: <NotFoundPage /> },
+  { path: "*", element: <Navigate to="/404" replace /> },
+]);
