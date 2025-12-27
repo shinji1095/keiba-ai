@@ -1,17 +1,10 @@
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-
+.pytest_cache/
 .venv/
-venv/
-
 .env
 .env.*
-
-.git/
-.gitignore
-
-# Local data
-/data/
-app.db
+!.env.example
+data/
+tests/
+.github/

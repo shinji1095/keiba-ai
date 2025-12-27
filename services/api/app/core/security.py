@@ -28,7 +28,13 @@ _DKLEN = 32
 
 def hash_password(password: str) -> str:
     salt = secrets.token_bytes(_SALT_BYTES)
-    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, _PBKDF2_ITERATIONS, dklen=_DKLEN)
+    dk = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        _PBKDF2_ITERATIONS,
+        dklen=_DKLEN,
+    )
     return "pbkdf2_sha256${}${}${}".format(
         _PBKDF2_ITERATIONS,
         base64.urlsafe_b64encode(salt).decode("ascii").rstrip("="),
@@ -44,7 +50,13 @@ def verify_password(password: str, password_hash: str) -> bool:
         iters = int(iters_s)
         salt = base64.urlsafe_b64decode(salt_b64 + "==")
         expected = base64.urlsafe_b64decode(dk_b64 + "==")
-        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iters, dklen=len(expected))
+        dk = hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode("utf-8"),
+            salt,
+            iters,
+            dklen=len(expected),
+        )
         return hmac.compare_digest(dk, expected)
     except Exception:
         return False
@@ -53,7 +65,13 @@ def verify_password(password: str, password_hash: str) -> bool:
 # ------------------------------
 # JWT
 # ------------------------------
-def create_access_token(*, subject: str, sub_type: str, role: Optional[str] = None, scopes: Optional[list[str]] = None) -> tuple[str, int, dt.datetime]:
+def create_access_token(
+    *,
+    subject: str,
+    sub_type: str,
+    role: Optional[str] = None,
+    scopes: Optional[list[str]] = None,
+) -> tuple[str, int, dt.datetime]:
     expires_delta = dt.timedelta(minutes=settings.access_token_expire_minutes)
     issued_at = _now_utc()
     exp = issued_at + expires_delta

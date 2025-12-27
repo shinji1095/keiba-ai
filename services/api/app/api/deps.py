@@ -3,12 +3,17 @@ from __future__ import annotations
 from typing import Annotated, Optional
 
 from fastapi import Depends, Security
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer, SecurityScopes
+from fastapi.security import (
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+    OAuth2PasswordBearer,
+    SecurityScopes,
+)
 
 from app.core.errors import AppError
 from app.core.security import decode_access_token
-from app.db.session import SessionLocal
 from app.db.models.user import User
+from app.db.session import SessionLocal
 from app.services.user_service import UserService
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -35,7 +40,9 @@ DbDep = Annotated[object, Depends(get_db)]
 
 
 def get_current_user(
-    credentials: Annotated[Optional[HTTPAuthorizationCredentials], Security(bearer_scheme)],
+    credentials: Annotated[
+        Optional[HTTPAuthorizationCredentials], Security(bearer_scheme)
+    ],
     db=Depends(get_db),
 ) -> User:
     if credentials is None or not credentials.credentials:
@@ -72,7 +79,9 @@ class ScraperPrincipal:
 
 def get_scraper_principal(
     security_scopes: SecurityScopes,
-    token: Annotated[Optional[str], Security(scraper_oauth2, scopes=["scrape:write"])],
+    token: Annotated[
+        Optional[str], Security(scraper_oauth2, scopes=["scrape:write"])
+    ],
 ) -> ScraperPrincipal:
     if not token:
         raise AppError.unauthorized("missing bearer token")

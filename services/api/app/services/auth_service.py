@@ -26,10 +26,16 @@ class AuthService:
         self.oauth_clients = OAuthClientService(db)
         self.tokens = TokenStore()
 
-    def _token_response(self, token: str, expires_in: int, issued_at: dt.datetime) -> TokenResponse:
-        return TokenResponse(access_token=token, expires_in=expires_in, issued_at=issued_at)
+    def _token_response(
+        self, token: str, expires_in: int, issued_at: dt.datetime
+    ) -> TokenResponse:
+        return TokenResponse(
+            access_token=token, expires_in=expires_in, issued_at=issued_at
+        )
 
-    def password_login(self, username: str, password: str) -> tuple[TokenResponse, str]:
+    def password_login(
+        self, username: str, password: str
+    ) -> tuple[TokenResponse, str]:
         user = self.users.get_by_username(username)
         if user is None:
             raise AppError.unauthorized("invalid username or password")
@@ -50,9 +56,13 @@ class AuthService:
             raise AppError.unauthorized("failed to create refresh token")
 
         ttl_seconds = settings.refresh_token_expire_days * 24 * 60 * 60
-        self.tokens.set_current_refresh_jti(str(user.id), refresh_jti, ttl_seconds=ttl_seconds)
+        self.tokens.set_current_refresh_jti(
+            str(user.id), refresh_jti, ttl_seconds=ttl_seconds
+        )
 
-        return self._token_response(access_token, expires_in, issued_at), build_refresh_cookie(refresh_token)
+        return self._token_response(
+            access_token, expires_in, issued_at
+        ), build_refresh_cookie(refresh_token)
 
     def refresh(self, refresh_token: str) -> tuple[TokenResponse, str]:
         payload = decode_refresh_token(refresh_token)
@@ -69,7 +79,10 @@ class AuthService:
             raise AppError.unauthorized("refresh token not recognized")
         if current != jti:
             # reuse or old token after rotation
-            self.tokens.revoke_refresh_jti(jti, ttl_seconds=settings.refresh_token_expire_days * 24 * 60 * 60)
+            self.tokens.revoke_refresh_jti(
+                jti,
+                ttl_seconds=settings.refresh_token_expire_days * 24 * 60 * 60,
+            )
             raise AppError.unauthorized("refresh token rotated")
 
         user = self.users.get_by_id(int(user_id))
@@ -91,9 +104,13 @@ class AuthService:
 
         ttl_seconds = settings.refresh_token_expire_days * 24 * 60 * 60
         self.tokens.revoke_refresh_jti(jti, ttl_seconds=ttl_seconds)
-        self.tokens.set_current_refresh_jti(str(user.id), new_jti, ttl_seconds=ttl_seconds)
+        self.tokens.set_current_refresh_jti(
+            str(user.id), new_jti, ttl_seconds=ttl_seconds
+        )
 
-        return self._token_response(access_token, expires_in, issued_at), build_refresh_cookie(new_refresh_token)
+        return self._token_response(
+            access_token, expires_in, issued_at
+        ), build_refresh_cookie(new_refresh_token)
 
     def logout(self, refresh_token: str | None) -> None:
         if not refresh_token:
@@ -110,11 +127,15 @@ class AuthService:
             ttl_seconds = settings.refresh_token_expire_days * 24 * 60 * 60
             self.tokens.revoke_refresh_jti(jti, ttl_seconds=ttl_seconds)
 
-    def client_credentials_token(self, payload: ClientCredentialsTokenRequest) -> TokenResponse:
+    def client_credentials_token(
+        self, payload: ClientCredentialsTokenRequest
+    ) -> TokenResponse:
         if payload.grant_type != "client_credentials":
             raise AppError.bad_request("unsupported grant_type")
 
-        client = self.oauth_clients.verify_client_secret(payload.client_id, payload.client_secret)
+        client = self.oauth_clients.verify_client_secret(
+            payload.client_id, payload.client_secret
+        )
         if client is None:
             raise AppError.unauthorized("invalid client credentials")
 

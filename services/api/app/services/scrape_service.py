@@ -24,18 +24,20 @@ from app.schemas.scrape import (
 )
 
 
-def _legs_key(legs: list[int]) -> str:
-    return "-".join(str(x) for x in legs)
-
-
 class ScrapeService:
     def __init__(self, db: Session):
         self.db = db
 
     def _ensure_venue(self, baba_code: int) -> None:
-        v = self.db.query(VenueModel).filter(VenueModel.baba_code == baba_code).one_or_none()
+        v = (
+            self.db.query(VenueModel)
+            .filter(VenueModel.baba_code == baba_code)
+            .one_or_none()
+        )
         if v is None:
-            self.db.add(VenueModel(baba_code=baba_code, venue_name=f"baba_{baba_code}"))
+            self.db.add(
+                VenueModel(baba_code=baba_code, venue_name=f"baba_{baba_code}")
+            )
 
     def _get_or_create_race(self, race_key) -> RaceModel:
         self._ensure_venue(race_key.baba_code)
@@ -58,7 +60,9 @@ class ScrapeService:
             self.db.flush()
         return r
 
-    def upsert_races(self, payload: RaceUpsertBatchRequest) -> BatchUpsertResponse:
+    def upsert_races(
+        self, payload: RaceUpsertBatchRequest
+    ) -> BatchUpsertResponse:
         accepted = len(payload.items)
         upserted = 0
         warnings: list[str] = []
@@ -84,9 +88,13 @@ class ScrapeService:
                 upserted += 1
 
         self.db.commit()
-        return BatchUpsertResponse(accepted=accepted, upserted=upserted, warnings=warnings or None)
+        return BatchUpsertResponse(
+            accepted=accepted, upserted=upserted, warnings=warnings or None
+        )
 
-    def upsert_entries(self, payload: RaceEntryUpsertBatchRequest) -> BatchUpsertResponse:
+    def upsert_entries(
+        self, payload: RaceEntryUpsertBatchRequest
+    ) -> BatchUpsertResponse:
         accepted = len(payload.items)
         upserted = 0
         warnings: list[str] = []
@@ -95,7 +103,10 @@ class ScrapeService:
             r = self._get_or_create_race(item.race_key)
             e = (
                 self.db.query(RaceEntryModel)
-                .filter(RaceEntryModel.race_id == r.race_id, RaceEntryModel.horse_number == item.horse_number)
+                .filter(
+                    RaceEntryModel.race_id == r.race_id,
+                    RaceEntryModel.horse_number == item.horse_number,
+                )
                 .one_or_none()
             )
             if e is None:
@@ -130,21 +141,23 @@ class ScrapeService:
                 upserted += 1
 
         self.db.commit()
-        return BatchUpsertResponse(accepted=accepted, upserted=upserted, warnings=warnings or None)
+        return BatchUpsertResponse(
+            accepted=accepted, upserted=upserted, warnings=warnings or None
+        )
 
-    def upsert_odds_snapshot(self, payload: OddsSnapshotUpsertRequest) -> OddsSnapshotUpsertResponse:
+    def upsert_odds_snapshot(
+        self, payload: OddsSnapshotUpsertRequest
+    ) -> OddsSnapshotUpsertResponse:
         r = self._get_or_create_race(payload.race_key)
 
-        odds_flg_norm = payload.odds_flg if payload.odds_flg is not None else -1
-
-        # Upsert by stable key (race, bet_type, snapshot_kind, odds_flg)
         snap = (
             self.db.query(OddsSnapshotModel)
             .filter(
                 OddsSnapshotModel.race_id == r.race_id,
                 OddsSnapshotModel.bet_type == payload.bet_type.value,
                 OddsSnapshotModel.snapshot_kind == payload.snapshot_kind.value,
-                OddsSnapshotModel.odds_flg == odds_flg_norm,
+                OddsSnapshotModel.captured_at == payload.captured_at,
+                OddsSnapshotModel.odds_flg == payload.odds_flg,
             )
             .one_or_none()
         )
@@ -155,24 +168,24 @@ class ScrapeService:
                 snapshot_kind=payload.snapshot_kind.value,
                 captured_at=payload.captured_at,
                 source_url=payload.source_url,
-                odds_flg=odds_flg_norm,
+                odds_flg=payload.odds_flg,
                 is_final=payload.is_final,
             )
             self.db.add(snap)
             self.db.flush()
         else:
-            snap.captured_at = payload.captured_at
             snap.source_url = payload.source_url
             snap.is_final = payload.is_final
 
             # Replace items
-            self.db.query(OddsItemModel).filter(OddsItemModel.odds_snapshot_id == snap.odds_snapshot_id).delete()
+            self.db.query(OddsItemModel).filter(
+                OddsItemModel.odds_snapshot_id == snap.odds_snapshot_id
+            ).delete()
 
         for it in payload.items:
             self.db.add(
                 OddsItemModel(
                     odds_snapshot_id=snap.odds_snapshot_id,
-                    legs_key=_legs_key(list(it.legs)),
                     legs=list(it.legs),
                     is_ordered=it.is_ordered,
                     odds_min=it.odds_min,
@@ -191,7 +204,9 @@ class ScrapeService:
             num_items=len(payload.items),
         )
 
-    def upsert_results(self, payload: RaceResultUpsertBatchRequest) -> BatchUpsertResponse:
+    def upsert_results(
+        self, payload: RaceResultUpsertBatchRequest
+    ) -> BatchUpsertResponse:
         accepted = len(payload.items)
         upserted = 0
         warnings: list[str] = []
@@ -200,7 +215,10 @@ class ScrapeService:
             r = self._get_or_create_race(item.race_key)
             res = (
                 self.db.query(RaceResultModel)
-                .filter(RaceResultModel.race_id == r.race_id, RaceResultModel.finish_position == item.finish_position)
+                .filter(
+                    RaceResultModel.race_id == r.race_id,
+                    RaceResultModel.finish_position == item.finish_position,
+                )
                 .one_or_none()
             )
             if res is None:
@@ -236,34 +254,36 @@ class ScrapeService:
             upserted += 1
 
         self.db.commit()
-        return BatchUpsertResponse(accepted=accepted, upserted=upserted, warnings=warnings or None)
+        return BatchUpsertResponse(
+            accepted=accepted, upserted=upserted, warnings=warnings or None
+        )
 
-    def upsert_payouts(self, payload: PayoutUpsertBatchRequest) -> BatchUpsertResponse:
+    def upsert_payouts(
+        self, payload: PayoutUpsertBatchRequest
+    ) -> BatchUpsertResponse:
         accepted = len(payload.items)
         upserted = 0
         warnings: list[str] = []
 
         for item in payload.items:
             r = self._get_or_create_race(item.race_key)
-            legs_key = _legs_key(list(item.legs))
-
-            existing = (
-                self.db.query(PayoutModel)
-                .filter(
-                    PayoutModel.race_id == r.race_id,
-                    PayoutModel.bet_type == item.bet_type.value,
-                    PayoutModel.legs_key == legs_key,
-                    PayoutModel.is_ordered == bool(item.is_ordered),
-                )
-                .one_or_none()
+            q = self.db.query(PayoutModel).filter(
+                PayoutModel.race_id == r.race_id,
+                PayoutModel.bet_type == item.bet_type.value,
+                PayoutModel.is_ordered == bool(item.is_ordered),
             )
+            # Legs match: approximate via JSON comparison (works for sqlite/json as text in most cases)
+            existing = None
+            for cand in q.all():
+                if list(cand.legs or []) == list(item.legs):
+                    existing = cand
+                    break
 
             if existing is None:
                 self.db.add(
                     PayoutModel(
                         race_id=r.race_id,
                         bet_type=item.bet_type.value,
-                        legs_key=legs_key,
                         legs=list(item.legs),
                         is_ordered=bool(item.is_ordered),
                         payout_yen=item.payout_yen,
@@ -271,7 +291,6 @@ class ScrapeService:
                     )
                 )
             else:
-                # Keep legs/legs_key stable even if upstream order changes.
                 if item.payout_yen is not None:
                     existing.payout_yen = item.payout_yen
                 if item.popularity is not None:
@@ -279,9 +298,13 @@ class ScrapeService:
             upserted += 1
 
         self.db.commit()
-        return BatchUpsertResponse(accepted=accepted, upserted=upserted, warnings=warnings or None)
+        return BatchUpsertResponse(
+            accepted=accepted, upserted=upserted, warnings=warnings or None
+        )
 
-    def insert_race_changes(self, payload: RaceChangeInsertBatchRequest) -> BatchUpsertResponse:
+    def insert_race_changes(
+        self, payload: RaceChangeInsertBatchRequest
+    ) -> BatchUpsertResponse:
         accepted = len(payload.items)
         upserted = 0
 
@@ -298,9 +321,13 @@ class ScrapeService:
             upserted += 1
 
         self.db.commit()
-        return BatchUpsertResponse(accepted=accepted, upserted=upserted, warnings=None)
+        return BatchUpsertResponse(
+            accepted=accepted, upserted=upserted, warnings=None
+        )
 
-    def insert_raw_fetch_logs(self, payload: RawFetchLogInsertBatchRequest) -> BatchUpsertResponse:
+    def insert_raw_fetch_logs(
+        self, payload: RawFetchLogInsertBatchRequest
+    ) -> BatchUpsertResponse:
         accepted = len(payload.items)
         upserted = 0
 
@@ -325,4 +352,6 @@ class ScrapeService:
             upserted += 1
 
         self.db.commit()
-        return BatchUpsertResponse(accepted=accepted, upserted=upserted, warnings=None)
+        return BatchUpsertResponse(
+            accepted=accepted, upserted=upserted, warnings=None
+        )
