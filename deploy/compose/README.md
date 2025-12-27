@@ -7,20 +7,20 @@
 ```bash
 cp .env.example .env
 # PC_API_URL を http://reverse-proxy/api に設定
-docker compose --env-file .env -f deploy/compose/compose.dev.yaml up --build
+docker compose --env-file .env -f docker-compose.dev.yaml up --build
 ```
 
 ## PC側（Ubuntu PC）
 ```bash
 cp .env.example .env
-docker compose --env-file .env -f deploy/compose/compose.pc.yaml up --build
+docker compose --env-file .env -f docker-compose.pc.yaml up --build
 ```
 
 ## Pi側（Raspberry Pi 5）
 ```bash
 cp .env.example .env
 # PC_API_URL を PC のLANアドレスに変更
-docker compose --env-file .env -f deploy/compose/compose.pi.yaml up --build
+docker compose --env-file .env -f docker-compose.pi.yaml up --build
 ```
 
 
