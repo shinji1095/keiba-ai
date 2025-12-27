@@ -15,15 +15,23 @@ class TokenStore:
     - When Redis is disabled or unavailable, fall back to in-memory store (dev only).
     """
 
+    # NOTE:
+    # In-memory stores are shared across instances so that refresh rotation works
+    # in dev/test environments without Redis.
+    _GLOBAL_MEM_CURRENT: dict[str, str] = {}
+    _GLOBAL_MEM_REVOKED: dict[str, float] = {}
+
     def __init__(self):
         self._enabled = settings.redis_enabled
         self._client: Optional[redis.Redis] = None
-        self._mem_current: dict[str, str] = {}
-        self._mem_revoked: dict[str, float] = {}
+        self._mem_current = TokenStore._GLOBAL_MEM_CURRENT
+        self._mem_revoked = TokenStore._GLOBAL_MEM_REVOKED
 
         if self._enabled:
             try:
-                self._client = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+                self._client = redis.Redis.from_url(
+                    settings.redis_url, decode_responses=True
+                )
                 # ping once (lazy failures are painful)
                 self._client.ping()
             except Exception:
@@ -42,7 +50,9 @@ class TokenStore:
             return self._client.get(f"user_refresh_jti:{user_id}")
         return self._mem_current.get(user_id)
 
-    def set_current_refresh_jti(self, user_id: str, jti: str, ttl_seconds: int) -> None:
+    def set_current_refresh_jti(
+        self, user_id: str, jti: str, ttl_seconds: int
+    ) -> None:
         if self._enabled and self._client is not None:
             self._client.setex(f"user_refresh_jti:{user_id}", ttl_seconds, jti)
             return

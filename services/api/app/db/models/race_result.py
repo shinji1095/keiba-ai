@@ -10,12 +10,17 @@ from app.db.base import Base
 class RaceResult(Base):
     __tablename__ = "race_results"
     __table_args__ = (
-        UniqueConstraint("race_id", "finish_position", name="uq_race_finish_position"),
-        UniqueConstraint("race_id", "horse_number", name="uq_race_horse_number"),
+        UniqueConstraint(
+            "race_id", "finish_position", name="uq_race_finish_position"
+        ),
     )
 
-    race_result_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    race_id: Mapped[int] = mapped_column(Integer, ForeignKey("races.race_id", ondelete="CASCADE"), index=True)
+    race_result_id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    race_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("races.race_id", ondelete="CASCADE"), index=True
+    )
 
     finish_position: Mapped[int] = mapped_column(Integer)
     horse_number: Mapped[int | None] = mapped_column(Integer, nullable=True)

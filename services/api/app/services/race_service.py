@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Optional
 
-from sqlalchemy import and_, desc
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
@@ -14,7 +14,13 @@ from app.db.models.race import Race as RaceModel
 from app.db.models.race_entry import RaceEntry as RaceEntryModel
 from app.db.models.race_result import RaceResult as RaceResultModel
 from app.db.models.venue import Venue as VenueModel
-from app.schemas.odds import BetType, OddsItem, OddsSnapshot, OddsSnapshotQueryResponse, SnapshotKind
+from app.schemas.odds import (
+    BetType,
+    OddsItem,
+    OddsSnapshot,
+    OddsSnapshotQueryResponse,
+    SnapshotKind,
+)
 from app.schemas.payout import Payout, PayoutListResponse
 from app.schemas.race import (
     Race,
@@ -29,21 +35,31 @@ from app.schemas.race import (
 from app.schemas.venue import Venue, VenueListResponse
 
 
-def _denormalize_odds_flg(v: int | None) -> int | None:
-    if v is None:
-        return None
-    return None if int(v) == -1 else int(v)
-
-
 class RaceService:
     def __init__(self, db: Session):
         self.db = db
 
     def list_venues(self) -> VenueListResponse:
-        items = self.db.query(VenueModel).order_by(VenueModel.baba_code.asc()).all()
-        return VenueListResponse(items=[Venue(baba_code=v.baba_code, venue_name=v.venue_name) for v in items])
+        items = (
+            self.db.query(VenueModel)
+            .order_by(VenueModel.baba_code.asc())
+            .all()
+        )
+        return VenueListResponse(
+            items=[
+                Venue(baba_code=v.baba_code, venue_name=v.venue_name)
+                for v in items
+            ]
+        )
 
-    def list_races(self, *, race_date: dt.date, baba_code: Optional[int], page: int, page_size: int) -> RaceListResponse:
+    def list_races(
+        self,
+        *,
+        race_date: dt.date,
+        baba_code: Optional[int],
+        page: int,
+        page_size: int,
+    ) -> RaceListResponse:
         q = self.db.query(RaceModel).filter(RaceModel.race_date == race_date)
         if baba_code is not None:
             q = q.filter(RaceModel.baba_code == baba_code)
@@ -53,7 +69,9 @@ class RaceService:
 
         items: list[RaceSummary] = []
         for r in rows:
-            rk = RaceKey(race_date=r.race_date, baba_code=r.baba_code, race_no=r.race_no)
+            rk = RaceKey(
+                race_date=r.race_date, baba_code=r.baba_code, race_no=r.race_no
+            )
             items.append(
                 RaceSummary(
                     race_id=r.race_id,
@@ -66,10 +84,16 @@ class RaceService:
         return RaceListResponse(items=items, page=page, page_size=page_size)
 
     def get_race(self, race_id: int) -> Race:
-        r = self.db.query(RaceModel).filter(RaceModel.race_id == race_id).one_or_none()
+        r = (
+            self.db.query(RaceModel)
+            .filter(RaceModel.race_id == race_id)
+            .one_or_none()
+        )
         if r is None:
             raise AppError.not_found("race not found")
-        rk = RaceKey(race_date=r.race_date, baba_code=r.baba_code, race_no=r.race_no)
+        rk = RaceKey(
+            race_date=r.race_date, baba_code=r.baba_code, race_no=r.race_no
+        )
         return Race(
             race_id=r.race_id,
             race_key=rk,
@@ -84,7 +108,12 @@ class RaceService:
         )
 
     def get_entries(self, race_id: int) -> RaceEntryListResponse:
-        exists = self.db.query(RaceModel).filter(RaceModel.race_id == race_id).count() > 0
+        exists = (
+            self.db.query(RaceModel)
+            .filter(RaceModel.race_id == race_id)
+            .count()
+            > 0
+        )
         if not exists:
             raise AppError.not_found("race not found")
         rows = (
@@ -112,8 +141,20 @@ class RaceService:
             ]
         )
 
-    def get_odds(self, *, race_id: int, snapshot_kind: SnapshotKind, bet_type: BetType, odds_flg: int | None) -> OddsSnapshotQueryResponse:
-        exists = self.db.query(RaceModel).filter(RaceModel.race_id == race_id).count() > 0
+    def get_odds(
+        self,
+        *,
+        race_id: int,
+        snapshot_kind: SnapshotKind,
+        bet_type: BetType,
+        odds_flg: int | None,
+    ) -> OddsSnapshotQueryResponse:
+        exists = (
+            self.db.query(RaceModel)
+            .filter(RaceModel.race_id == race_id)
+            .count()
+            > 0
+        )
         if not exists:
             raise AppError.not_found("race not found")
 
@@ -143,7 +184,7 @@ class RaceService:
             snapshot_kind=SnapshotKind(snap.snapshot_kind),
             captured_at=snap.captured_at,
             source_url=snap.source_url,
-            odds_flg=_denormalize_odds_flg(snap.odds_flg),
+            odds_flg=snap.odds_flg,
             is_final=bool(snap.is_final),
         )
         item_schemas = [
@@ -159,10 +200,17 @@ class RaceService:
             )
             for i in items
         ]
-        return OddsSnapshotQueryResponse(snapshot=snap_schema, items=item_schemas)
+        return OddsSnapshotQueryResponse(
+            snapshot=snap_schema, items=item_schemas
+        )
 
     def get_results(self, race_id: int) -> RaceResultListResponse:
-        exists = self.db.query(RaceModel).filter(RaceModel.race_id == race_id).count() > 0
+        exists = (
+            self.db.query(RaceModel)
+            .filter(RaceModel.race_id == race_id)
+            .count()
+            > 0
+        )
         if not exists:
             raise AppError.not_found("race not found")
         rows = (
@@ -192,7 +240,12 @@ class RaceService:
         )
 
     def get_payouts(self, race_id: int) -> PayoutListResponse:
-        exists = self.db.query(RaceModel).filter(RaceModel.race_id == race_id).count() > 0
+        exists = (
+            self.db.query(RaceModel)
+            .filter(RaceModel.race_id == race_id)
+            .count()
+            > 0
+        )
         if not exists:
             raise AppError.not_found("race not found")
         rows = (

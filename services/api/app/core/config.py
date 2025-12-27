@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
 from typing import List, Optional
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -15,24 +16,40 @@ class Settings(BaseSettings):
     jwt_issuer: str = Field(default="keiba-ai", alias="JWT_ISSUER")
     jwt_audience: str = Field(default="keiba-ai", alias="JWT_AUDIENCE")
 
-    access_token_expire_minutes: int = Field(default=15, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
-    refresh_token_expire_days: int = Field(default=30, alias="REFRESH_TOKEN_EXPIRE_DAYS")
+    access_token_expire_minutes: int = Field(
+        default=15, alias="ACCESS_TOKEN_EXPIRE_MINUTES"
+    )
+    refresh_token_expire_days: int = Field(
+        default=30, alias="REFRESH_TOKEN_EXPIRE_DAYS"
+    )
 
-    refresh_cookie_secure: bool = Field(default=False, alias="REFRESH_COOKIE_SECURE")
-    refresh_cookie_samesite: str = Field(default="lax", alias="REFRESH_COOKIE_SAMESITE")
-    refresh_cookie_domain: Optional[str] = Field(default=None, alias="REFRESH_COOKIE_DOMAIN")
+    refresh_cookie_secure: bool = Field(
+        default=False, alias="REFRESH_COOKIE_SECURE"
+    )
+    refresh_cookie_samesite: str = Field(
+        default="lax", alias="REFRESH_COOKIE_SAMESITE"
+    )
+    refresh_cookie_domain: Optional[str] = Field(
+        default=None, alias="REFRESH_COOKIE_DOMAIN"
+    )
     refresh_cookie_path: str = Field(default="/", alias="REFRESH_COOKIE_PATH")
 
-    database_url: str = Field(default="sqlite:///./app.db", alias="DATABASE_URL")
+    database_url: str = Field(
+        default="sqlite:///./app.db", alias="DATABASE_URL"
+    )
 
-    redis_url: str = Field(default="redis://localhost:6379/0", alias="REDIS_URL")
+    redis_url: str = Field(
+        default="redis://localhost:6379/0", alias="REDIS_URL"
+    )
     redis_enabled: bool = Field(default=False, alias="REDIS_ENABLED")
 
     admin_username: str = Field(default="admin", alias="ADMIN_USERNAME")
     admin_password: str = Field(default="adminpass", alias="ADMIN_PASSWORD")
     admin_role: str = Field(default="admin", alias="ADMIN_ROLE")
 
-    cors_allow_origins: List[str] = Field(default_factory=lambda: ["*"], alias="CORS_ALLOW_ORIGINS")
+    cors_allow_origins: List[str] = Field(
+        default_factory=lambda: ["*"], alias="CORS_ALLOW_ORIGINS"
+    )
 
     def clear_refresh_cookie(self) -> str:
         parts = [

@@ -10,9 +10,15 @@ from app.db.base import Base
 
 class Race(Base):
     __tablename__ = "races"
-    __table_args__ = (UniqueConstraint("race_date", "baba_code", "race_no", name="uq_race_key"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "race_date", "baba_code", "race_no", name="uq_race_key"
+        ),
+    )
 
-    race_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    race_id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
 
     race_date: Mapped[dt.date] = mapped_column(Date, index=True)
     baba_code: Mapped[int] = mapped_column(Integer, index=True)
@@ -22,7 +28,9 @@ class Race(Base):
     distance_m: Mapped[int | None] = mapped_column(Integer, nullable=True)
     course: Mapped[str | None] = mapped_column(String(50), nullable=True)
     weather: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    track_condition: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    track_condition: Mapped[str | None] = mapped_column(
+        String(50), nullable=True
+    )
     race_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     field_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str | None] = mapped_column(String(50), nullable=True)

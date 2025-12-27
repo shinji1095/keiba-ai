@@ -1,20 +1,9 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.so
-
-# Virtualenv / tooling
+tests/__pycache__/
+*.pyc
+.pytest_cache/
 .venv/
-venv/
 .env
 .env.*
-
-# Local DB / data
-/app.db
-/data/
-
-# OS
-.DS_Store
-Thumbs.db
+!.env.example
+data/
+app.db

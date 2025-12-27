@@ -20,7 +20,9 @@ class ClientCredentialsTokenRequest(BaseModel):
     grant_type: Literal["client_credentials"]
     client_id: str
     client_secret: str
-    scope: Optional[str] = Field(default=None, description="Space separated scopes (optional)")
+    scope: Optional[str] = Field(
+        default=None, description="Space separated scopes (optional)"
+    )
 
 
 class TokenResponse(BaseModel):

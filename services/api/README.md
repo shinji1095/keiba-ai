@@ -1,6 +1,6 @@
-# Keiba AI API (FastAPI)
+更新日: 2025-12-27
 
-更新日: 2025-12-27（Asia/Tokyo）
+# Keiba AI API (FastAPI)
 
 提供された `21_openapi.yaml` に基づき、FastAPI で API サーバーを構築した最小実装です。
 
@@ -46,33 +46,43 @@ OAuth client は管理者用 API で作成します:
 
 デフォルトは SQLite を `/app/data/app.db` に作成します（compose の volume で保持）。
 
-## 5. 実装上の注意
+## 5. 開発用メモ
 
-- `odds_flg` は OpenAPI 上 `nullable` だが、SQLite の UNIQUE 制約の都合で **DB では -1 に正規化**しています。
-  - API レスポンスでは `-1` を `null` に戻します。
-  - 既存 DB を使っている場合はマイグレーションが必要です（下記 TODO 参照）。
+- スコープ判定: `scrape:write`
+- Bearer 認証: `Authorization: Bearer <JWT>`
 
-## 6. TODO（レビュー指摘）
+## テスト・品質ゲート（docs/50_coding_standard.md, docs/60_ci_cd.md 準拠）
 
-- **DB マイグレーション**
-  - 現状は `create_all()` による初期生成のみ。`alembic` を導入してスキーマ変更を安全に適用する。
-  - 既存の SQLite volume を使っている場合、今回のスキーマ変更（`odds_flg` 正規化、`legs_key` 追加、UNIQUE 制約追加）に追従できないため、
-    - 開発環境: volume を作り直す
-    - 本番相当: Alembic で移行
+ローカルでの最低限のゲートは以下です。
 
-- **テスト/品質ゲート（50_coding_standard.md, 60_ci_cd.md 準拠）**
-  - `pytest` のスモーク（auth / scrape / races）
-  - `ruff`（check/format）設定の追加（`pyproject.toml`）
-  - GitHub Actions など CI の雛形追加
+- ruff check（lint）
+- ruff format --check（format）
+- pytest（テスト）
 
-- **運用/可観測性**
-  - `/health` を DB/Redis 疎通込みの readiness に拡張（liveness と分離も検討）
-  - ログ（JSON）と request_id の付与
+### ローカル実行
 
-- **セキュリティ**
-  - `SECRET_KEY` の必須化（production では起動拒否）
-  - refresh cookie の `Secure=true` を production で強制（HTTPS 前提）
-  - CORS を `*` から許可 origin リストに切替
+```bash
+python -m pip install -r requirements.txt -r requirements-dev.txt
+ruff check .
+ruff format --check .
+pytest
+```
 
-- **OpenAPI 運用**
-  - `docs/21_openapi.yaml` と実装の差分検知（CI で検証）
+### CI（GitHub Actions）
+
+`.github/workflows/ci.yml` に、上記ゲート（ruff + pytest）を実装しています。
+
+## TODO（テスト/品質ゲート・セキュリティ）
+
+### テスト/品質ゲート
+- [ ] 重要ユースケースのテスト拡充（例: odds/payouts の upsert、pagination、error envelope）
+- [ ] OpenAPI と実装の差分検知（CIで `docs/21_openapi.yaml` と実装の同期をチェック）
+- [ ] カバレッジ目標の設定（例: 70% 以上）と coverage レポート出力
+- [ ] pre-commit の導入徹底（ruff / ruff-format / yaml / 大容量ファイル禁止）
+
+### セキュリティ
+- [ ] 本番環境では `SECRET_KEY` のデフォルト値禁止（起動時に強制チェック）
+- [ ] CORS を最小化（`CORS_ALLOW_ORIGINS` を "*" ではなく許可ドメインに限定）
+- [ ] Refresh Cookie の `Secure` を本番で有効化（HTTPS前提）し、SameSite/Domain/Path を運用に合わせて固定
+- [ ] 認証系エンドポイントのレート制限（/auth/login, /auth/token, /auth/refresh）
+- [ ] セキュリティヘッダ（例: HSTS, X-Content-Type-Options など）の付与方針と実装
