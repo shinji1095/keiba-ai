@@ -11,9 +11,12 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
+COPY requirements-dev.txt /app/requirements-dev.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements-dev.txt
 
 COPY app /app/app
+COPY tests /app/tests
 COPY README.md /app/README.md
 COPY .env.example /app/.env.example
 

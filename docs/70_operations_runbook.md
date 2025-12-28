@@ -5,6 +5,7 @@
   - 取得件数（時間あたり）
   - 失敗率（HTTP/timeout）
   - パーサ崩壊検知回数
+  - /health（PC → Pi の疎通確認）
 - api:
   - /health
   - エラー率

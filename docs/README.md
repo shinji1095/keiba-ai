@@ -19,7 +19,8 @@ MLOps とマイクロサービスでは「動くコード」より「継続し�
 6. `50_coding_standard.md`（規約・レビュー・TDDの約束）
 7. `60_ci_cd.md`（CI/CD、ゲート、デプロイ）
 8. `70_operations_runbook.md`（監視、バックアップ、復旧、SLO）
-9. `90_decisions.md`（決定ログ：いつ・誰が・なぜ決めたか）
+9. `80_test_contracts.md`（テスト契約・設計方針・実行方法）
+10. `90_decisions.md`（決定ログ：いつ・誰が・なぜ決めたか）
 
 ## オーナーシップ（推奨）
 - Architecture/Infra: PM + Backend Lead

@@ -41,6 +41,7 @@
 
 - 外部からの入口は reverse-proxy のみ
 - Pi → PC は **scraper → api-service のみ**
+- PC → Pi は **scraper health check（GET /health）** のみ
 - 認証方式:
   - Access: `Authorization: Bearer <JWT>`（15分）
   - Refresh: HttpOnly Cookie（30日, rotation, Redis revoke）
