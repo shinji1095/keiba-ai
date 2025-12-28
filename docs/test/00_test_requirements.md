@@ -3,6 +3,7 @@
 - 2025-12-28: API/フロントエンドの定義済み・追加テスト要件を追記。
 - 2025-12-28: テスト分類と追加実装の反映。
 - 2025-12-28: scraper の定期同期/差分同期テスト要件を追加。
+- 2025-12-28: 手動実行タスク/定期実行状態/同期APIのテスト要件を追加。
 
 # テスト要件
 
@@ -171,6 +172,50 @@
 - テスト分類: 単体テスト
 - 対象機能・モジュール: scraper-service sync diff
 - 実装状況: 追加テストあり（services/scraper/tests/test_sync_diff.py）
+
+### TR-015: 手動実行タスクAPI
+- 要件ID: TR-015
+- 要件名: 手動実行タスクの受付
+- 要件の説明: `POST /scrape/manual-tasks` が最小入力で受理され、タスクIDが返ること。
+- 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/manual-tasks
+- 関連リスクID: RISK-003
+- テスト観点: 正常系
+- テスト分類: 結合テスト
+- 対象機能・モジュール: api-service scrape control
+- 実装状況: 未実装
+
+### TR-016: 定期実行状態API
+- 要件ID: TR-016
+- 要件名: 定期実行の状態参照
+- 要件の説明: `GET /scrape/schedule` がオン/オフ状態を返すこと。
+- 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/schedule
+- 関連リスクID: RISK-003
+- テスト観点: 正常系
+- テスト分類: 結合テスト
+- 対象機能・モジュール: api-service scrape control
+- 実装状況: 未実装
+
+### TR-017: 同期トリガAPI
+- 要件ID: TR-017
+- 要件名: 手動同期の開始
+- 要件の説明: `POST /scrape/sync` が手動同期の開始を受理すること。
+- 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/sync
+- 関連リスクID: RISK-003
+- テスト観点: 正常系
+- テスト分類: 結合テスト
+- 対象機能・モジュール: api-service scrape sync
+- 実装状況: 未実装
+
+### TR-018: 同期状態API
+- 要件ID: TR-018
+- 要件名: 定期同期/差分同期の状態参照
+- 要件の説明: `GET /scrape/sync/status` が同期状態（1日1回/差分）を返すこと。
+- 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/sync/status
+- 関連リスクID: RISK-003
+- テスト観点: 正常系
+- テスト分類: 結合テスト
+- 対象機能・モジュール: api-service scrape sync
+- 実装状況: 未実装
 
 ### TR-101: ログイン画面（UI/E2E）
 - 要件ID: TR-101

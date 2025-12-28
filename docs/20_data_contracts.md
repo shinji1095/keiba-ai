@@ -1,7 +1,11 @@
 # 20 Data Contracts（DB / API / イベント契約）
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2025-12-27（Asia/Tokyo）
+更新日: 2025-12-28（Asia/Tokyo）
+
+更新履歴
+- 2025-12-27: 初版作成。
+- 2025-12-28: 手動実行/定期実行状態/同期のAPI契約を追記。
 
 このドキュメントは、**scraper-service → api-service → DB** までの「壊れない約束（契約）」を定義する。  
 実装（コード・内部構造）は変えてもよいが、**契約変更は原則として後方互換**を維持する。
@@ -146,6 +150,12 @@ api-service は **イベントを受け取り DB へ反映**する。
 ### 5.3 参照API（frontend / backtest / debug）
 - `GET /races`（`race_date` / `baba_code` で検索、ページング対応）
 - `GET /races/{race_id}/odds`（`snapshot_kind` 等でフィルタ）
+
+### 5.4 スクレイプ制御API（手動実行/定期/同期）
+- `POST /scrape/manual-tasks`（競馬場必須、日時/レース順は任意）
+- `GET /scrape/schedule`（定期実行のオン/オフ状態）
+- `POST /scrape/sync`（手動同期の開始）
+- `GET /scrape/sync/status`（定期同期/差分同期の状態）
 
 ---
 

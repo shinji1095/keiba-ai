@@ -1,7 +1,11 @@
 # Architecture（サービス境界・配置・データフロー）
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2025-12-27（Asia/Tokyo）
+更新日: 2025-12-28（Asia/Tokyo）
+
+更新履歴
+- 2025-12-27: 初版作成。
+- 2025-12-28: 手動実行/定期実行状態/同期のAPIを反映。
 
 ---
 
@@ -42,6 +46,7 @@
 - 外部からの入口は reverse-proxy のみ
 - Pi → PC は **scraper → api-service のみ**
 - PC → Pi は **scraper health check（GET /health）** のみ
+- 手動実行/定期実行状態/同期のAPIは api-service 内で完結（PC→Piの新規通信は追加しない）
 - 認証方式:
   - Access: `Authorization: Bearer <JWT>`（15分）
   - Refresh: HttpOnly Cookie（30日, rotation, Redis revoke）

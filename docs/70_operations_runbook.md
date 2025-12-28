@@ -1,11 +1,20 @@
 # Operations Runbook（監視・バックアップ・復旧）
 
+作成日: 2025-12-27（Asia/Tokyo）  
+更新日: 2025-12-28（Asia/Tokyo）
+
+更新履歴
+- 2025-12-27: 初版作成。
+- 2025-12-28: 定期実行/同期の監視項目を追記。
+
 ## 1. 監視対象（最低限）
 - scraper:
   - 取得件数（時間あたり）
   - 失敗率（HTTP/timeout）
   - パーサ崩壊検知回数
   - /health（PC → Pi の疎通確認）
+  - 定期実行の状態（/scrape/schedule）
+  - 定期同期/差分同期の状態（/scrape/sync/status）
 - api:
   - /health
   - エラー率
