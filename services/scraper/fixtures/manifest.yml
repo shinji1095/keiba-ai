@@ -1,0 +1,12 @@
+- name: sample_racelist
+  race_key:
+    race_date: "2025-12-26"
+    baba_code: 20
+    race_no: 1
+  device: pc
+  page_name: RaceList
+  url: "https://www.keiba.go.jp/KeibaWeb/TodayRaceInfo/RaceList?k_raceDate=2025%2F12%2F26&k_babaCode=20"
+  out: "2025-12-26_20/racelist.html"
+  snapshot_kind: manual
+  expect:
+    http_status: 200

@@ -1,11 +1,18 @@
 FROM python:3.12-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
 
-COPY scrapy.cfg /app/scrapy.cfg
-COPY src /app/src
-ENV PYTHONPATH=/app/src
+# Install dependencies
+COPY requirements/base.txt /app/requirements/base.txt
+RUN pip install --no-cache-dir -r /app/requirements/base.txt
 
-CMD ["python", "-m", "scraper_service.run"]
+# Copy source
+COPY scraper_service /app/scraper_service
+COPY README.md /app/README.md
+COPY pyproject.toml /app/pyproject.toml
+
+# Default command prints help
+CMD ["python", "-m", "scraper_service.cli", "--help"]
