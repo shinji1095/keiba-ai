@@ -6,6 +6,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY scrapy.cfg /app/scrapy.cfg
 COPY src /app/src
+COPY tests /app/tests
 ENV PYTHONPATH=/app/src
 
 CMD ["python", "-m", "scraper_service.run"]

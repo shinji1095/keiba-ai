@@ -8,3 +8,13 @@ services:
     volumes:
       - ./services/scraper/src:/app/src
       - ./services/scraper/scrapy.cfg:/app/scrapy.cfg
+
+  scraper-health:
+    build:
+      context: services/scraper
+    command: ["python", "-m", "scraper_service.health_server"]
+    environment:
+      TZ: ${TZ}
+      SCRAPER_HEALTH_PORT: ${SCRAPER_HEALTH_PORT:-8081}
+    ports:
+      - "${SCRAPER_HEALTH_PORT:-8081}:${SCRAPER_HEALTH_PORT:-8081}"
