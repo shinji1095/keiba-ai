@@ -57,6 +57,9 @@ export function LoginPage(): React.JSX.Element {
         </div>
 
         <div className="row" style={{ justifyContent: "flex-end", marginTop: 12 }}>
+          <Link className="btn" to="/register" state={{ from }}>
+            Sign up
+          </Link>
           <button className="btn primary" disabled={busy || !username || !password} type="submit">
             {busy ? "Signing in..." : "Sign in"}
           </button>
