@@ -17,8 +17,22 @@ export function getApiBaseUrl(): string {
   return (v && v.trim()) || "/api";
 }
 
+function normalizeBaseUrl(baseUrl: string): string {
+  const trimmed = baseUrl.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/")) {
+    if (typeof window !== "undefined" && window.location?.origin) {
+      return `${window.location.origin}${trimmed}`;
+    }
+  }
+  return trimmed;
+}
+
 function buildUrl(baseUrl: string, path: string, query?: Record<string, unknown>): string {
-  const url = new URL(path, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`);
+  const normalized = normalizeBaseUrl(baseUrl);
+  const base = normalized.endsWith("/") ? normalized : `${normalized}/`;
+  const safePath = path.startsWith("/") ? path.slice(1) : path;
+  const url = new URL(safePath, base);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       if (v === undefined || v === null) continue;
