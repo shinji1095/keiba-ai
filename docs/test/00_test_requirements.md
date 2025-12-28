@@ -2,6 +2,7 @@
 - 2025-12-28: 初版作成。
 - 2025-12-28: API/フロントエンドの定義済み・追加テスト要件を追記。
 - 2025-12-28: テスト分類と追加実装の反映。
+- 2025-12-28: scraper の定期同期/差分同期テスト要件を追加。
 
 # テスト要件
 
@@ -148,6 +149,28 @@
 - テスト分類: 結合テスト
 - 対象機能・モジュール: api-service scrape routes, DB upsert
 - 実装状況: 既存テストあり（services/api/tests/test_scrape_and_races.py）
+
+### TR-013: scraper 日次同期の判定
+- 要件ID: TR-013
+- 要件名: 日次同期の判定（JST）
+- 要件の説明: scraper が同期を1日1回（JST）に制御でき、同日内は不要な同期を抑止し、日付跨ぎで同期が許可されること。
+- 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.1
+- 関連リスクID: RISK-001, RISK-003
+- テスト観点: 正常系／境界値
+- テスト分類: 単体テスト
+- 対象機能・モジュール: scraper-service sync policy
+- 実装状況: 追加テストあり（services/scraper/tests/test_sync_policy.py）
+
+### TR-014: scraper 差分同期の判定
+- 要件ID: TR-014
+- 要件名: 差分キーとfingerprint判定
+- 要件の説明: scope_key と page_type 等で差分キーを構成し、fingerprint（sha256）が前回と同一なら同期をスキップできること。
+- 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.1
+- 関連リスクID: RISK-001
+- テスト観点: 正常系／異常系
+- テスト分類: 単体テスト
+- 対象機能・モジュール: scraper-service sync diff
+- 実装状況: 追加テストあり（services/scraper/tests/test_sync_diff.py）
 
 ### TR-101: ログイン画面（UI/E2E）
 - 要件ID: TR-101
