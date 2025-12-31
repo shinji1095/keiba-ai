@@ -2,9 +2,16 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, status
 
-from app.api.deps import ScraperPrincipal, get_db, get_scraper_principal
+from app.api.deps import (
+    get_current_user,
+    get_db,
+    get_scraper_principal,
+    ScraperPrincipal,
+)
 from app.schemas.scrape import (
     BatchUpsertResponse,
+    ManualScrapeTaskRequest,
+    ManualScrapeTaskResponse,
     OddsSnapshotUpsertRequest,
     OddsSnapshotUpsertResponse,
     PayoutUpsertBatchRequest,
@@ -13,10 +20,55 @@ from app.schemas.scrape import (
     RaceResultUpsertBatchRequest,
     RaceUpsertBatchRequest,
     RawFetchLogInsertBatchRequest,
+    ScrapeScheduleStatus,
+    ScrapeSyncRequest,
+    ScrapeSyncResponse,
+    ScrapeSyncStatus,
 )
+from app.services.scrape_control_service import ScrapeControlService
 from app.services.scrape_service import ScrapeService
 
 router = APIRouter()
+
+
+@router.post(
+    "/scrape/manual-tasks",
+    response_model=ManualScrapeTaskResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def request_manual_task(
+    payload: ManualScrapeTaskRequest,
+    _=Depends(get_current_user),
+) -> ManualScrapeTaskResponse:
+    svc = ScrapeControlService()
+    return svc.request_manual_task(payload)
+
+
+@router.get("/scrape/schedule", response_model=ScrapeScheduleStatus)
+def get_schedule() -> ScrapeScheduleStatus:
+    svc = ScrapeControlService()
+    return svc.get_schedule()
+
+
+@router.post(
+    "/scrape/sync",
+    response_model=ScrapeSyncResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def trigger_sync(
+    payload: ScrapeSyncRequest | None = None,
+    _=Depends(get_current_user),
+) -> ScrapeSyncResponse:
+    svc = ScrapeControlService()
+    return svc.trigger_sync(payload)
+
+
+@router.get("/scrape/sync/status", response_model=ScrapeSyncStatus)
+def get_sync_status(
+    _=Depends(get_current_user),
+) -> ScrapeSyncStatus:
+    svc = ScrapeControlService()
+    return svc.get_sync_status()
 
 
 @router.post(

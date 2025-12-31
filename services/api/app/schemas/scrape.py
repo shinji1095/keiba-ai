@@ -15,6 +15,48 @@ class BatchUpsertResponse(BaseModel):
     warnings: Optional[list[str]] = None
 
 
+class ManualScrapeTaskRequest(BaseModel):
+    race_date: Optional[dt.date] = Field(
+        default=None, description="YYYY-MM-DD (JST). Omit to use today (JST)."
+    )
+    baba_code: int
+    race_no: Optional[int] = Field(default=None, ge=1, le=12)
+    reason: Optional[str] = None
+
+
+class ManualScrapeTaskResponse(BaseModel):
+    task_id: str
+    status: str
+    accepted_at: dt.datetime
+
+
+class ScrapeScheduleStatus(BaseModel):
+    enabled: bool
+    baba_codes: Optional[list[int]] = None
+    mode: Optional[str] = None
+    updated_at: dt.datetime
+    note: Optional[str] = None
+
+
+class ScrapeSyncRequest(BaseModel):
+    reason: Optional[str] = None
+
+
+class ScrapeSyncResponse(BaseModel):
+    sync_id: str
+    status: str
+    started_at: dt.datetime
+
+
+class ScrapeSyncStatus(BaseModel):
+    enabled: bool
+    interval_days: int = Field(ge=1)
+    diff_enabled: bool
+    last_synced_at: Optional[dt.datetime] = None
+    next_scheduled_at: Optional[dt.datetime] = None
+    last_fingerprint: Optional[str] = None
+
+
 class RaceUpsert(BaseModel):
     race_key: RaceKey
     start_time: Optional[dt.time] = None

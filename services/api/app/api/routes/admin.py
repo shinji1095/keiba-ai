@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.api.deps import get_db, require_admin
 from app.schemas.admin import (
@@ -16,7 +16,11 @@ from app.services.oauth_client_service import OAuthClientService
 router = APIRouter()
 
 
-@router.post("/oauth-clients", response_model=OAuthClientCreateResponse)
+@router.post(
+    "/oauth-clients",
+    response_model=OAuthClientCreateResponse,
+    status_code=201,
+)
 def create_oauth_client(
     payload: OAuthClientCreateRequest,
     db=Depends(get_db),
@@ -28,8 +32,8 @@ def create_oauth_client(
 
 @router.get("/oauth-clients", response_model=OAuthClientListResponse)
 def list_oauth_clients(
-    page: int = 1,
-    page_size: int = 50,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
     db=Depends(get_db),
     _=Depends(require_admin),
 ) -> OAuthClientListResponse:

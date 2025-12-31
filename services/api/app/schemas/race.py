@@ -3,13 +3,13 @@ from __future__ import annotations
 import datetime as dt
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RaceKey(BaseModel):
     race_date: dt.date
     baba_code: int
-    race_no: int
+    race_no: int = Field(ge=1, le=12)
 
 
 class RaceSummary(BaseModel):
