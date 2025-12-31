@@ -38,6 +38,8 @@ OAuth client は管理者用 API で作成します:
 
 - `POST /admin/oauth-clients`
 
+※ Pi からの `/scrape/schedule` 取得は PC 経由の内部通信のみを想定するため、認証なし運用です。
+
 ## 3. 環境変数
 
 `.env.example` を参照してください。
@@ -71,6 +73,11 @@ pytest
 ### CI（GitHub Actions）
 
 `.github/workflows/ci.yml` に、上記ゲート（ruff + pytest）を実装しています。
+
+## TODO（スクレイピング連携）
+
+- [ ] 定期実行 on/off と `baba_codes` 管理の永続化（api-service 実装）
+- [ ] `GET /scrape/schedule` の返却内容実装（enabled, baba_codes, interval_days など）
 
 ## TODO（テスト/品質ゲート・セキュリティ）
 

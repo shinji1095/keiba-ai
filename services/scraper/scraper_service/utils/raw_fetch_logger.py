@@ -37,17 +37,24 @@ class RawFetchLogger:
                     ]
                 )
 
-    def record(self, res: FetchResult, *, race_key: Optional[RaceKey], note: str = "") -> RawFetchLogInsert:
+    def record(
+        self,
+        res: FetchResult,
+        *,
+        race_date: Optional[str],
+        baba_code: Optional[int],
+        race_no: Optional[int],
+        note: str = "",
+    ) -> RawFetchLogInsert:
         with self.csv_path.open("a", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
-            rk = race_key
             w.writerow(
                 [
                     res.fetched_at,
                     res.page_type,
-                    rk.race_date if rk else "",
-                    rk.baba_code if rk else "",
-                    rk.race_no if rk else "",
+                    race_date or "",
+                    baba_code if baba_code is not None else "",
+                    race_no if race_no is not None else "",
                     res.url,
                     res.final_url,
                     res.http_status,
@@ -59,6 +66,10 @@ class RawFetchLogger:
                     note,
                 ]
             )
+
+        race_key = None
+        if race_date and baba_code is not None and race_no is not None:
+            race_key = RaceKey(race_date=race_date, baba_code=baba_code, race_no=race_no)
 
         return RawFetchLogInsert(
             race_key=race_key,

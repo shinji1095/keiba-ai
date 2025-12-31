@@ -1,8 +1,15 @@
 # scraper-service
 
-更新日: 2025-12-27（Asia/Tokyo）
+作成日: 2025-12-27（Asia/Tokyo）  
+更新日: 2025-12-28（Asia/Tokyo）
 
-本サービスは `keiba.go.jp / TodayRaceInfo` を**低負荷ポリシー**で定期取得し、正規化したデータを api-service に投入します。
+更新履歴
+- 2025-12-27: 初版作成。
+- 2025-12-28: トリガ駆動の実行方式に更新。
+- 2025-12-28: 外部スケジューラ手順を追記。
+- 2025-12-28: cronコンテナ運用とAPI制御方針を追記。
+
+本サービスは `keiba.go.jp / TodayRaceInfo` を**低負荷ポリシー**で定期/手動トリガ実行し、Pi 側に保存したうえで差分同期により api-service に反映します。
 
 - 取得対象/スケジュール/例外/負荷: `04_scraping_requirements.md`
 - サイト構造（PageName / URL規約）: `01_site_structure.md`
@@ -12,9 +19,9 @@
 
 ## 1. できること（スコープ）
 
-- PC版を正として、以下のページを取得し HTML を保存（sha256 採番）しつつ、パースして api-service へ POST します。
+- PC版を正として、以下のページを取得し HTML を保存（sha256 採番）しつつ、パース結果を Pi 側に保存します。
   - TodayRaceInfoTop / RaceList / DebaTable / RaceMarkTable / RefundMoneyList / Odds*（7ページ）
-- 取得ログ（raw_fetch_logs）を api-service に投入できます（`POST /scrape/raw-fetch-logs`）。
+- 取得ログ（raw_fetch_logs）は Pi 側に保存し、差分同期で api-service に反映します。
 - フィクスチャ収集（manifest.yml → HTML保存 + manifest_log.csv）を CLI で実行できます。
 
 > 注意  
@@ -40,6 +47,7 @@
 - `KEIBA_DEVICE`（`pc` | `sp`、既定 `pc`）
 - `RAW_HTML_DIR`（既定: `./data/raw_html`）
 - `USER_AGENT`（既定は設定済み。必要に応じて変更）
+- `SCRAPER_CRON`（cron コンテナの実行間隔。例: `0 6 * * *`）
 
 ### 3.2 ローカル実行（開発）
 
@@ -63,21 +71,31 @@ python -m scraper_service.cli fixtures download --manifest fixtures/manifest.yml
 
 ### 3.4 スクレイピング（ワンショット）
 
-当日の開催場・レース一覧を取得し、直ちに取得可能なページを best-effort で取得して api-service に投入します。
+当日の開催場・レース一覧を取得し、直ちに取得可能なページを best-effort で取得して Pi 側に保存します。
 
 ```bash
-python -m scraper_service.cli scrape once --race-date 2025-12-26
+python -m scraper_service.cli scrape once --no-api --race-date 2025-12-26
 ```
 
-### 3.5 常駐（簡易スケジューラ）
+### 3.5 Pi cron コンテナ（定期実行）
 
-`RaceList` の発走時刻を一次情報として、t-5m/t-1m/final などのジョブを組み、実行します。
+scraper-cron コンテナが定期実行を担当します。  
+api-service が定期実行の on/off と baba_codes を制御し、cron コンテナはその状態に従って `scrape once --no-api` を実行します。
 
 ```bash
-python -m scraper_service.cli scrape daemon --race-date 2025-12-26
+docker compose -f docker-compose.pi.yaml up -d scraper-cron
 ```
 
-※ `--race-date` を省略すると当日（JST）を使用します。
+`scrape daemon` は非推奨です（plan固定/無限ループは採用しない）。
+
+### 3.6 手動実行
+
+- frontend → api-service → Pi control API の経路で即時実行する
+- ローカル確認は以下で実行できる
+
+```bash
+docker compose -f docker-compose.pi.yaml run --rm scraper scrape once --no-api --baba-code 18
+```
 
 > わからない  
 > レース終了のリアルタイム検知が可能かは未確認のため、RaceMarkTable/RefundMoneyList は固定遅延 + 少回数リトライで実装しています。

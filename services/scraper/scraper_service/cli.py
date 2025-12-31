@@ -10,6 +10,7 @@ from scraper_service.config import Settings, settings
 from scraper_service.fixtures.downloader import FixtureDownloader
 from scraper_service.http.client import HttpClient
 from scraper_service.scheduler.runner import ScrapeRunner
+from scraper_service.sync.runner import SyncRunner
 from scraper_service.utils.raw_fetch_logger import RawFetchLogger
 from scraper_service.utils.time import today_jst_str
 
@@ -17,8 +18,10 @@ from scraper_service.utils.time import today_jst_str
 app = typer.Typer(no_args_is_help=True)
 fixtures_app = typer.Typer(no_args_is_help=True)
 scrape_app = typer.Typer(no_args_is_help=True)
+sync_app = typer.Typer(no_args_is_help=True)
 app.add_typer(fixtures_app, name="fixtures")
 app.add_typer(scrape_app, name="scrape")
+app.add_typer(sync_app, name="sync")
 
 
 def _build_http(cfg: Settings) -> HttpClient:
@@ -67,6 +70,7 @@ def fixtures_download(
 def scrape_once(
     race_date: Optional[str] = typer.Option(None, "--race-date", help="YYYY-MM-DD (JST). default: today (JST)"),
     baba_code: list[int] = typer.Option([], "--baba-code", help="指定した開催場のみ（複数可）"),
+    race_no: Optional[int] = typer.Option(None, "--race-no", help="指定したレース番号のみ"),
     no_api: bool = typer.Option(False, "--no-api", help="api-service に送信しない（HTML保存のみ）"),
 ) -> None:
     race_date = _resolve_race_date(race_date)
@@ -75,24 +79,25 @@ def scrape_once(
     api = _build_api(cfg, no_api=no_api)
     raw_logger = RawFetchLogger(cfg.local_log_dir / "raw_fetch_logs.csv")
     runner = ScrapeRunner(settings=cfg, http=http, api=api, raw_logger=raw_logger)
-    runner.run_once(race_date=race_date, baba_codes=baba_code or None)
+    runner.run_once(race_date=race_date, baba_codes=baba_code or None, race_no=race_no)
     typer.echo("ok")
 
 
-@scrape_app.command("daemon")
-def scrape_daemon(
-    race_date: Optional[str] = typer.Option(None, "--race-date", help="YYYY-MM-DD (JST). default: today (JST)"),
-    baba_code: list[int] = typer.Option([], "--baba-code", help="指定した開催場のみ（複数可）"),
-    plan_path: Path = typer.Option(Path("./data/plan.json"), "--plan-path"),
-    no_api: bool = typer.Option(False, "--no-api", help="api-service に送信しない（HTML保存のみ）"),
+@sync_app.command("run")
+def sync_run(
+    force: bool = typer.Option(False, "--force", help="同期インターバルの判定を無視して実行"),
 ) -> None:
-    race_date = _resolve_race_date(race_date)
     cfg = settings
-    http = _build_http(cfg)
-    api = _build_api(cfg, no_api=no_api)
-    raw_logger = RawFetchLogger(cfg.local_log_dir / "raw_fetch_logs.csv")
-    runner = ScrapeRunner(settings=cfg, http=http, api=api, raw_logger=raw_logger)
-    runner.run_daemon(race_date=race_date, baba_codes=baba_code or None, plan_path=plan_path)
+    api = _build_api(cfg, no_api=False)
+    if api is None:
+        typer.echo("API settings are required for sync (API_ACCESS_TOKEN or API_USERNAME/API_PASSWORD)")
+        raise typer.Exit(code=2)
+    runner = SyncRunner(settings=cfg, api=api)
+    summary = runner.run(force=force)
+    if not summary.due:
+        typer.echo("skip: sync interval not reached")
+        return
+    typer.echo(f"synced={summary.synced} skipped={summary.skipped} errors={summary.errors}")
 
 
 def main() -> None:

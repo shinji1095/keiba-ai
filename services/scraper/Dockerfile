@@ -8,10 +8,15 @@ WORKDIR /app
 # Install dependencies
 COPY requirements/base.txt /app/requirements/base.txt
 COPY requirements/dev.txt /app/requirements/dev.txt
-RUN pip install --no-cache-dir -r /app/requirements/dev.txt
+RUN apt-get update \
+    && apt-get install -y cron \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir -r /app/requirements/dev.txt
 
 # Copy source
 COPY scraper_service /app/scraper_service
+COPY cron /app/cron
+RUN chmod +x /app/cron/entrypoint.sh
 COPY tests /app/tests
 COPY README.md /app/README.md
 COPY pyproject.toml /app/pyproject.toml

@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     raw_html_dir: Path = Path("./data/raw_html")
     local_log_dir: Path = Path("./data/logs")
 
+    control_dir: Path = Path("./data/control")
+    schedule_path: Path = Path("./data/control/schedule.json")
+    sync_state_path: Path = Path("./data/logs/sync_state.json")
+    sync_interval_days: int = 2
+
     # Load control (C2 fixed)
     min_interval_sec: float = 1.5
     jitter_sec: float = 0.25
@@ -28,8 +33,7 @@ class Settings(BaseSettings):
     backoff_max_sec: float = 8.0
 
     # Additional load control
-    # Avoid hitting the exact same URL within this window. This is used
-    # by the scheduler loop (daemon mode) to defer tasks if needed.
+    # Avoid hitting the exact same URL within this window.
     same_url_cooldown_sec: float = 30.0
 
     # Scheduler
