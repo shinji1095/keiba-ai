@@ -4,6 +4,7 @@
 - 2025-12-28: テスト分類と追加実装の反映。
 - 2025-12-28: scraper の定期同期/差分同期テスト要件を追加。
 - 2025-12-28: 手動実行タスク/定期実行状態/同期APIのテスト要件を追加。
+- 2025-12-28: cronコンテナ運用と同期頻度の変更を反映。
 
 # テスト要件
 
@@ -151,10 +152,10 @@
 - 対象機能・モジュール: api-service scrape routes, DB upsert
 - 実装状況: 既存テストあり（services/api/tests/test_scrape_and_races.py）
 
-### TR-013: scraper 日次同期の判定
+### TR-013: scraper 定期同期の判定
 - 要件ID: TR-013
-- 要件名: 日次同期の判定（JST）
-- 要件の説明: scraper が同期を1日1回（JST）に制御でき、同日内は不要な同期を抑止し、日付跨ぎで同期が許可されること。
+- 要件名: 定期同期の判定（JST）
+- 要件の説明: scraper が同期を1日おき（JST）に制御でき、同日内は不要な同期を抑止し、日付跨ぎで同期が許可されること。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.1
 - 関連リスクID: RISK-001, RISK-003
 - テスト観点: 正常系／境界値
@@ -186,8 +187,8 @@
 
 ### TR-016: 定期実行状態API
 - 要件ID: TR-016
-- 要件名: 定期実行の状態参照
-- 要件の説明: `GET /scrape/schedule` がオン/オフ状態を返すこと。
+- 要件名: 定期実行の状態参照（複数競馬場）
+- 要件の説明: `GET /scrape/schedule` がオン/オフ状態と `baba_codes` を返すこと。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/schedule
 - 関連リスクID: RISK-003
 - テスト観点: 正常系
@@ -209,7 +210,7 @@
 ### TR-018: 同期状態API
 - 要件ID: TR-018
 - 要件名: 定期同期/差分同期の状態参照
-- 要件の説明: `GET /scrape/sync/status` が同期状態（1日1回/差分）を返すこと。
+- 要件の説明: `GET /scrape/sync/status` が同期状態（1日おき/差分）を返すこと。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/sync/status
 - 関連リスクID: RISK-003
 - テスト観点: 正常系

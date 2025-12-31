@@ -18,7 +18,7 @@
 - 初期フェーズでの大規模Kubernetes運用（将来移行は想定）
 
 ## 4. 制約・前提
-- Raspberry Pi 5 がスクレイピング常駐ノード
+- Raspberry Pi 5 がスクレイピング実行ノード（control API + cron コンテナ）
 - Ubuntu PC が DB/API/学習パイプライン/可視化の中心
 - スクレイピングは対象サイトの規約・robots.txtを尊重し、負荷抑制を遵守（`30_scraping_policy.md`）
 - すべて docker / docker compose を前提にし、環境差分を最小化

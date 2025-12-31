@@ -520,6 +520,7 @@ paths:
       description: |
         frontend などから手動スクレイプを依頼する。
         `race_date` を省略した場合は当日（JST）を対象とする。
+        api-service は Pi 側へ手動実行を指示する。
       security:
         - bearerAuth: []
       requestBody:
@@ -547,9 +548,9 @@ paths:
       tags: [scrape]
       summary: Get scrape schedule status
       description: |
-        定期実行（daemon）のオン/オフ状態を返す。
-      security:
-        - bearerAuth: []
+        定期実行のオン/オフ状態と対象競馬場を返す。
+        cron コンテナは本状態に従って実行する。
+        認証不要（PC 経由の内部通信を想定）
       responses:
         "200":
           description: OK
@@ -557,10 +558,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ScrapeScheduleStatus"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /scrape/sync:
     post:
@@ -1016,9 +1013,15 @@ components:
       properties:
         enabled:
           type: boolean
+        baba_codes:
+          type: array
+          items:
+            type: integer
+            format: int32
+          description: 定期実行の対象競馬場コード（複数指定）
+          nullable: true
         mode:
           type: string
-          enum: [daemon]
           nullable: true
         updated_at:
           type: string
@@ -1056,7 +1059,7 @@ components:
         interval_days:
           type: integer
           minimum: 1
-          example: 1
+          example: 2
         diff_enabled:
           type: boolean
         last_synced_at:

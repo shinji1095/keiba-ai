@@ -1,7 +1,7 @@
 # 04 スクレイピング要件（取得対象・スケジュール・例外・負荷）
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2025-12-28（Asia/Tokyo）
+更新日: 2025-12-31（Asia/Tokyo）
 
 更新履歴
 - 2025-12-27: 初版作成。
@@ -11,25 +11,27 @@
 - 2025-12-28: 差分同期の判定キーと同期対象を明記。
 - 2025-12-28: 手動実行/定期実行/同期のAPI契約を追記。
 - 2025-12-28: 定期実行のオン/オフ状態をfrontendから参照できる旨を明記。
-
+- 2025-12-28: トリガ駆動の実行方式（plan固定/日付更新なし）を明記。
+- 2025-12-28: cronコンテナによる定期実行/手動実行の制御、保存/同期方針を更新。
+- 2025-12-31: Pi 側 control API の認証不要方針を明記。
 ---
 
 ## 1. 実行モードとタスク
 
-- scraper-service は常駐し、定期実行タスクを作成・実行できる
-- 定期実行タスクは現在開催中（当日JST）のレース情報取得を目的とする
-- 定期実行は開催場単位で対象を絞り込める
-- api-service からの手動実行タスクを受け付けられる
-- 手動実行タスクの指定項目: 競馬場（必須）, 日時（任意、未指定は当日JST）, レース順（任意）
-- scraper-server は定期的に api-server と通信し、PC側にスクレイピング情報を共有する（デフォルト: 1日1回）
-- データ共有は frontend を通して手動実行できる
-- 不要な通信や処理を削減するため、差分を記録し、差分のみ同期する
+- scraper-service は **常時起動の control API** を提供し、api-service からの手動実行を受け付ける
+- Pi 側に cron コンテナを配置し、定期実行は cron コンテナが scraper-service の control API を呼び出す
+- api-service から cron コンテナに対し定期実行の on/off と baba_codes を制御する
+- 定期実行は複数競馬場（baba_codes）を指定可能
+- race_date はトリガごとに決定する（未指定は当日JST）
+- **起動時に race_date を固定した plan を作成し、無限ループする方式は採用しない**
+- スクレイピング情報（raw_html/ログ/正規化データ）は Pi 側で保存する
+- PC/Pi 間は差分確認で定期同期する（既定: 1日おき）
 - 定期実行のオン/オフ状態は frontend から参照できる
 
 ### 1.1 同期と差分管理
 
 - 同期対象: `/scrape/*` に投入する正規化データ と `raw_fetch_logs`
-- 同期頻度（既定）: 1日1回（JST）
+- 同期頻度（既定）: 1日おき（JST）
 - 差分判定（最小構成）:
   - 差分キー: `scope_key + page_type + snapshot_kind + odds_flg`
   - scope_key:
@@ -50,10 +52,22 @@
 
 - 手動実行タスク: `POST /scrape/manual-tasks`
   - 指定項目: `baba_code`（必須）, `race_date`（任意, 未指定は当日JST）, `race_no`（任意）
+  - api-service は受理後に scraper-service の control API へトリガを転送する
 - 定期実行の状態確認: `GET /scrape/schedule`
   - frontend は定期実行のオン/オフ状態を参照できる
 - 手動同期のトリガ: `POST /scrape/sync`
 - 定期同期/差分同期の状態確認: `GET /scrape/sync/status`
+
+### 1.3 Pi 側 Control API（cron 制御 / 手動実行）
+
+- 受信元: api-service のみ（PC→Pi）
+- 認証: 不要（PC 経由の内部通信を想定）
+- 定期実行の制御: `POST /control/schedule`
+  - `enabled`: boolean
+  - `baba_codes`: int[]（複数指定可）
+- 手動実行: `POST /control/scrape`
+  - 指定項目: `baba_code`（必須）, `race_date`（任意）, `race_no`（任意）
+- cron コンテナは `/control/schedule` の状態に従って実行する
 
 ## 2. 取得対象（最低限）
 
@@ -81,7 +95,8 @@
 
 ## 3. 取得スケジュール（推奨）
 
-前提: 代表オッズ（最終/5分前/1分前）は **発走時刻基準**でスケジュールする（`RaceList` の発走時刻を一次情報とする）。
+前提: スケジューリングは **トリガ駆動**で行い、scraper は **実行時点で必要な取得**を行う。  
+代表オッズ（最終/5分前/1分前）は **発走時刻基準**でトリガを組む（`RaceList` の発走時刻を一次情報とする）。
 
 ### 3.1 RaceList（当日・開催場単位）
 

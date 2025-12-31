@@ -6,6 +6,7 @@
 更新履歴
 - 2025-12-27: 初版作成。
 - 2025-12-28: 定期実行/同期の監視項目を追記。
+- 2025-12-28: cronコンテナの運用と同期頻度を反映。
 
 ## 1. 監視対象（最低限）
 - scraper:
@@ -13,8 +14,10 @@
   - 失敗率（HTTP/timeout）
   - パーサ崩壊検知回数
   - /health（PC → Pi の疎通確認）
-  - 定期実行の状態（/scrape/schedule）
-  - 定期同期/差分同期の状態（/scrape/sync/status）
+  - 定期実行の状態（/scrape/schedule、baba_codes 含む）
+  - cron コンテナの稼働/最終実行
+  - Pi 側ストレージ使用量（raw_html / logs）
+  - 定期同期/差分同期の状態（/scrape/sync/status、1日おき）
 - api:
   - /health
   - エラー率
