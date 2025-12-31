@@ -1,13 +1,14 @@
 # Architecture（サービス境界・配置・データフロー）
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2025-12-28（Asia/Tokyo）
+更新日: 2025-12-31（Asia/Tokyo）
 
 更新履歴
 - 2025-12-27: 初版作成。
 - 2025-12-28: 手動実行/定期実行状態/同期のAPIを反映。
 - 2025-12-28: scraper の実行方式をトリガ駆動へ更新。
 - 2025-12-28: cronコンテナと API 制御を反映。
+- 2025-12-31: データ同期の方向（api→scraper）と差分評価トリガを更新。
 
 ---
 
@@ -19,7 +20,7 @@
 
 - **api-service（FastAPI）**
   - 認証（Bearer/JWT + Refresh Cookie）
-  - スクレイピング結果の受け口（収集イベントの投入）
+  - 同期要求の起点（差分評価トリガ）
   - データ参照API（ダッシュボード/バックテスト/デバッグ向け）
   - 入出力契約の正: `21_openapi.yaml` / `20_data_contracts.md`
 
@@ -29,7 +30,7 @@
 - **scraper-service（Scrapy / Raspberry Pi、control API + cron）**
   - api-service からの手動実行を受け付ける control API を提供
   - 定期実行は Pi の cron コンテナが control API を呼び出す
-  - 取得データは Pi に保存し、差分同期で api-service へ送る
+  - 取得データは Pi に保存し、api-service からの同期要求をトリガとして差分を評価する（同期方向は api → scraper）
   - HTMLフィクスチャの採取（TDD用）
 - **frontend（React / Typescript / Vite）**
   - ダッシュボード
@@ -48,8 +49,8 @@
 ## 3. ネットワーク境界（前提）
 
 - 外部からの入口は reverse-proxy のみ
-- Pi → PC は **scraper → api-service（同期/差分同期）**
-- PC → Pi は **scraper control API（/control/*） と /health**
+- PC → Pi は **api-service → scraper-service（同期/差分同期の要求）**、**scraper control API（/control/*）**、**/health**
+- Pi → PC は **同期要求への応答（差分判定結果/ステータス）**
 - 定期実行は Pi の cron コンテナが担当し、api-service が on/off と baba_codes を制御する
 - 認証方式:
   - Access: `Authorization: Bearer <JWT>`（15分）
@@ -60,8 +61,8 @@
 ## 4. データフロー（代表）
 
 1. Pi: scraper が `RaceList / DebaTable / Odds* / RaceMarkTable / RefundMoneyList` を収集して Pi に保存
-2. Pi → PC: 差分同期で api-service に収集イベントを POST（例: `POST /scrape/odds-snapshots`）
-3. PC: api-service が DB に Upsert（整合性チェック、重複排除、ログ記録）
+2. PC → Pi: api-service が DB を正として同期要求を発行し、scraper と api で差分を評価
+3. PC → Pi: 差分のみを api → scraper 方向で反映
 4. PC: frontend / backtest が api-service から参照（集計・可視化）
 
 ---

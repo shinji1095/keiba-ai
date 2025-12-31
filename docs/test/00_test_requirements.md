@@ -5,6 +5,7 @@
 - 2025-12-28: scraper の定期同期/差分同期テスト要件を追加。
 - 2025-12-28: 手動実行タスク/定期実行状態/同期APIのテスト要件を追加。
 - 2025-12-28: cronコンテナ運用と同期頻度の変更を反映。
+- 2025-12-31: 同期方向を api→scraper に更新。
 
 # テスト要件
 
@@ -155,7 +156,7 @@
 ### TR-013: scraper 定期同期の判定
 - 要件ID: TR-013
 - 要件名: 定期同期の判定（JST）
-- 要件の説明: scraper が同期を1日おき（JST）に制御でき、同日内は不要な同期を抑止し、日付跨ぎで同期が許可されること。
+- 要件の説明: api-service からの同期要求に対し、scraper が1日おき（JST）に実行可否を制御でき、同日内は不要な同期を抑止し、日付跨ぎで同期が許可されること。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.1
 - 関連リスクID: RISK-001, RISK-003
 - テスト観点: 正常系／境界値
@@ -166,7 +167,7 @@
 ### TR-014: scraper 差分同期の判定
 - 要件ID: TR-014
 - 要件名: 差分キーとfingerprint判定
-- 要件の説明: scope_key と page_type 等で差分キーを構成し、fingerprint（sha256）が前回と同一なら同期をスキップできること。
+- 要件の説明: api-service からの同期要求時に scope_key と page_type 等で差分キーを構成し、fingerprint（sha256）が前回と同一なら同期をスキップできること。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.1
 - 関連リスクID: RISK-001
 - テスト観点: 正常系／異常系
@@ -199,7 +200,7 @@
 ### TR-017: 同期トリガAPI
 - 要件ID: TR-017
 - 要件名: 手動同期の開始
-- 要件の説明: `POST /scrape/sync` が手動同期の開始を受理すること。
+- 要件の説明: `POST /scrape/sync` が api-service 起点の同期要求を受理し、scraper との差分評価が開始されること。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/sync
 - 関連リスクID: RISK-003
 - テスト観点: 正常系
@@ -210,12 +211,34 @@
 ### TR-018: 同期状態API
 - 要件ID: TR-018
 - 要件名: 定期同期/差分同期の状態参照
-- 要件の説明: `GET /scrape/sync/status` が同期状態（1日おき/差分）を返すこと。
+- 要件の説明: `GET /scrape/sync/status` が api→scraper 同期の状態（1日おき/差分）を返すこと。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/sync/status
 - 関連リスクID: RISK-003
 - テスト観点: 正常系
 - テスト分類: 結合テスト
 - 対象機能・モジュール: api-service scrape sync
+- 実装状況: 未実装
+
+### TR-019: cron コンテナによる定期実行トリガ
+- 要件ID: TR-019
+- 要件名: cron→scraper の定期実行制御
+- 要件の説明: cron コンテナが `GET /control/schedule` の結果に従い、`enabled=true` の場合は `scraper_service.cli scrape once --no-api` を `baba_codes` 指定で起動し、`enabled=false` の場合は実行しないこと。
+- 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.3, docs/10_architecture.md#3, docs/70_operations_runbook.md#1
+- 関連リスクID: RISK-003
+- テスト観点: 正常系／異常系
+- テスト分類: システムテスト
+- 対象機能・モジュール: scraper-cron, scraper-service control API
+- 実装状況: 未実装
+
+### TR-020: api→scraper 同期データ送信
+- 要件ID: TR-020
+- 要件名: API から scraper への同期送信
+- 要件の説明: api-service が同期要求の結果として scraper-service に差分ペイロードを送信し、scraper 側に反映されること。
+- 根拠となる仕様・要件ID: docs/10_architecture.md#3, docs/20_data_contracts.md#5.2, docs/21_openapi.yaml:/scrape/*
+- 関連リスクID: RISK-001, RISK-004
+- テスト観点: 正常系
+- テスト分類: システムテスト
+- 対象機能・モジュール: api-service sync runner, scraper-service sync receiver
 - 実装状況: 未実装
 
 ### TR-101: ログイン画面（UI/E2E）

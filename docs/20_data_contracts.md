@@ -1,13 +1,14 @@
 # 20 Data Contracts（DB / API / イベント契約）
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2025-12-28（Asia/Tokyo）
+更新日: 2025-12-31（Asia/Tokyo）
 
 更新履歴
 - 2025-12-27: 初版作成。
 - 2025-12-28: 手動実行/定期実行状態/同期のAPI契約を追記。
+- 2025-12-31: 同期方向を api→scraper に更新。
 
-このドキュメントは、**scraper-service → api-service → DB** までの「壊れない約束（契約）」を定義する。  
+このドキュメントは、**api-service → scraper-service** の同期契約と **api-service → DB** までの「壊れない約束（契約）」を定義する。  
 実装（コード・内部構造）は変えてもよいが、**契約変更は原則として後方互換**を維持する。
 
 - DB 概念設計: `02_database_design.md`
@@ -42,8 +43,8 @@
   - それ以外は `false`
 
 ### 1.4 event_id（冪等化キー）
-- API へ送る「収集イベント」には `event_id`（UUID）を付与する
-- api-service は `event_id` を用いて **重複受信を検知し、再実行しても同じ結果**になるようにする
+- 送信する「同期イベント」には `event_id`（UUID）を付与する
+- 受信側は `event_id` を用いて **重複受信を検知し、再実行しても同じ結果**になるようにする
 
 ---
 
@@ -131,21 +132,22 @@
 - Refresh: Cookie の refresh token により実施（ボディで渡さない）
 - Logout: refresh token を失効させ、Cookie を削除する
 
-### 5.2 収集イベント（scraper → api）
-api-service は **イベントを受け取り DB へ反映**する。  
+### 5.2 同期イベント（api → scraper）
+api-service は **差分評価の結果を scraper-service へ反映**する。  
 イベントは **冪等**でなければならず、`event_id` を必須とする。
 
-- `POST /scrape/odds-snapshots`  
-  - 目的: 代表時点のオッズ集合を投入（`odds_snapshots` + `odds_items` を Upsert）
+- 同期ペイロードは `/scrape/*` の schema を共通利用する（送信方向は api → scraper）
+- `odds-snapshots`（`/scrape/odds-snapshots` スキーマ）  
+  - 目的: 代表時点のオッズ集合を同期（`odds_snapshots` + `odds_items` を Upsert）
   - 入力の最小要件:
     - `event_id`（UUID）
     - `race_key`
     - `snapshot_kind`
     - `captured_at`
     - `items[]`（bet_type/legs/is_ordered/odds_min/odds_max/popularity?）
-  - api-service は `event_id` 重複時に **同一結果**を返す（少なくとも 200/201 を維持）
+  - scraper-service は `event_id` 重複時に **同一結果**を返す（少なくとも 200/201 を維持）
 
-> 補足: `raw_fetch_logs` は初期実装では **api-service 側で追加投入**してよい（別API化は将来）。
+> 補足: `raw_fetch_logs` は初期実装では **api-service 側で保持**してよい（別API化は将来）。
 
 ### 5.3 参照API（frontend / backtest / debug）
 - `GET /races`（`race_date` / `baba_code` で検索、ページング対応）
