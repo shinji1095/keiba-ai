@@ -12,15 +12,16 @@ MLOps とマイクロサービスでは「動くコード」より「継続し�
 
 ## ドキュメント一覧（推奨読了順）
 1. `00_project_concept.md`（目的・前提・成功指標・非目標）
-2. `10_architecture.md`（サービス境界・データフロー・配置）
-3. `20_data_contracts.md`（DB・API・イベントの契約）
-4. `30_scraping_policy.md`（負荷抑制・取得タイミング・障害検知）
-5. `40_mlops_pipeline.md`（学習・評価・登録・配布・再現性）
-6. `50_coding_standard.md`（規約・レビュー・TDDの約束）
-7. `60_ci_cd.md`（CI/CD、ゲート、デプロイ）
-8. `70_operations_runbook.md`（監視、バックアップ、復旧、SLO）
-9. `80_test_contracts.md`（テスト契約・設計方針・実行方法）
-10. `90_decisions.md`（決定ログ：いつ・誰が・なぜ決めたか）
+2. `01_glossary.md`（用語集）
+3. `10_architecture.md`（サービス境界・データフロー・配置）
+4. `20_data_contracts.md`（DB・API・イベントの契約）
+5. `30_scraping_policy.md`（負荷抑制・取得タイミング・障害検知）
+6. `40_mlops_pipeline.md`（学習・評価・登録・配布・再現性）
+7. `50_coding_standard.md`（規約・レビュー・TDDの約束）
+8. `60_ci_cd.md`（CI/CD、ゲート、デプロイ）
+9. `70_operations_runbook.md`（監視、バックアップ、復旧、SLO）
+10. `80_test_guideline.md`（テスト契約・設計方針・実行方法）
+11. `90_decisions.md`（決定ログ：いつ・誰が・なぜ決めたか）
 
 ## オーナーシップ（推奨）
 - Architecture/Infra: PM + Backend Lead

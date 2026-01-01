@@ -7,7 +7,7 @@ WORKDIR /app
 
 # System deps (bcrypt wheels usually available; keep minimal)
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates cron \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements-dev.txt
 
 COPY app /app/app
+COPY cron /app/cron
+RUN chmod +x /app/cron/entrypoint.sh
 COPY tests /app/tests
 COPY README.md /app/README.md
 COPY .env.example /app/.env.example

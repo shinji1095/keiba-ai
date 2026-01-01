@@ -556,6 +556,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ScrapeScheduleStatus"
+    post:
+      tags: [scrape]
+      summary: Update scrape schedule
+      description: |
+        定期実行のオン/オフと対象競馬場を更新する。
+        api-service が scraper-service の control API へ反映する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScrapeScheduleUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapeScheduleStatus"
 
   /scrape/sync:
     post:
@@ -577,12 +596,59 @@ paths:
               schema:
                 $ref: "#/components/schemas/ScrapeSyncResponse"
 
+  /scrape/sync/scheduled:
+    post:
+      tags: [scrape]
+      summary: Trigger scheduled sync
+      description: |
+        定期同期（JST 1日おき）を cron からトリガする。
+        スケジュールが無効または未到来の場合はスキップする。
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScrapeSyncRequest"
+      responses:
+        "200":
+          description: Skipped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapeSyncResponse"
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapeSyncResponse"
+
+  /scrape/sync/schedule:
+    post:
+      tags: [scrape]
+      summary: Update sync schedule
+      description: |
+        定期同期の有効/無効と interval_days を更新する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScrapeSyncScheduleRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapeSyncStatus"
+
   /scrape/sync/status:
     get:
       tags: [scrape]
       summary: Get sync status
       description: |
-        定期同期（1日1回）と差分同期の状態を返す。
+        定期同期（JST 1日おき）と差分同期の状態を返す。
       responses:
         "200":
           description: OK
@@ -977,6 +1043,20 @@ components:
           type: string
           nullable: true
 
+    ScrapeScheduleUpdateRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+        baba_codes:
+          type: array
+          items:
+            type: integer
+            format: int32
+          description: 定期実行の対象競馬場コード（複数指定）
+          nullable: true
+
     ScrapeSyncRequest:
       type: object
       properties:
@@ -987,6 +1067,20 @@ components:
           description: Idempotency key (optional)
         reason:
           type: string
+          nullable: true
+
+    ScrapeSyncScheduleRequest:
+      type: object
+      required: [enabled, interval_days]
+      properties:
+        enabled:
+          type: boolean
+        interval_days:
+          type: integer
+          minimum: 1
+          example: 2
+        diff_enabled:
+          type: boolean
           nullable: true
 
     ScrapeSyncResponse:
@@ -1024,6 +1118,23 @@ components:
           nullable: true
         last_fingerprint:
           type: string
+          nullable: true
+        last_attempted_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_status:
+          type: string
+          nullable: true
+        last_error:
+          type: string
+          nullable: true
+        last_trigger:
+          type: string
+          nullable: true
+        schedule_updated_at:
+          type: string
+          format: date-time
           nullable: true
 
     # -------------------------

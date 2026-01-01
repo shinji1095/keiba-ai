@@ -35,6 +35,19 @@ services:
     depends_on:
       - postgres
 
+  api-sync-cron:
+    build:
+      context: services/api
+    environment:
+      TZ: ${TZ}
+      SCRAPE_SYNC_CRON: ${SCRAPE_SYNC_CRON:-5 0 * * *}
+      SCRAPE_SYNC_API_URL: ${SCRAPE_SYNC_API_URL:-http://api:8000}
+    command: ["/app/cron/entrypoint.sh"]
+    depends_on:
+      - api
+    volumes:
+      - ./services/api/cron:/app/cron:ro
+
   worker:
     build:
       context: services/worker

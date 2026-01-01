@@ -19,10 +19,7 @@ class BetType(str, Enum):
     sanrentan = "sanrentan"
 
 
-class SnapshotKind(str, Enum):
-    t_minus_5m = "t_minus_5m"
-    t_minus_1m = "t_minus_1m"
-    final = "final"
+SnapshotKind = str
 
 
 class OddsSnapshot(BaseModel):

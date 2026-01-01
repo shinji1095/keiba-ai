@@ -1,11 +1,13 @@
 import React from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/api/endpoints";
 import { useApiCtx } from "@/app/hooks/useApiCtx";
 import { useAuth } from "@/app/auth/useAuth";
 import { ErrorBox } from "@/shared/ui/ErrorBox";
 import { JsonView } from "@/shared/ui/JsonView";
+import { ScrapeScheduleCard } from "./ScrapeScheduleCard";
+import { SyncControlCard } from "./SyncControlCard";
 
 type ScrapeOpKey =
   | "races"
@@ -122,6 +124,40 @@ function pretty(x: unknown): string {
 export function ScrapeConsolePage(): React.JSX.Element {
   const ctx = useApiCtx();
   const auth = useAuth();
+  const qc = useQueryClient();
+
+  const qSyncStatus = useQuery({
+    queryKey: ["sync-status"],
+    queryFn: () => api.scrapeSyncStatus(ctx),
+  });
+
+  const qScrapeSchedule = useQuery({
+    queryKey: ["scrape-schedule"],
+    queryFn: () => api.scrapeScheduleStatus(ctx),
+  });
+
+  const scrapeScheduleMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof api.scrapeScheduleUpdate>[1]) =>
+      api.scrapeScheduleUpdate(ctx, payload),
+    onSuccess: (data) => {
+      qc.setQueryData(["scrape-schedule"], data);
+    },
+  });
+
+  const syncScheduleMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof api.scrapeSyncScheduleUpdate>[1]) =>
+      api.scrapeSyncScheduleUpdate(ctx, payload),
+    onSuccess: (data) => {
+      qc.setQueryData(["sync-status"], data);
+    },
+  });
+
+  const syncTriggerMutation = useMutation({
+    mutationFn: () => api.scrapeSyncTrigger(ctx, { reason: "manual" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sync-status"] });
+    },
+  });
 
   const [op, setOp] = React.useState<ScrapeOpKey>("odds-snapshots");
   const [jsonText, setJsonText] = React.useState(pretty(templates["odds-snapshots"]));
@@ -160,6 +196,29 @@ export function ScrapeConsolePage(): React.JSX.Element {
       </p>
 
       {!auth.activeToken ? <div className="alert">Token is not set.</div> : null}
+
+      <ScrapeScheduleCard
+        status={qScrapeSchedule.data}
+        isLoading={qScrapeSchedule.isLoading}
+        loadError={qScrapeSchedule.error}
+        saveError={scrapeScheduleMutation.error}
+        saving={scrapeScheduleMutation.isPending}
+        onSave={(payload) => scrapeScheduleMutation.mutate(payload)}
+        onRefresh={() => qScrapeSchedule.refetch()}
+      />
+
+      <SyncControlCard
+        status={qSyncStatus.data}
+        isLoading={qSyncStatus.isLoading}
+        loadError={qSyncStatus.error}
+        saveError={syncScheduleMutation.error}
+        triggerError={syncTriggerMutation.error}
+        saving={syncScheduleMutation.isPending}
+        triggering={syncTriggerMutation.isPending}
+        onSave={(payload) => syncScheduleMutation.mutate(payload)}
+        onTrigger={() => syncTriggerMutation.mutate()}
+        onRefresh={() => qSyncStatus.refetch()}
+      />
 
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="row">

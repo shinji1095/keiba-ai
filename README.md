@@ -20,3 +20,6 @@
 - Pi側: `deploy/compose/compose.pi.yaml`
 
 詳細は `deploy/compose/README.md` と `docs/10_architecture.md` を参照してください。
+
+## TODO / 改善点
+- frontend 単体テストのカバレッジ計測（Vitest coverage 導入）

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import uuid
 
 
 def _login_admin(client) -> str:
@@ -13,12 +14,13 @@ def _login_admin(client) -> str:
 
 def test_client_credentials_and_scrape_no_auth(client):
     admin_token = _login_admin(client)
+    client_name = f"scraper-{uuid.uuid4()}"
 
     r = client.post(
         "/admin/oauth-clients",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
-            "name": "scraper",
+            "name": client_name,
             "scopes": ["scrape:write"],
             "is_active": True,
         },
@@ -41,10 +43,14 @@ def test_client_credentials_and_scrape_no_auth(client):
     assert r2.json()["access_token"]
 
     # no auth required for scrape ingest; payload validation still applies
-    r3 = client.post("/scrape/raw-fetch-logs", json={"items": []})
+    r3 = client.post(
+        "/scrape/raw-fetch-logs",
+        json={"event_id": str(uuid.uuid4()), "items": []},
+    )
     assert r3.status_code == 400
 
     payload = {
+        "event_id": str(uuid.uuid4()),
         "items": [
             {
                 "race_key": None,

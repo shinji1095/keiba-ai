@@ -155,7 +155,7 @@ class ScrapeService:
             .filter(
                 OddsSnapshotModel.race_id == r.race_id,
                 OddsSnapshotModel.bet_type == payload.bet_type.value,
-                OddsSnapshotModel.snapshot_kind == payload.snapshot_kind.value,
+                OddsSnapshotModel.snapshot_kind == payload.snapshot_kind,
                 OddsSnapshotModel.captured_at == payload.captured_at,
                 OddsSnapshotModel.odds_flg == payload.odds_flg,
             )
@@ -165,7 +165,7 @@ class ScrapeService:
             snap = OddsSnapshotModel(
                 race_id=r.race_id,
                 bet_type=payload.bet_type.value,
-                snapshot_kind=payload.snapshot_kind.value,
+                snapshot_kind=payload.snapshot_kind,
                 captured_at=payload.captured_at,
                 source_url=payload.source_url,
                 odds_flg=payload.odds_flg,

@@ -24,7 +24,16 @@ BetType = Literal[
 ]
 
 
-SnapshotKind = Literal["t_minus_5m", "t_minus_1m", "final", "manual"]
+SnapshotKind = Literal[
+    "t_minus_60m",
+    "t_minus_30m",
+    "t_minus_20m",
+    "t_minus_10m",
+    "t_minus_5m",
+    "t_minus_1m",
+    "final",
+    "manual",
+]
 
 
 class RawFetchLogInsert(BaseModel):
@@ -47,6 +56,7 @@ class OddsItemUpsert(BaseModel):
 
 
 class OddsSnapshotUpsertRequest(BaseModel):
+    event_id: Optional[str] = None
     race_key: RaceKey
     bet_type: BetType
     snapshot_kind: SnapshotKind

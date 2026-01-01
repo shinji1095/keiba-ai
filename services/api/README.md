@@ -43,6 +43,9 @@ api-service ⇔ scraper-service は現時点では認証不要（将来 mTLS で
 - `SCRAPER_CONTROL_BASE_URL`（例: `http://scraper-service:8080`）
 - `SCRAPER_FORWARD_TIMEOUT_SEC`（既定: `5`）
 - `SCRAPER_MTLS_CERT` / `SCRAPER_MTLS_KEY` / `SCRAPER_MTLS_CA_CERT`（mTLS 用、任意）
+- `SCRAPE_SYNC_STATE_PATH`（同期状態の保存先。既定: `./data/logs/sync_state.json`）
+- `SCRAPE_SYNC_CRON`（api-sync cron の実行間隔。例: `5 0 * * *`）
+- `SCRAPE_SYNC_API_URL`（api-sync cron の接続先。例: `http://api:8000`）
 
 ## 4. データ永続化
 
@@ -76,9 +79,7 @@ pytest
 `.github/workflows/ci.yml` に、上記ゲート（ruff + pytest）を実装しています。
 
 ## TODO（スクレイピング連携）
-
 - [ ] 定期実行 on/off と `baba_codes` 管理の永続化（api-service 実装）
-- [ ] `GET /scrape/schedule` の返却内容実装（enabled, baba_codes, interval_days など）
 
 ## TODO（テスト/品質ゲート・セキュリティ）
 

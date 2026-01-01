@@ -160,7 +160,7 @@ class RaceService:
 
         q = self.db.query(OddsSnapshotModel).filter(
             OddsSnapshotModel.race_id == race_id,
-            OddsSnapshotModel.snapshot_kind == snapshot_kind.value,
+            OddsSnapshotModel.snapshot_kind == snapshot_kind,
             OddsSnapshotModel.bet_type == bet_type.value,
         )
         if odds_flg is not None:
@@ -181,7 +181,7 @@ class RaceService:
             odds_snapshot_id=snap.odds_snapshot_id,
             race_id=snap.race_id,
             bet_type=BetType(snap.bet_type),
-            snapshot_kind=SnapshotKind(snap.snapshot_kind),
+            snapshot_kind=snap.snapshot_kind,
             captured_at=snap.captured_at,
             source_url=snap.source_url,
             odds_flg=snap.odds_flg,

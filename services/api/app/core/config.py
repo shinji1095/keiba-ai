@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import List, Optional
 
 from pydantic import Field
@@ -68,6 +69,10 @@ class Settings(BaseSettings):
     )
     scraper_mtls_ca_cert: Optional[str] = Field(
         default=None, alias="SCRAPER_MTLS_CA_CERT"
+    )
+    scrape_sync_state_path: Path = Field(
+        default=Path("./data/logs/sync_state.json"),
+        alias="SCRAPE_SYNC_STATE_PATH",
     )
 
     def clear_refresh_cookie(self) -> str:

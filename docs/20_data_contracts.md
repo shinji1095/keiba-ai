@@ -1,12 +1,13 @@
 # 20 Data Contracts（DB / API / イベント契約）
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2025-12-31（Asia/Tokyo）
+更新日: 2026-01-01（Asia/Tokyo）
 
 更新履歴
 - 2025-12-27: 初版作成。
 - 2025-12-28: 手動実行/定期実行状態/同期のAPI契約を追記。
 - 2025-12-31: 同期方向を api→scraper に更新。
+- 2026-01-01: 差分評価の判定主体を api-service に明記。
 
 このドキュメントは、**api-service → scraper-service** の同期契約と **api-service → DB** までの「壊れない約束（契約）」を定義する。  
 実装（コード・内部構造）は変えてもよいが、**契約変更は原則として後方互換**を維持する。
@@ -139,7 +140,7 @@
 - `/scrape*` と `/scrape/schedule` は内部通信のため **無認証**
 
 ### 5.2 同期イベント（api → scraper）
-api-service は **差分評価の結果を scraper-service へ反映**する。  
+api-service は **差分評価の判定主体**として、結果を scraper-service へ反映する。  
 イベントは **冪等**でなければならず、`event_id` を必須とする。
 
 - api-service ⇔ scraper-service 間は **認証不要**（将来のアップデートで対応予定）
@@ -167,7 +168,10 @@ api-service は **差分評価の結果を scraper-service へ反映**する。
 ### 5.4 スクレイプ制御API（手動実行/定期/同期）
 - `POST /scrape/manual-tasks`（競馬場必須、日時/レース順は任意）
 - `GET /scrape/schedule`（定期実行のオン/オフ状態）
+- `POST /scrape/schedule`（定期実行の設定更新）
 - `POST /scrape/sync`（手動同期の開始）
+- `POST /scrape/sync/scheduled`（cron からの定期同期トリガ）
+- `POST /scrape/sync/schedule`（同期スケジュール設定）
 - `GET /scrape/sync/status`（定期同期/差分同期の状態）
 
 ---

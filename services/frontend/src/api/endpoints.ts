@@ -24,6 +24,12 @@ import {
   RaceResultUpsertBatchRequest,
   RaceUpsertBatchRequest,
   RawFetchLogInsertBatchRequest,
+  ScrapeScheduleStatus,
+  ScrapeScheduleUpdateRequest,
+  ScrapeSyncRequest,
+  ScrapeSyncResponse,
+  ScrapeSyncScheduleRequest,
+  ScrapeSyncStatus,
   SnapshotKind,
   TokenResponse,
   UserRegisterRequest,
@@ -137,4 +143,24 @@ export const api = {
 
   scrapeRawFetchLogsInsert: (ctx: ApiCtx, req: RawFetchLogInsertBatchRequest) =>
     apiFetch<BatchUpsertResponse>({ ...ctx, path: "/scrape/raw-fetch-logs", method: "POST", body: req }),
+
+  scrapeScheduleStatus: (ctx: ApiCtx) =>
+    apiFetch<ScrapeScheduleStatus>({ ...ctx, path: "/scrape/schedule", method: "GET" }),
+
+  scrapeScheduleUpdate: (ctx: ApiCtx, req: ScrapeScheduleUpdateRequest) =>
+    apiFetch<ScrapeScheduleStatus>({ ...ctx, path: "/scrape/schedule", method: "POST", body: req }),
+
+  scrapeSyncStatus: (ctx: ApiCtx) =>
+    apiFetch<ScrapeSyncStatus>({ ...ctx, path: "/scrape/sync/status", method: "GET" }),
+
+  scrapeSyncScheduleUpdate: (ctx: ApiCtx, req: ScrapeSyncScheduleRequest) =>
+    apiFetch<ScrapeSyncStatus>({ ...ctx, path: "/scrape/sync/schedule", method: "POST", body: req }),
+
+  scrapeSyncTrigger: (ctx: ApiCtx, req?: ScrapeSyncRequest) =>
+    apiFetch<ScrapeSyncResponse>({
+      ...ctx,
+      path: "/scrape/sync",
+      method: "POST",
+      body: req ?? {},
+    }),
 };

@@ -67,6 +67,24 @@ def scrape_once(
     typer.echo("ok")
 
 
+@scrape_app.command("scheduled")
+def scrape_scheduled(
+    race_date: Optional[str] = typer.Option(None, "--race-date", help="YYYY-MM-DD (JST). default: today (JST)"),
+    baba_code: list[int] = typer.Option([], "--baba-code", help="指定した開催場のみ（複数可）"),
+    race_no: Optional[int] = typer.Option(None, "--race-no", help="指定したレース番号のみ"),
+    no_api: bool = typer.Option(True, "--no-api", help="(deprecated) no-op"),
+) -> None:
+    race_date = _resolve_race_date(race_date)
+    cfg = settings
+    http = _build_http(cfg)
+    raw_logger = RawFetchLogger(cfg.local_log_dir / "raw_fetch_logs.csv")
+    runner = ScrapeRunner(settings=cfg, http=http, raw_logger=raw_logger)
+    runner.run_scheduled(
+        race_date=race_date, baba_codes=baba_code or None, race_no=race_no
+    )
+    typer.echo("ok")
+
+
 @sync_app.command("run")
 def sync_run(
     force: bool = typer.Option(False, "--force", help="同期インターバルの判定を無視して実行"),

@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 
-from app.api.deps import (
-    get_current_user,
-    get_db,
-)
+from app.api.deps import get_db
 from app.schemas.scrape import (
     BatchUpsertResponse,
     ManualScrapeTaskRequest,
@@ -19,8 +16,10 @@ from app.schemas.scrape import (
     RaceUpsertBatchRequest,
     RawFetchLogInsertBatchRequest,
     ScrapeScheduleStatus,
+    ScrapeScheduleUpdateRequest,
     ScrapeSyncRequest,
     ScrapeSyncResponse,
+    ScrapeSyncScheduleRequest,
     ScrapeSyncStatus,
 )
 from app.services.scrape_control_service import ScrapeControlService
@@ -37,7 +36,6 @@ router = APIRouter()
 )
 def request_manual_task(
     payload: ManualScrapeTaskRequest,
-    _=Depends(get_current_user),
 ) -> ManualScrapeTaskResponse:
     svc = ScrapeControlService()
     return svc.request_manual_task(payload)
@@ -49,6 +47,14 @@ def get_schedule() -> ScrapeScheduleStatus:
     return svc.get_schedule()
 
 
+@router.post("/scrape/schedule", response_model=ScrapeScheduleStatus)
+def update_schedule(
+    payload: ScrapeScheduleUpdateRequest,
+) -> ScrapeScheduleStatus:
+    svc = ScrapeControlService()
+    return svc.update_schedule(payload)
+
+
 @router.post(
     "/scrape/sync",
     response_model=ScrapeSyncResponse,
@@ -56,16 +62,44 @@ def get_schedule() -> ScrapeScheduleStatus:
 )
 def trigger_sync(
     payload: ScrapeSyncRequest | None = None,
-    _=Depends(get_current_user),
+    db=Depends(get_db),
 ) -> ScrapeSyncResponse:
-    svc = ScrapeControlService()
+    svc = ScrapeControlService(db=db)
     return svc.trigger_sync(payload)
 
 
-@router.get("/scrape/sync/status", response_model=ScrapeSyncStatus)
-def get_sync_status(
-    _=Depends(get_current_user),
+@router.post(
+    "/scrape/sync/scheduled",
+    response_model=ScrapeSyncResponse,
+)
+def trigger_scheduled_sync(
+    response: Response,
+    payload: ScrapeSyncRequest | None = None,
+    db=Depends(get_db),
+) -> ScrapeSyncResponse:
+    svc = ScrapeControlService(db=db)
+    result = svc.trigger_scheduled_sync(payload)
+    response.status_code = (
+        status.HTTP_200_OK
+        if result.status == "skipped"
+        else status.HTTP_202_ACCEPTED
+    )
+    return result
+
+
+@router.post(
+    "/scrape/sync/schedule",
+    response_model=ScrapeSyncStatus,
+)
+def update_sync_schedule(
+    payload: ScrapeSyncScheduleRequest,
 ) -> ScrapeSyncStatus:
+    svc = ScrapeControlService()
+    return svc.update_sync_schedule(payload)
+
+
+@router.get("/scrape/sync/status", response_model=ScrapeSyncStatus)
+def get_sync_status() -> ScrapeSyncStatus:
     svc = ScrapeControlService()
     return svc.get_sync_status()
 

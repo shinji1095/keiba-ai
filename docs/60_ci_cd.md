@@ -5,12 +5,13 @@
 - “壊れたものをデプロイしない” を最優先する
 
 ## 2. CI（Pull Request で必須）
+- テストは **Docker Compose 環境内**で実行する（api/scraper/frontend すべて対象）
 - Python:
   - ruff check / format --check
-  - pytest
+  - pytest（docker compose exec）
 - Frontend:
-  - npm ci
-  - npm run build
+  - npm ci / npm run build（docker compose exec）
+  - npm run test:unit / npm run test:e2e（docker compose exec）
 - （将来）コンテナビルド、SBOM、脆弱性スキャン
 
 ## 3. CD（段階導入）

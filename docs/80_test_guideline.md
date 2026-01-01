@@ -1,12 +1,13 @@
 # 80 Test Contracts（テスト契約）
 
 作成日: 2025-12-28（Asia/Tokyo）  
-更新日: 2025-12-28（Asia/Tokyo）
+更新日: 2026-01-01（Asia/Tokyo）
 
 更新履歴
 - 2025-12-28: 初版作成。
 - 2025-12-28: 単体テストの実行方法を追記。
 - 2025-12-28: テスト実行を Docker 環境内に統一。
+- 2026-01-01: frontend の単体テスト（Docker 実行手順）を追記。
 
 ---
 
@@ -48,9 +49,10 @@ integration マーカーを除外して実行します（scraper は integration
 ```bash
 docker compose --env-file .env -f docker-compose.pc.yaml exec api python -m pytest tests -m "not integration"
 docker compose --env-file .env -f docker-compose.pi.yaml exec scraper python -m pytest tests -m "not integration"
+docker compose --env-file .env -f docker-compose.pc.yaml exec frontend npm run test:unit
 ```
 
-frontend の単体テストは未整備のため、現時点では E2E を参照します。
+frontend の単体テストは Vitest を使用します。
 
 ### 6.2 API（結合テスト）
 起動済みの API コンテナ内で実行します。

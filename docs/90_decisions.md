@@ -50,7 +50,7 @@
 ## 2025-12-31: データ同期は api → scraper
 - Decision:
   - データ同期の方向は api → scraper を正とする
-  - api-service からの要求をトリガとして scraper と api で差分を評価する
+  - api-service が差分評価の判定主体として同期を実行する
 - Rationale:
   - 同期の起点を PC 側に集約し、運用と監視を一元化する
   - 同期トリガと差分評価の責務を明確化する

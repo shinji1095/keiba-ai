@@ -1,24 +1,27 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const tokenResponse = {
-  access_token: "test-token",
-  token_type: "Bearer",
-  expires_in: 900,
-  issued_at: "2025-12-28T00:00:00Z",
-};
+function tokenResponse() {
+  return {
+    access_token: "test-token",
+    token_type: "Bearer" as const,
+    expires_in: 900,
+    issued_at: new Date().toISOString(),
+  };
+}
 
-function authStorageValue(token: string): string {
+function authStorageValue(token: string, issuedAt: string, expiresIn: number): string {
   return JSON.stringify({
     userToken: token,
-    issuedAt: tokenResponse.issued_at,
-    expiresIn: tokenResponse.expires_in,
+    issuedAt,
+    expiresIn,
     serviceToken: null,
     useServiceToken: false,
   });
 }
 
-async function setAuthStorage(page: Page, token = tokenResponse.access_token) {
-  const value = authStorageValue(token);
+async function setAuthStorage(page: Page, token = "test-token") {
+  const tr = tokenResponse();
+  const value = authStorageValue(token, tr.issued_at, tr.expires_in);
   await page.addInitScript((storageValue: string) => {
     localStorage.setItem("keiba_dashboard_auth_v1", storageValue);
   }, value);
@@ -35,11 +38,12 @@ async function stubHealth(page: Page) {
 }
 
 test("login success navigates to overview", async ({ page }) => {
+  const tr = tokenResponse();
   await page.route("**/api/auth/login", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(tokenResponse),
+      body: JSON.stringify(tr),
     });
   });
   await stubHealth(page);
@@ -70,18 +74,19 @@ test("login failure shows error", async ({ page }) => {
 });
 
 test("register success navigates to overview", async ({ page }) => {
+  const tr = tokenResponse();
   await page.route("**/api/auth/register", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(tokenResponse),
+      body: JSON.stringify(tr),
     });
   });
   await stubHealth(page);
 
   await page.goto("/register");
   await page.getByLabel("Username").fill("new-user");
-  await page.getByLabel("Password").fill("pass123");
+  await page.getByLabel("Password", { exact: true }).fill("pass123");
   await page.getByLabel("Confirm password").fill("pass123");
   await page.getByRole("button", { name: "Create account" }).click();
 
@@ -99,7 +104,7 @@ test("register failure shows error", async ({ page }) => {
 
   await page.goto("/register");
   await page.getByLabel("Username").fill("new-user");
-  await page.getByLabel("Password").fill("pass123");
+  await page.getByLabel("Password", { exact: true }).fill("pass123");
   await page.getByLabel("Confirm password").fill("pass123");
   await page.getByRole("button", { name: "Create account" }).click();
 
@@ -263,10 +268,11 @@ test("oauth clients manage flow", async ({ page }) => {
   });
 
   await page.route("**/api/auth/token", async (route) => {
+    const tr = tokenResponse();
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(tokenResponse),
+      body: JSON.stringify(tr),
     });
   });
 
@@ -276,7 +282,7 @@ test("oauth clients manage flow", async ({ page }) => {
   await page.getByLabel("scopes", { exact: false }).fill("scrape:write");
   await page.getByRole("button", { name: "Create" }).click();
 
-  await expect(page.getByText("client-1")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "client-1" })).toBeVisible();
   await expect(page.getByText("Clients (1)")).toBeVisible();
 
   await page.getByRole("button", { name: "Rotate secret" }).click();
@@ -293,6 +299,19 @@ test("oauth clients manage flow", async ({ page }) => {
 
 test("scrape console run shows response", async ({ page }) => {
   await setAuthStorage(page);
+  await page.route("**/api/scrape/schedule", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        enabled: false,
+        baba_codes: [1, 2],
+        mode: null,
+        updated_at: "2025-01-01T00:00:00Z",
+        note: null,
+      }),
+    });
+  });
   await page.route("**/api/scrape/odds-snapshots", async (route) => {
     await route.fulfill({
       status: 201,
@@ -312,4 +331,76 @@ test("scrape console run shows response", async ({ page }) => {
 
   await page.getByRole("button", { name: "Run" }).click();
   await expect(page.getByText("odds_snapshot_id")).toBeVisible();
+});
+
+test("sync scheduler updates and triggers manual sync", async ({ page }) => {
+  await setAuthStorage(page);
+  await page.route("**/api/scrape/schedule", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        enabled: true,
+        baba_codes: [1],
+        mode: null,
+        updated_at: "2025-01-01T00:00:00Z",
+        note: null,
+      }),
+    });
+  });
+  let lastStatus = {
+    enabled: false,
+    interval_days: 2,
+    diff_enabled: true,
+    last_synced_at: null,
+    next_scheduled_at: null,
+    last_fingerprint: null,
+    last_attempted_at: null,
+    last_status: "success",
+    last_error: null,
+    last_trigger: "manual",
+    schedule_updated_at: null,
+  };
+
+  await page.route("**/api/scrape/sync/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(lastStatus),
+    });
+  });
+
+  await page.route("**/api/scrape/sync/schedule", async (route) => {
+    const body = route.request().postDataJSON();
+    lastStatus = { ...lastStatus, enabled: body.enabled, interval_days: body.interval_days };
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(lastStatus),
+    });
+  });
+
+  let manualSyncCalls = 0;
+  await page.route("**/api/scrape/sync", async (route) => {
+    manualSyncCalls += 1;
+    await route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({ sync_id: "sync-1", status: "accepted", started_at: "2025-01-01T00:00:00Z" }),
+    });
+  });
+
+  await page.goto("/scrape");
+  await expect(page.getByRole("heading", { name: "Scrape Console" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Scrape Schedule" })).toBeVisible();
+  const syncCard = page.getByRole("heading", { name: "Sync Scheduler" }).locator("..").locator("..");
+  await expect(syncCard).toBeVisible();
+
+  await syncCard.getByRole("checkbox").click();
+  const intervalInput = syncCard.getByRole("spinbutton");
+  await intervalInput.fill("3");
+  await syncCard.getByRole("button", { name: "Save" }).click();
+
+  await syncCard.getByRole("button", { name: "Manual Sync" }).click();
+  expect(manualSyncCalls).toBe(1);
 });

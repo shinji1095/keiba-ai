@@ -80,7 +80,7 @@ python -m scraper_service.cli scrape once --race-date 2025-12-26
 ### 3.5 Pi cron コンテナ（定期実行）
 
 scraper-cron コンテナが定期実行を担当します。  
-api-service が定期実行の on/off と baba_codes を制御し、cron コンテナはその状態に従って `scrape once` を実行します。
+api-service が定期実行の on/off と baba_codes を制御し、cron コンテナはその状態に従って `scrape scheduled` を実行します。
 
 ```bash
 docker compose -f docker-compose.pi.yaml up -d scraper-cron

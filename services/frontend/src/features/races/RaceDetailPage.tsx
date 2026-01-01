@@ -66,7 +66,7 @@ export function RaceDetailPage(): React.JSX.Element {
   return (
     <div>
       <h1 className="pageTitle">Race Detail</h1>
-      <p className="pageDesc">/races/{{race_id}} (GET) と関連エンドポイント</p>
+      <p className="pageDesc">/races/{"{race_id}"} (GET) と関連エンドポイント</p>
 
       {!Number.isFinite(raceId) ? <div className="alert">Invalid race_id</div> : null}
 

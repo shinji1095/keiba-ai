@@ -16,6 +16,9 @@ class BatchUpsertResponse(BaseModel):
 
 
 class ManualScrapeTaskRequest(BaseModel):
+    event_id: Optional[str] = Field(
+        default=None, description="Idempotency key (optional)"
+    )
     race_date: Optional[dt.date] = Field(
         default=None, description="YYYY-MM-DD (JST). Omit to use today (JST)."
     )
@@ -38,8 +41,22 @@ class ScrapeScheduleStatus(BaseModel):
     note: Optional[str] = None
 
 
+class ScrapeScheduleUpdateRequest(BaseModel):
+    enabled: bool
+    baba_codes: Optional[list[int]] = None
+
+
 class ScrapeSyncRequest(BaseModel):
+    event_id: Optional[str] = Field(
+        default=None, description="Idempotency key (optional)"
+    )
     reason: Optional[str] = None
+
+
+class ScrapeSyncScheduleRequest(BaseModel):
+    enabled: bool
+    interval_days: int = Field(ge=1)
+    diff_enabled: Optional[bool] = None
 
 
 class ScrapeSyncResponse(BaseModel):
@@ -55,6 +72,11 @@ class ScrapeSyncStatus(BaseModel):
     last_synced_at: Optional[dt.datetime] = None
     next_scheduled_at: Optional[dt.datetime] = None
     last_fingerprint: Optional[str] = None
+    last_attempted_at: Optional[dt.datetime] = None
+    last_status: Optional[str] = None
+    last_error: Optional[str] = None
+    last_trigger: Optional[str] = None
+    schedule_updated_at: Optional[dt.datetime] = None
 
 
 class RaceUpsert(BaseModel):
@@ -70,6 +92,7 @@ class RaceUpsert(BaseModel):
 
 
 class RaceUpsertBatchRequest(BaseModel):
+    event_id: str
     items: list[RaceUpsert] = Field(min_length=1)
 
 
@@ -87,6 +110,7 @@ class RaceEntryUpsert(BaseModel):
 
 
 class RaceEntryUpsertBatchRequest(BaseModel):
+    event_id: str
     items: list[RaceEntryUpsert] = Field(min_length=1)
 
 
@@ -100,6 +124,7 @@ class OddsItemUpsert(BaseModel):
 
 
 class OddsSnapshotUpsertRequest(BaseModel):
+    event_id: str
     race_key: RaceKey
     bet_type: BetType
     snapshot_kind: SnapshotKind
@@ -133,6 +158,7 @@ class RaceResultUpsert(BaseModel):
 
 
 class RaceResultUpsertBatchRequest(BaseModel):
+    event_id: str
     items: list[RaceResultUpsert] = Field(min_length=1)
 
 
@@ -146,6 +172,7 @@ class PayoutUpsert(BaseModel):
 
 
 class PayoutUpsertBatchRequest(BaseModel):
+    event_id: str
     items: list[PayoutUpsert] = Field(min_length=1)
 
 
@@ -157,6 +184,7 @@ class RaceChangeInsert(BaseModel):
 
 
 class RaceChangeInsertBatchRequest(BaseModel):
+    event_id: str
     items: list[RaceChangeInsert] = Field(min_length=1)
 
 
@@ -172,4 +200,5 @@ class RawFetchLogInsert(BaseModel):
 
 
 class RawFetchLogInsertBatchRequest(BaseModel):
+    event_id: str
     items: list[RawFetchLogInsert] = Field(min_length=1)

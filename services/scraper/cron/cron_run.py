@@ -22,7 +22,7 @@ def _fetch_schedule(base_url: str) -> dict:
 
 
 def _build_cmd(baba_codes: list[int]) -> list[str]:
-    cmd = ["python", "-m", "scraper_service.cli", "scrape", "once"]
+    cmd = ["python", "-m", "scraper_service.cli", "scrape", "scheduled"]
     for code in baba_codes:
         cmd += ["--baba-code", str(code)]
     return cmd

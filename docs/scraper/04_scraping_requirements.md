@@ -1,7 +1,7 @@
 # 04 スクレイピング要件（取得対象・スケジュール・例外・負荷）
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2025-12-31（Asia/Tokyo）
+更新日: 2026-01-01（Asia/Tokyo）
 
 更新履歴
 - 2025-12-27: 初版作成。
@@ -15,6 +15,8 @@
 - 2025-12-28: cronコンテナによる定期実行/手動実行の制御、保存/同期方針を更新。
 - 2025-12-31: Pi 側 control API の認証不要方針を明記。
 - 2025-12-31: 同期方向を api→scraper に変更し、差分評価のトリガを更新。
+- 2026-01-01: 定期実行の設定更新APIを追記。
+- 2026-01-01: TodayRaceInfoTop を差分同期対象外とし、fingerprint のフォールバックを明記。
 ---
 
 ## 1. 実行モードとタスク
@@ -26,21 +28,22 @@
 - race_date はトリガごとに決定する（未指定は当日JST）
 - **起動時に race_date を固定した plan を作成し、無限ループする方式は採用しない**
 - スクレイピング情報（raw_html/ログ/正規化データ）は Pi 側で保存する
-- PC/Pi 間は **api-service からの要求をトリガ**として差分を評価し、**api → scraper** 方向に定期同期する（既定: 1日おき）
+- PC/Pi 間は **api-service が差分評価の判定主体**となり、**api → scraper** 方向に定期同期する（既定: 1日おき）
 - 定期実行のオン/オフ状態は frontend から参照できる
+- 定期同期は PC 側の cron コンテナが `/scrape/sync/scheduled` を呼び出し、api-service が JST 日付境界と interval_days に基づいて実行可否を判断する
 
 ### 1.1 同期と差分管理
 
 - 差分評価対象: `/scrape/*` に相当する正規化データ
 - 同期頻度（既定）: 1日おき（JST）
 - 同期方向: api → scraper（api-service 起点）
-- 差分判定（最小構成）:
+- 差分判定（最小構成、判定主体は api-service）:
   - 差分キー: `scope_key + page_type + snapshot_kind + odds_flg`
   - scope_key:
-    - TodayRaceInfoTop: `race_date`
     - RaceList / RefundMoneyList: `race_date + baba_code`
     - DebaTable / RaceMarkTable / Odds*: `race_date + baba_code + race_no`
-  - fingerprint: 保存済み HTML の `sha256`
+  - fingerprint: raw_fetch_logs の `sha256` を優先し、ログがない場合は正規化データの `sha256`（payload 由来）で継続する
+- 差分同期対象外: `TodayRaceInfoTop`（開催場導線ページは取得対象だが差分同期の判定対象に含めない）
 - 同期ルール: fingerprint が前回と同一なら同期をスキップし、差分のみを api → scraper 方向で反映する
 - 正規化データの差分キー（参考）:
   - races: `race_key`
@@ -57,9 +60,16 @@
   - api-service は受理後に scraper-service の control API へトリガを転送する
 - 定期実行の状態確認: `GET /scrape/schedule`
   - frontend は定期実行のオン/オフ状態を参照できる
+- 定期実行の設定更新: `POST /scrape/schedule`
+  - `enabled`: boolean
+  - `baba_codes`: int[]（複数指定可）
 - 手動同期のトリガ: `POST /scrape/sync`
   - api-service が scraper への同期要求を発行し、差分評価を開始する
+- 定期同期の設定: `POST /scrape/sync/schedule`
+  - `enabled`: boolean
+  - `interval_days`: int（JST日付境界基準）
 - 定期同期/差分同期の状態確認: `GET /scrape/sync/status`
+  - 同期の成功/失敗/スキップ状態を参照できる
 
 ### 1.3 Pi 側 Control API（cron 制御 / 手動実行）
 

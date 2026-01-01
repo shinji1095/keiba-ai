@@ -61,7 +61,54 @@ export interface RaceKey {
 
 export type BetType = "tansho" | "fukusho" | "wakuren" | "wakutan" | "umaren" | "umatan" | "wide" | "sanrenpuku" | "sanrentan";
 
-export type SnapshotKind = "t_minus_5m" | "t_minus_1m" | "final";
+export type SnapshotKind = string;
+
+export interface ScrapeScheduleStatus {
+  "enabled": boolean;
+  "baba_codes"?: number[] | null;
+  "mode"?: string | null;
+  "updated_at": string;
+  "note"?: string | null;
+}
+
+export interface ScrapeScheduleUpdateRequest {
+  "enabled": boolean;
+  "baba_codes"?: number[] | null;
+}
+
+export interface ScrapeSyncRequest {
+  /**
+   * Idempotency key (optional)
+   */
+  "event_id"?: string | null;
+  "reason"?: string | null;
+}
+
+export interface ScrapeSyncScheduleRequest {
+  "enabled": boolean;
+  "interval_days": number;
+  "diff_enabled"?: boolean | null;
+}
+
+export interface ScrapeSyncResponse {
+  "sync_id": string;
+  "status": string;
+  "started_at": string;
+}
+
+export interface ScrapeSyncStatus {
+  "enabled": boolean;
+  "interval_days": number;
+  "diff_enabled": boolean;
+  "last_synced_at"?: string | null;
+  "next_scheduled_at"?: string | null;
+  "last_fingerprint"?: string | null;
+  "last_attempted_at"?: string | null;
+  "last_status"?: string | null;
+  "last_error"?: string | null;
+  "last_trigger"?: string | null;
+  "schedule_updated_at"?: string | null;
+}
 
 export interface OAuthClientCreateRequest {
   "name": string;

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
 
@@ -14,7 +15,9 @@ def _auth_headers(token: str) -> dict[str, str]:
 
 
 def test_odds_snapshot_ingest_idempotent(client) -> None:
+    event_id = str(uuid.uuid4())
     payload = {
+        "event_id": event_id,
         "race_key": {"race_date": "2025-12-28", "baba_code": 18, "race_no": 1},
         "bet_type": "tansho",
         "snapshot_kind": "t_minus_5m",
@@ -54,6 +57,7 @@ def test_races_and_related_endpoints(client) -> None:
     r1 = client.post(
         "/scrape/races",
         json={
+            "event_id": str(uuid.uuid4()),
             "items": [
                 {
                     "race_key": race_key,
@@ -69,6 +73,7 @@ def test_races_and_related_endpoints(client) -> None:
     r2 = client.post(
         "/scrape/race-entries",
         json={
+            "event_id": str(uuid.uuid4()),
             "items": [
                 {
                     "race_key": race_key,
@@ -84,6 +89,7 @@ def test_races_and_related_endpoints(client) -> None:
     r3 = client.post(
         "/scrape/race-results",
         json={
+            "event_id": str(uuid.uuid4()),
             "items": [
                 {
                     "race_key": race_key,
@@ -99,6 +105,7 @@ def test_races_and_related_endpoints(client) -> None:
     r4 = client.post(
         "/scrape/payouts",
         json={
+            "event_id": str(uuid.uuid4()),
             "items": [
                 {
                     "race_key": race_key,
@@ -116,6 +123,7 @@ def test_races_and_related_endpoints(client) -> None:
     r5 = client.post(
         "/scrape/race-changes",
         json={
+            "event_id": str(uuid.uuid4()),
             "items": [
                 {
                     "race_key": race_key,
