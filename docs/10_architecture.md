@@ -26,6 +26,7 @@
 
 - **postgres（PostgreSQL）**
   - 永続データ（レース、出走表、オッズスナップショット、成績、払戻、HTTP取得ログ）
+  - HTTP取得ログは永続データに含める（任意）
 
 - **scraper-service（Scrapy / Raspberry Pi、control API + cron）**
   - api-service からの手動実行を受け付ける control API を提供
@@ -52,6 +53,8 @@
 - PC → Pi は **api-service → scraper-service（同期/差分同期の要求）**、**scraper control API（/control/*）**、**/health**
 - Pi → PC は **同期要求への応答（差分判定結果/ステータス）**
 - 定期実行は Pi の cron コンテナが担当し、api-service が on/off と baba_codes を制御する
+- api-service ⇔ scraper-service 間は **認証不要**（将来のアップデートで対応予定）
+- 同期ペイロードの送信先: `/control/ingest/*`
 - 認証方式:
   - Access: `Authorization: Bearer <JWT>`（15分）
   - Refresh: HttpOnly Cookie（30日, rotation, Redis revoke）
@@ -74,3 +77,4 @@
 - 冪等性の担保:
   - race_key による Upsert
   - 収集イベントは event_id による重複検知
+- オッズスナップショットの一意性: `race_key × bet_type × snapshot_kind × odds_flg`（odds_flg は表示モード識別子、NULL 可）

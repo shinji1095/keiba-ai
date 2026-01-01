@@ -14,9 +14,10 @@ info:
       - Rotation: refresh のたびに refresh token を更新（毎回更新）
       - Revocation: Redis で失効管理（jti ベース想定）
 
-    ## Scraper authentication (client_credentials)
-    - scraper-service は `client_id` / `client_secret` による client_credentials で access token を取得する
-    - client_secret は API 側ではハッシュ保存し、払い出し時のみ平文で返す（再表示しない想定）
+    ## Scraper authentication (reserved)
+    - api-service ⇔ scraper-service 間は **認証不要**（将来のアップデートで対応予定）
+    - client_credentials フローは将来予約（後方互換で有効化）
+    - 将来的に **mTLS を導入予定**（現時点は未対応）
 servers:
   - url: /api
 tags:
@@ -151,9 +152,10 @@ paths:
   /auth/token:
     post:
       tags: [auth]
-      summary: Issue access token by client_credentials (for scraper-service)
+      summary: Issue access token by client_credentials (future reservation)
       description: |
-        scraper-service が client_credentials で access token を取得するためのエンドポイント。
+        client_credentials による access token 発行の将来予約。
+        現在の api-service ⇔ scraper-service は無認証で運用するため、本エンドポイントは未使用。
         refresh cookie は発行しない。
       requestBody:
         required: true
@@ -178,9 +180,9 @@ paths:
   /admin/oauth-clients:
     post:
       tags: [admin]
-      summary: Create OAuth client for scraper-service
+      summary: Create OAuth client (future reservation)
       description: |
-        client_credentials 用のクライアントを作成する。
+        client_credentials 用のクライアントを作成する（将来予約）。
         client_secret は作成時（およびローテーション時）にのみ返す想定。
       security:
         - bearerAuth: []
@@ -523,8 +525,6 @@ paths:
         frontend などから手動スクレイプを依頼する。
         `race_date` を省略した場合は当日（JST）を対象とする。
         api-service は Pi 側へ手動実行を指示する。
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -540,10 +540,6 @@ paths:
                 $ref: "#/components/schemas/ManualScrapeTaskResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /scrape/schedule:
     get:
@@ -567,8 +563,6 @@ paths:
       summary: Trigger manual sync
       description: |
         差分同期（fingerprint ベース）を手動で開始する。
-      security:
-        - bearerAuth: []
       requestBody:
         required: false
         content:
@@ -582,10 +576,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ScrapeSyncResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /scrape/sync/status:
     get:
@@ -593,8 +583,6 @@ paths:
       summary: Get sync status
       description: |
         定期同期（1日1回）と差分同期の状態を返す。
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: OK
@@ -602,17 +590,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ScrapeSyncStatus"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /scrape/races:
     post:
       tags: [scrape]
       summary: Upsert races (RaceList)
-      security:
-        - scraperOAuth: [scrape:write]
       requestBody:
         required: true
         content:
@@ -628,17 +610,11 @@ paths:
                 $ref: "#/components/schemas/BatchUpsertResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /scrape/race-entries:
     post:
       tags: [scrape]
       summary: Upsert race entries (DebaTable)
-      security:
-        - scraperOAuth: [scrape:write]
       requestBody:
         required: true
         content:
@@ -654,19 +630,16 @@ paths:
                 $ref: "#/components/schemas/BatchUpsertResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /scrape/odds-snapshots:
     post:
       tags: [scrape]
       summary: Upsert odds snapshots and items
       description: |
-        オッズは発走時刻基準の `snapshot_kind`（t_minus_5m / t_minus_1m / final）でスナップショット保存する。
-      security:
-        - scraperOAuth: [scrape:write]
+        オッズは発走時刻基準の `snapshot_kind`（t_minus_60m / t_minus_30m / t_minus_20m / t_minus_10m / t_minus_5m / t_minus_1m / final）でスナップショット保存する。
+        手動取得は `captured_at` と `races.start_time` から最も近い `snapshot_kind` を割り当てる（`captured_at >= races.start_time` は `final`）。
+        同一 `race_key × bet_type × snapshot_kind × odds_flg` は 1件として上書きする。
+        `snapshot_kind` は運用で拡張可能（OpenAPI では固定 enum としない）。
       requestBody:
         required: true
         content:
@@ -682,10 +655,6 @@ paths:
                 $ref: "#/components/schemas/OddsSnapshotUpsertResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/Conflict"
 
@@ -693,8 +662,6 @@ paths:
     post:
       tags: [scrape]
       summary: Upsert race results (RaceMarkTable)
-      security:
-        - scraperOAuth: [scrape:write]
       requestBody:
         required: true
         content:
@@ -710,17 +677,11 @@ paths:
                 $ref: "#/components/schemas/BatchUpsertResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /scrape/payouts:
     post:
       tags: [scrape]
       summary: Upsert payouts (RefundMoneyList)
-      security:
-        - scraperOAuth: [scrape:write]
       requestBody:
         required: true
         content:
@@ -736,17 +697,11 @@ paths:
                 $ref: "#/components/schemas/BatchUpsertResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /scrape/race-changes:
     post:
       tags: [scrape]
       summary: Insert race changes (cancel/jockey change etc.)
-      security:
-        - scraperOAuth: [scrape:write]
       requestBody:
         required: true
         content:
@@ -762,17 +717,12 @@ paths:
                 $ref: "#/components/schemas/BatchUpsertResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /scrape/raw-fetch-logs:
     post:
       tags: [scrape]
       summary: Insert raw fetch logs (optional raw layer)
-      security:
-        - scraperOAuth: [scrape:write]
+      deprecated: true
       requestBody:
         required: true
         content:
@@ -788,10 +738,6 @@ paths:
                 $ref: "#/components/schemas/BatchUpsertResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
 components:
   securitySchemes:
@@ -799,15 +745,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
-    scraperOAuth:
-      type: oauth2
-      flows:
-        clientCredentials:
-          tokenUrl: /auth/token
-          scopes:
-            scrape:write: Scraper can ingest/insert facts
-            scrape:read: Scraper can read back for verification
 
   responses:
     BadRequest:
@@ -968,7 +905,10 @@ components:
 
     SnapshotKind:
       type: string
-      enum: [t_minus_5m, t_minus_1m, final]
+      description: |
+        代表オッズ時点（デフォルト: t_minus_60m / t_minus_30m / t_minus_20m / t_minus_10m / t_minus_5m / t_minus_1m / final）。
+        運用で拡張可能なため、未知の値も許容する。
+      example: t_minus_10m
 
     # -------------------------
     # Scrape control / sync
@@ -977,6 +917,11 @@ components:
       type: object
       required: [baba_code]
       properties:
+        event_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Idempotency key (optional)
         race_date:
           type: string
           format: date
@@ -1035,6 +980,11 @@ components:
     ScrapeSyncRequest:
       type: object
       properties:
+        event_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Idempotency key (optional)
         reason:
           type: string
           nullable: true
@@ -1353,6 +1303,7 @@ components:
           type: string
         odds_flg:
           type: integer
+          description: 表示モード識別子（NULL 可）。一意キーに含める。
           nullable: true
         is_final:
           type: boolean
@@ -1494,7 +1445,7 @@ components:
 
     RawFetchLog:
       type: object
-      required: [raw_fetch_log_id, page_type, url, http_status, fetched_at]
+      required: [raw_fetch_log_id, page_type, url, http_status, captured_at]
       properties:
         raw_fetch_log_id:
           type: integer
@@ -1516,7 +1467,7 @@ components:
         storage_path:
           type: string
           nullable: true
-        fetched_at:
+        captured_at:
           type: string
           format: date-time
         note:
@@ -1578,8 +1529,11 @@ components:
 
     RaceUpsertBatchRequest:
       type: object
-      required: [items]
+      required: [event_id, items]
       properties:
+        event_id:
+          type: string
+          format: uuid
         items:
           type: array
           minItems: 1
@@ -1626,8 +1580,11 @@ components:
 
     RaceEntryUpsertBatchRequest:
       type: object
-      required: [items]
+      required: [event_id, items]
       properties:
+        event_id:
+          type: string
+          format: uuid
         items:
           type: array
           minItems: 1
@@ -1662,8 +1619,11 @@ components:
 
     OddsSnapshotUpsertRequest:
       type: object
-      required: [race_key, bet_type, snapshot_kind, captured_at, source_url, items]
+      required: [event_id, race_key, bet_type, snapshot_kind, captured_at, source_url, items]
       properties:
+        event_id:
+          type: string
+          format: uuid
         race_key:
           $ref: "#/components/schemas/RaceKey"
         bet_type:
@@ -1677,6 +1637,7 @@ components:
           type: string
         odds_flg:
           type: integer
+          description: 表示モード識別子（NULL 可）。一意キーに含める。
           nullable: true
         is_final:
           type: boolean
@@ -1745,8 +1706,11 @@ components:
 
     RaceResultUpsertBatchRequest:
       type: object
-      required: [items]
+      required: [event_id, items]
       properties:
+        event_id:
+          type: string
+          format: uuid
         items:
           type: array
           minItems: 1
@@ -1778,8 +1742,11 @@ components:
 
     PayoutUpsertBatchRequest:
       type: object
-      required: [items]
+      required: [event_id, items]
       properties:
+        event_id:
+          type: string
+          format: uuid
         items:
           type: array
           minItems: 1
@@ -1803,8 +1770,11 @@ components:
 
     RaceChangeInsertBatchRequest:
       type: object
-      required: [items]
+      required: [event_id, items]
       properties:
+        event_id:
+          type: string
+          format: uuid
         items:
           type: array
           minItems: 1
@@ -1813,7 +1783,7 @@ components:
 
     RawFetchLogInsert:
       type: object
-      required: [page_type, url, http_status, fetched_at]
+      required: [page_type, url, http_status, captured_at]
       properties:
         race_key:
           $ref: "#/components/schemas/RaceKey"
@@ -1831,7 +1801,7 @@ components:
         storage_path:
           type: string
           nullable: true
-        fetched_at:
+        captured_at:
           type: string
           format: date-time
         note:
@@ -1840,8 +1810,11 @@ components:
 
     RawFetchLogInsertBatchRequest:
       type: object
-      required: [items]
+      required: [event_id, items]
       properties:
+        event_id:
+          type: string
+          format: uuid
         items:
           type: array
           minItems: 1

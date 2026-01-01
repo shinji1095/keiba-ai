@@ -29,15 +29,18 @@
 > Upsert / 冪等ETL は **race_key を一次キー**として行い、DB 内で race_id に正規化する。
 
 ### 1.2 snapshot_kind（代表オッズ時点）
-- `t_minus_5m` / `t_minus_1m` / `final` / `manual` など（運用で追加可）
+- `t_minus_60m` / `t_minus_30m` / `t_minus_20m` / `t_minus_10m` / `t_minus_5m` / `t_minus_1m` / `final` がデフォルト（運用で追加可）
+- OpenAPI は **固定 enum にしない**（文字列として拡張可能に扱う）
 - 実取得時刻は **必ず** `captured_at`（timestamp, JST）に保存する
+- 手動取得は `captured_at` と `races.start_time` から **最も近い `snapshot_kind`** を割り当てる  
+  - `captured_at >= races.start_time` は `final` とみなす
 
 ### 1.3 bet_type / legs / is_ordered
 - **bet_type（共通列挙）**
   - `tansho`, `fukusho`, `wakuren`, `wakutan`, `umaren`, `umatan`, `wide`, `sanrenpuku`, `sanrentan`
 - **legs**
   - `wakuren/wakutan` は枠番、それ以外は馬番
-  - 文字列（例: `"3"`, `"3-7"`, `"3-7-12"`）。並び順は `is_ordered` に従う
+  - 配列（例: `[3]`, `[3,7]`, `[3,7,12]`）。並び順は `is_ordered` に従う
 - **is_ordered**
   - `wakutan` / `umatan` / `sanrentan` は `true`
   - それ以外は `false`
@@ -65,7 +68,7 @@
 
 ## 3. DB契約（主要テーブル・一意制約）
 
-> 物理DDLの正: `source_shared/25_database_definition.md`（本リポジトリ側）
+> 物理DDLの正: `docs/database/25_database_definition.md`（本リポジトリ側）
 
 ### 3.1 races
 - UNIQUE: `(race_date, baba_code, race_no)`
@@ -77,9 +80,11 @@
 - `horse_id` 正規化が未確定のため、`horse_name` を冗長保持する
 
 ### 3.3 odds_snapshots / odds_items
-- `odds_snapshots` UNIQUE: `(race_id, bet_type, snapshot_kind)`
+- `odds_snapshots` UNIQUE: `(race_id, bet_type, snapshot_kind, odds_flg)`
 - `odds_items` UNIQUE: `(odds_snapshot_id, legs, is_ordered)`
 - `captured_at` は **必ず**保存する
+- `odds_flg` は表示モード識別子（NULL 可）。NULL も一意キーに含める
+- 同一 `race_id × bet_type × snapshot_kind × odds_flg` は **1件**のみ（最新を上書きする）
 
 ### 3.4 race_results（成績）
 - UNIQUE: `(race_id, finish_position)` と `(race_id, horse_number)` を併用（安全側）
@@ -93,9 +98,9 @@
 - 推奨 UNIQUE: `(race_id, change_type, horse_number, announced_at)`
 
 ### 3.7 raw_fetch_logs（HTTP取得ログ）
-- **すべてのHTTP取得で記録する**（成功/失敗を問わない）
-- 保存項目（最小）:
-  - `url, page_name, http_status, fetched_at, sha256, storage_path, elapsed_ms`
+- raw_fetch_logs は **永続データに含める（任意）**（本リリースでは必須としない）
+- 保存する場合の項目（任意）:
+  - `url, page_type?, http_status, captured_at, sha256, storage_path, elapsed_ms?`
 
 ---
 
@@ -104,7 +109,7 @@
 ### 4.1 反映順序（推奨）
 1. `RaceList(date,baba_code)` → `races` + `race_changes`
 2. `DebaTable(race_key)` → `race_entries` + `races` 補完
-3. `Odds*(race_key, snapshot_kind)` → `odds_snapshots` + `odds_items`
+3. `Odds*(race_key, snapshot_kind, odds_flg)` → `odds_snapshots` + `odds_items`
 4. `RaceMarkTable(race_key)` → `race_results`（確定値で上書き）
 5. `RefundMoneyList(date,baba_code)` → `payouts`
 
@@ -131,23 +136,29 @@
 - Access Token を使うAPI: `Authorization: Bearer <access_jwt>` を必須
 - Refresh: Cookie の refresh token により実施（ボディで渡さない）
 - Logout: refresh token を失効させ、Cookie を削除する
+- `/scrape*` と `/scrape/schedule` は内部通信のため **無認証**
 
 ### 5.2 同期イベント（api → scraper）
 api-service は **差分評価の結果を scraper-service へ反映**する。  
 イベントは **冪等**でなければならず、`event_id` を必須とする。
 
+- api-service ⇔ scraper-service 間は **認証不要**（将来のアップデートで対応予定）
 - 同期ペイロードは `/scrape/*` の schema を共通利用する（送信方向は api → scraper）
+- 送信先: scraper-service の control API `/control/ingest/*`
 - `odds-snapshots`（`/scrape/odds-snapshots` スキーマ）  
   - 目的: 代表時点のオッズ集合を同期（`odds_snapshots` + `odds_items` を Upsert）
   - 入力の最小要件:
     - `event_id`（UUID）
     - `race_key`
+    - `bet_type`
     - `snapshot_kind`
     - `captured_at`
-    - `items[]`（bet_type/legs/is_ordered/odds_min/odds_max/popularity?）
+    - `source_url`
+    - `items[]`（legs/is_ordered/odds_min/odds_max/popularity?）
+  - `odds_flg` は表示モード識別子（任意）。一意性は `race_key × bet_type × snapshot_kind × odds_flg` に従う
   - scraper-service は `event_id` 重複時に **同一結果**を返す（少なくとも 200/201 を維持）
 
-> 補足: `raw_fetch_logs` は初期実装では **api-service 側で保持**してよい（別API化は将来）。
+> 補足: `raw_fetch_logs` は本リリースでは任意（別API化は将来）。
 
 ### 5.3 参照API（frontend / backtest / debug）
 - `GET /races`（`race_date` / `baba_code` で検索、ページング対応）
@@ -175,7 +186,7 @@ api-service は **差分評価の結果を scraper-service へ反映**する。
 
 ### 6.2 代表イベント（予約）
 - `odds_snapshot.ingested`
-  - `race_id` / `race_key` / `snapshot_kind` / `captured_at` / `bet_type` / `num_items`
+  - `race_id` / `race_key` / `snapshot_kind` / `odds_flg?` / `captured_at` / `bet_type` / `num_items`
 
 > 予約は **後方互換**でのみ拡張する（フィールド追加は可、意味変更は不可）。
 
@@ -184,7 +195,7 @@ api-service は **差分評価の結果を scraper-service へ反映**する。
 ## 7. データ品質・破壊的変更
 
 ### 7.1 データ品質（最低限）
-- `snapshot_kind` は許容集合のみ
+- `snapshot_kind` はデフォルト集合を基本とし、運用で追加可（OpenAPI は固定 enum にしない）
 - `odds_min/odds_max` は正数、異常値は検知（上限閾値を運用で定義）
 - `captured_at` は `races.start_time` 近傍の時間窓のみ有効（窓幅は運用契約）
 

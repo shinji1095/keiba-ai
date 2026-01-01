@@ -147,7 +147,7 @@
 ## 7. B1: HTMLフィクスチャ収集（仕様確定）
 
 ここでは「**パーサの回帰テスト用**」に HTML を固定するための要件を定義する。
-（発走時刻基準の t-5m/t-1m/final 収集は運用要件であり、フィクスチャ用途では必須ではない。ただし、将来の時系列テストのために `snapshot_kind` をメタとして残す。）
+（発走時刻基準の t_minus_60m/t_minus_30m/t_minus_20m/t_minus_10m/t_minus_5m/t_minus_1m/final 収集は運用要件であり、フィクスチャ用途では必須ではない。ただし、将来の時系列テストのために `snapshot_kind` をメタとして残す。）
 
 ### 7.1 fixtures ディレクトリ構成（推奨）
 
@@ -158,17 +158,17 @@ fixtures/
   manifest_log.csv          # 取得“結果”（出力ログ）
   2025-12-26_20_03/          # YYYY-MM-DD_babaCode_RR
     pc/                     # device=pc
-      odds_tanfuku__flg=4__snap=manual.html
-      odds_tanfuku__flg=5__snap=manual.html
-      odds_waku__flg=6__snap=manual.html
-      odds_waku__flg=5__snap=manual.html
-      odds_umaren__flg=auto__snap=manual.html
+      odds_tanfuku__flg=4__snap=t_minus_10m.html
+      odds_tanfuku__flg=5__snap=t_minus_10m.html
+      odds_waku__flg=6__snap=t_minus_10m.html
+      odds_waku__flg=5__snap=t_minus_10m.html
+      odds_umaren__flg=auto__snap=t_minus_10m.html
       ...
     sp/                     # device=sp（フォールバック用。未使用でもOK）
       ...
   2025-12-25_20_06/          # 異常系
     pc/
-      odds_3renpuku__flg=auto__snap=manual__expected=5xx.html
+      odds_3renpuku__flg=auto__snap=t_minus_10m__expected=5xx.html
 ```
 
 > 重要: `OddsTanFuku` / `OddsWakuLenFukuTan` は **1ページ内に2式別** が同居する。
@@ -190,9 +190,9 @@ YAML を「取得計画」として使う（人が編集しやすく、追加メ
   device: pc                 # pc|sp
   page_name: OddsTanFuku      # TodayRaceInfo の PageName
   odds_flg: 4                 # 数字 or null（未指定=自動）
-  snapshot_kind: manual       # manual|t_minus_5m|t_minus_1m|final
+  snapshot_kind: t_minus_10m  # t_minus_60m|t_minus_30m|t_minus_20m|t_minus_10m|t_minus_5m|t_minus_1m|final
   url: "https://www.keiba.go.jp/KeibaWeb/TodayRaceInfo/OddsTanFuku?...&odds_flg=4"
-  out: "2025-12-26_20_03/pc/odds_tanfuku__flg=4__snap=manual.html"
+  out: "2025-12-26_20_03/pc/odds_tanfuku__flg=4__snap=t_minus_10m.html"
   expect:
     http_status: 200
   note: "単複（馬番順）"
@@ -203,7 +203,7 @@ YAML を「取得計画」として使う（人が編集しやすく、追加メ
 
 #### 任意フィールド
 - `odds_flg`（未指定なら `auto` 扱いとして out 名にも `flg=auto` を使う）
-- `snapshot_kind`（未指定は `manual`）
+- `snapshot_kind`（未指定は `captured_at` と `races.start_time` から最近傍に正規化。`captured_at >= races.start_time` は `final`）
 - `expect.http_status`（異常系 fixture のときだけ明示）
 
 ### 7.3 manifest_log.csv（出力ログ）スキーマ（確定）
@@ -215,7 +215,7 @@ YAML を「取得計画」として使う（人が編集しやすく、追加メ
 |name|manifest.yml の name|
 |out_path|保存先|
 |url|取得URL（リダイレクト後も別列に残せるなら残す）|
-|fetched_at|ISO-8601（JST推奨）|
+|captured_at|ISO-8601（JST推奨）|
 |http_status|HTTP status|
 |sha256|レスポンス body の sha256|
 |content_type|レスポンスヘッダ（あれば）|
@@ -502,4 +502,3 @@ tests/
 - 出走取消があるレース（DebaTable と RaceList の変更欄・RaceMarkTable の表記揺れ）
 - 騎手変更があるレース（RaceList 下部の変更テーブル）
 - 同着や降着など、着順表記が数値以外になるレース
-

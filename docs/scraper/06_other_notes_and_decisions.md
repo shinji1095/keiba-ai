@@ -9,13 +9,13 @@
 ### 1.1 日次バッチの基本フロー（案）
 1. `TodayRaceInfoTop` から当日の開催場（babaCode）を列挙
 2. `RaceList(date,babaCode)` を取得し、当日のレース一覧（発走時刻/R番号）を作る
-3. レースごとに監視スケジュールを作成（t-5m, t-1m, last）
+3. レースごとに監視スケジュールを作成（t_minus_60m, t_minus_30m, t_minus_20m, t_minus_10m, t_minus_5m, t_minus_1m, final）
 4. 指定時刻に `Odds*` を取得し、DBへ保存（スナップショット）
 5. レース終了後に `RaceMarkTable` / `RefundMoneyList` を取得し、成績・払戻を保存
 
 ### 1.2 ログ・監視（推奨）
 - すべてのHTTP取得について以下を保存（Raw層 or 監視ログ）
-  - `url`, `fetched_at`, `http_status`, `sha256(body)`, `elapsed_ms`
+  - `url`, `captured_at`, `http_status`, `sha256(body)`, `elapsed_ms`
 - 例外（404/5xx/定型文による欠損）は **件数とURLを集計**し、スクレイパの健全性監視に使う
 
 ---
@@ -53,8 +53,8 @@
 
 そのため、初期の scraper-service は以下の運用に寄せる。
 
-- `RaceList` を一次情報にし、`t_start` を基準にスケジュールを組む
-- `RaceMarkTable` は `t_start + 固定遅延` で取得し、少回数リトライで結果の出現を待つ
+- `RaceList` を一次情報にし、`races.start_time` を基準にスケジュールを組む
+- `RaceMarkTable` は `races.start_time + 固定遅延` で取得し、少回数リトライで結果の出現を待つ
 - `RefundMoneyList` は「最終レース後に1回」が基本（障害時のみ追加）
 
 詳細は `04_scraping_requirements.md` と `source_shared/28_race_entry_result_parser_design.md` を参照。
@@ -74,7 +74,7 @@
 - 21_tdd_testcase_plan_for_odds_parser.md
 - 23_odds_fixture_collection_and_tdd.md
 - 24_project_decisions_update_20251227.md
-- 25_database_definition.md
+- docs/database/25_database_definition.md
 - 22_fixture_downloader_example.py
 - README.md
 
@@ -85,13 +85,13 @@
 
 ### 3.1 DB（PostgreSQL）
 
-- 物理スキーマは `source_shared/25_database_definition.md` のDDLを正とする
+- 物理スキーマは `docs/database/25_database_definition.md` のDDLを正とする
 - マイグレーションは SQL連番適用（`source_shared/29_db_migration_and_bootstrap.md`）
 
 ### 3.2 負荷制御・監視
 
 - per-host concurrency は初期値 1（直列）
 - min interval 1.5s + jitter
-- 全リクエストで `raw_fetch_logs` を記録（成功/失敗を問わない）
+- `raw_fetch_logs` は任意（必要時のみ記録）
 
 参照: `source_shared/30_load_control_and_observability.md`

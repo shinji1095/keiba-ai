@@ -22,8 +22,8 @@
     - 調教師
     - 馬体重/増減（確定値は RaceMarkTable が主）
   - オッズ（Odds*）
-    - 代表時点（t-5m, t-1m, final）での odds_min/odds_max
-    - 直前変化（例: t-5m→t-1m の変化率）
+    - 代表時点（t_minus_60m, t_minus_30m, t_minus_20m, t_minus_10m, t_minus_5m, t_minus_1m, final）での odds_min/odds_max
+    - 直前変化（例: t_minus_10m→t_minus_5m の変化率）
 
 - 出力（例）
   - 各馬の勝率/連対率
@@ -77,13 +77,13 @@
 - 成績（着順/タイム等）: `RaceMarkTable` → `race_results`
 - 払戻（式別×組番）: `RefundMoneyList`（主）→ `payouts`
 
-これにより、オッズ時系列（t-5m/t-1m/final 等）と結合して、以下を生成できる。
+これにより、オッズ時系列（t_minus_60m/t_minus_30m/t_minus_20m/t_minus_10m/t_minus_5m/t_minus_1m/final 等）と結合して、以下を生成できる。
 
 - 予測
   - 次走の着順/勝率/連対率、人気との乖離（オッズ歪み）の予測
 - 強化学習
   - 行動=賭式別+買い目、報酬=当該買い目の実現損益（払戻-投資額）
-  - 時点ごと（t-5m, t-1m 等）に状態を切り替えた学習も可能
+  - 時点ごと（t_minus_10m, t_minus_5m, t_minus_1m 等）に状態を切り替えた学習も可能
 
 > 注意
 > - 実際の報酬設計（テイクアウト、資金制約、同一レースで複数行動の扱い等）は運用設計が必要。

@@ -32,16 +32,16 @@
 - 対象機能・モジュール: scraper-service health endpoint, PC network path
 - 実装状況: 既存テストあり（services/scraper/tests/test_scraper_health_connection.py）
 
-### TR-002: scraper の client credentials トークン発行
+### TR-002: client_credentials トークン（将来予約）
 - 要件ID: TR-002
-- 要件名: scraper 向け client_credentials トークン
-- 要件の説明: `POST /auth/token` が scraper の認証情報で Bearer トークンを発行し、不正な認証情報は拒否すること。
-- 根拠となる仕様・要件ID: docs/20_data_contracts.md#5.1, docs/21_openapi.yaml:/auth/token
+- 要件名: client_credentials トークン（将来予約）
+- 要件の説明: `POST /auth/token` は将来の認証方式（mTLS/OAuth）に備えた予約で、現行の api-service ⇔ scraper-service は無認証。現時点では必須要件ではない。
+- 根拠となる仕様・要件ID: docs/21_openapi.yaml:/auth/token, docs/20_data_contracts.md#5.2
 - 関連リスクID: RISK-002
-- テスト観点: 正常系／異常系
-- テスト分類: 結合テスト
+- テスト観点: 将来予約
+- テスト分類: 保留
 - 対象機能・モジュール: api-service auth, OAuth client store
-- 実装状況: 既存テストあり（services/api/tests/test_oauth_client_and_scope.py）
+- 実装状況: 将来予約（現行は必須でない）
 
 ### TR-003: 収集イベント投入（odds snapshots）
 - 要件ID: TR-003
@@ -98,15 +98,15 @@
 - 対象機能・モジュール: api-service admin oauth clients
 - 実装状況: 既存テストあり（services/api/tests/test_oauth_client_and_scope.py）
 
-### TR-008: /scrape のスコープゲート（認可）
+### TR-008: /scrape の無認証受付（内部通信）
 - 要件ID: TR-008
-- 要件名: scrape:write の認可制御
-- 要件の説明: `scrape:write` トークンなしでは `POST /scrape/*` が 401 となり、正しいトークンで成功すること。
-- 根拠となる仕様・要件ID: docs/21_openapi.yaml:/scrape/*, services/api/README.md#5
-- 関連リスクID: RISK-002
-- テスト観点: 正常系／異常系
+- 要件名: /scrape は無認証で受理する
+- 要件の説明: 認証なしで `POST /scrape/*` が受理されること（ペイロード検証は行う）。
+- 根拠となる仕様・要件ID: docs/20_data_contracts.md#5.1.1, docs/21_openapi.yaml:/scrape/*
+- 関連リスクID: RISK-004
+- テスト観点: 正常系
 - テスト分類: 結合テスト
-- 対象機能・モジュール: api-service scrape routes, auth scope gate
+- 対象機能・モジュール: api-service scrape routes
 - 実装状況: 既存テストあり（services/api/tests/test_oauth_client_and_scope.py）
 
 ### TR-009: venues 参照 API
@@ -222,7 +222,7 @@
 ### TR-019: cron コンテナによる定期実行トリガ
 - 要件ID: TR-019
 - 要件名: cron→scraper の定期実行制御
-- 要件の説明: cron コンテナが `GET /control/schedule` の結果に従い、`enabled=true` の場合は `scraper_service.cli scrape once --no-api` を `baba_codes` 指定で起動し、`enabled=false` の場合は実行しないこと。
+- 要件の説明: cron コンテナが `GET /control/schedule` の結果に従い、`enabled=true` の場合は `scraper_service.cli scrape once` を `baba_codes` 指定で起動し、`enabled=false` の場合は実行しないこと。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.3, docs/10_architecture.md#3, docs/70_operations_runbook.md#1
 - 関連リスクID: RISK-003
 - テスト観点: 正常系／異常系

@@ -7,10 +7,10 @@
 ## 1. 設計のゴール
 
 - **学習（予測/強化学習）に必要な事実データを、冪等に蓄積**できる
-- 代表オッズ（t-5m / t-1m / final 等）を **同一 race_key** に時系列で保持できる
+- 代表オッズ（t_minus_60m / t_minus_30m / t_minus_20m / t_minus_10m / t_minus_5m / t_minus_1m / final 等）を **同一 race_key** に時系列で保持できる
 - スクレイピング失敗や HTML 差分を追跡できるように、必要に応じて **Raw層**（HTML/HTTPログ）も持てる
 
-> 本書は方針ドキュメント（概念設計）。具体DDLは `source_shared/25_database_definition.md` を正とする。
+> 本書は方針ドキュメント（概念設計）。具体DDLは `docs/database/25_database_definition.md` を正とする。
 
 ---
 
@@ -70,8 +70,9 @@ erDiagram
 - horse_id の正規化は **公式IDの取得可否が未確定**のため後回し（当面は horse_name を冗長保持）
 
 ### 5.3 odds_snapshots / odds_items（時系列オッズ）
-- odds_snapshots UNIQUE: `(race_id, bet_type, snapshot_kind)`
-  - snapshot_kind 例: `t_minus_5m`, `t_minus_1m`, `final`, `captured_at_utc` など（運用で定義）
+- odds_snapshots UNIQUE: `(race_id, bet_type, snapshot_kind, odds_flg)`
+  - snapshot_kind 例: `t_minus_60m`, `t_minus_30m`, `t_minus_20m`, `t_minus_10m`, `t_minus_5m`, `t_minus_1m`, `final` など（運用で追加可）
+  - odds_flg は表示モード識別子（NULL 可）。NULL も一意キーに含める
 - odds_items UNIQUE: `(odds_snapshot_id, legs, is_ordered)`
 - レンジ表現（ワイド/複勝等）は `odds_min/odds_max` で統一
   - 単値は `odds_min = odds_max`
@@ -92,12 +93,12 @@ erDiagram
 ### 5.6 race_changes（出走取消・騎手変更など）
 - 取得元: RaceList（下部の変更情報テーブル）
 - 目的: 変更イベントを事後検証・特徴量化できるように保持
-- UNIQUE（推奨）: `(race_id, change_type, horse_number, announced_at)` など（詳細は `source_shared/25_database_definition.md`）
+- UNIQUE（推奨）: `(race_id, change_type, horse_number, announced_at)` など（詳細は `docs/database/25_database_definition.md`）
 
 ### 5.7 raw_fetch_logs（Raw層: 取得監査）
-- 取得元: scraper-service が全HTTP取得で記録
-- 保存対象: `url, page_name, http_status, fetched_at, sha256, out_path(任意), elapsed_ms(任意)`
-- 目的: HTML差分/障害再現/アクセス監査
+- 永続データに含める（任意）（必要になった段階で追加）
+- 保存対象（推奨）: `url, page_type, http_status, captured_at, sha256, out_path(任意), elapsed_ms(任意)`
+- 目的: HTML差分/障害再現/アクセス監査（必要時のみ）
 
 ---
 
@@ -107,7 +108,7 @@ erDiagram
 |---|---|
 |races|`(race_date, baba_code, race_no)`|
 |race_entries|`(race_id, horse_number)`|
-|odds_snapshots|`(race_id, bet_type, snapshot_kind)`|
+|odds_snapshots|`(race_id, bet_type, snapshot_kind, odds_flg)`|
 |odds_items|`(odds_snapshot_id, legs, is_ordered)`|
 |race_results|`(race_id, finish_position)` および `(race_id, horse_number)`|
 |payouts|`(race_id, bet_type, legs, is_ordered)`|
@@ -128,7 +129,7 @@ erDiagram
 
 1. `RaceList(date,baba_code)` → `races`（発走時刻） + `race_changes`
 2. `DebaTable(race_key)` → `race_entries` + `races`（距離/条件など補完）
-3. `Odds*(race_key, snapshot_kind)` → `odds_snapshots` + `odds_items`
+3. `Odds*(race_key, snapshot_kind, odds_flg)` → `odds_snapshots` + `odds_items`
 4. `RaceMarkTable(race_key)` → `race_results` + `races`/`race_entries`（確定値で上書き）
 5. `RefundMoneyList(date,baba_code)` → `payouts`
 
@@ -164,16 +165,16 @@ erDiagram
 
 ### 8.3 初期DDLの正
 
-- 物理DDLは `source_shared/25_database_definition.md` の **PostgreSQL DDL** を正とする。
+- 物理DDLは `docs/database/25_database_definition.md` の **PostgreSQL DDL** を正とする。
 
 ### 8.4 初期投入（最小）
 
 - `venues` は `baba_code` の出現を見て **後追い投入**でも可（NULL許容はしない設計のため、投入は必要）
 - それ以外は scraper の upsert により蓄積する
 
-### 8.5 監査・運用上の必須ログ
+### 8.5 監査・運用ログ（任意）
 
-- `raw_fetch_logs` は運用の根拠になるため、**全リクエストで必ず書く**（成功/失敗とも）
-- HTMLの保存先（ファイルパス）は `raw_fetch_logs.storage_path` に保存する
+- `raw_fetch_logs` は必要時のみ記録（成功/失敗を問わない）
+- HTMLの保存先（ファイルパス）は必要に応じて `raw_fetch_logs.storage_path` に保存する
 
 参照: `source_shared/29_db_migration_and_bootstrap.md`

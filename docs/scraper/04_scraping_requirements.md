@@ -31,7 +31,7 @@
 
 ### 1.1 同期と差分管理
 
-- 差分評価対象: `/scrape/*` に相当する正規化データ と `raw_fetch_logs`
+- 差分評価対象: `/scrape/*` に相当する正規化データ
 - 同期頻度（既定）: 1日おき（JST）
 - 同期方向: api → scraper（api-service 起点）
 - 差分判定（最小構成）:
@@ -40,7 +40,7 @@
     - TodayRaceInfoTop: `race_date`
     - RaceList / RefundMoneyList: `race_date + baba_code`
     - DebaTable / RaceMarkTable / Odds*: `race_date + baba_code + race_no`
-  - fingerprint: `raw_fetch_logs.sha256`（HTML 保存時はこれを優先）
+  - fingerprint: 保存済み HTML の `sha256`
 - 同期ルール: fingerprint が前回と同一なら同期をスキップし、差分のみを api → scraper 方向で反映する
 - 正規化データの差分キー（参考）:
   - races: `race_key`
@@ -65,6 +65,9 @@
 
 - 受信元: api-service のみ（PC→Pi）
 - 認証: 不要（PC 経由の内部通信を想定）
+- 同期受け口: `POST /control/ingest/*`
+  - ペイロードは api-service の `/scrape/*` と同一スキーマ
+  - 受信後は Pi 側に保存（JSONL など、実装に委ねる）
 - 定期実行の制御: `POST /control/schedule`
   - `enabled`: boolean
   - `baba_codes`: int[]（複数指定可）
@@ -99,7 +102,8 @@
 ## 3. 取得スケジュール（推奨）
 
 前提: スケジューリングは **トリガ駆動**で行い、scraper は **実行時点で必要な取得**を行う。  
-代表オッズ（最終/5分前/1分前）は **発走時刻基準**でトリガを組む（`RaceList` の発走時刻を一次情報とする）。
+代表オッズ（t_minus_60m / t_minus_30m / t_minus_20m / t_minus_10m / t_minus_5m / t_minus_1m / final）は **発走時刻基準**でトリガを組む（`RaceList` の発走時刻を一次情報とする）。  
+手動取得は `captured_at` と `races.start_time` から **最も近い `snapshot_kind`** を割り当てる（`captured_at >= races.start_time` は `final`）。
 
 ### 3.1 RaceList（当日・開催場単位）
 
@@ -112,14 +116,18 @@
 ### 3.2 DebaTable（出馬表）
 
 - 原則: 各レースで **最低1回**
-- 推奨: `t_start - 60〜20分` の間に取得（出走取消/騎手変更が反映される可能性を考慮）
-- 追加取得（任意）: 変更が多い開催では `t_start - 10分` 付近に再取得（負荷とのトレードオフ）
+- 推奨: `races.start_time` の 60〜20分前に取得（出走取消/騎手変更が反映される可能性を考慮）
+- 追加取得（任意）: 変更が多い開催では `races.start_time` の 10分前付近に再取得（負荷とのトレードオフ）
 
 ### 3.3 Odds*（代表オッズ）
 
-- t-5m: 発走5分前
-- t-1m: 発走1分前
-- last: 締切後〜発走直前（サイト更新タイミングに依存）
+- t_minus_60m: 発走60分前
+- t_minus_30m: 発走30分前
+- t_minus_20m: 発走20分前
+- t_minus_10m: 発走10分前
+- t_minus_5m: 発走5分前
+- t_minus_1m: 発走1分前
+- final: 締切後〜発走直前（サイト更新タイミングに依存）
 
 > 注意
 > - 締切・発走・更新が完全同期しない可能性があるため、`captured_at`（取得時刻）を必ず保存し、後段で選別する。
@@ -127,12 +135,12 @@
 ### 3.4 RaceMarkTable（成績）
 
 - 取得タイミングの考え方
-  - レース終了をイベントで検知できない場合、`t_start` からの **固定遅延 + 少回数リトライ**で現実運用する。
+  - レース終了をイベントで検知できない場合、`races.start_time` からの **固定遅延 + 少回数リトライ**で現実運用する。
 
 推奨（最小）
-- 1回目: `t_start + 10〜20分`（距離/馬場により変動）
+- 1回目: `races.start_time + 10〜20分`（距離/馬場により変動）
 - リトライ: 2〜4回（例: 5分間隔）
-- 上限: `t_start + 60分` を超えたら欠損扱い
+- 上限: `races.start_time + 60分` を超えたら欠損扱い
 
 ### 3.5 RefundMoneyList（払戻）
 
@@ -171,7 +179,7 @@
 - 取得頻度は **最小**（代表時点のみ）に絞る
 - 並列数を抑える（1〜数スレッド程度から開始）
 - 失敗時のリトライは **少回数**（指数バックオフ）
-- Raw層ログ（url/http_status/sha256/fetched_at）を残し、原因調査を可能にする
+- Raw層ログ（url/http_status/sha256/captured_at）を残し、原因調査を可能にする
 
 ---
 
@@ -181,7 +189,7 @@
 - 収集は「開催中の日付」で行う（オッズが出ない日付では検証できない）。
 - **取得計画（manifest.yml）** と **取得結果ログ（manifest_log.csv）** を必須とする。
   - 取得計画: URL / PageName / odds_flg（指定するなら） / 出力パス / 期待HTTP（異常系のみ）
-  - 取得結果ログ: url / sha256 / fetched_at / http_status / content_type / content_encoding
+  - 取得結果ログ: url / sha256 / captured_at / http_status / content_type / content_encoding
   - 仕様は `05_parsing_fixture_tdd.md` 7章に確定。
 
 ### 6.1 odds_flg と表示モード
@@ -218,9 +226,9 @@
 - 失敗時の再試行: 最大3回、指数バックオフ（ネットワーク例外/一部5xxのみ）
 - 同一URLの連打禁止: スケジューラが抑止（直近N秒の再取得を避ける）
 
-### 8.2 取得ログ（固定）
+### 8.2 取得ログ（任意）
 
-- すべての取得について `raw_fetch_logs` を必ず記録する（成功/失敗を問わない）
+- すべての取得について `raw_fetch_logs` を **記録してもよい**（成功/失敗を問わない）
 - HTMLを保存する場合:
   - `sha256` を採番に使いファイル保存（例: `raw_html/YYYY/MM/DD/{page_type}/{sha256}.html`）
   - DBには `storage_path` のみ保存する
