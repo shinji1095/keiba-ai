@@ -5,11 +5,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from scraper_service.api.client import ApiClient
 from scraper_service.config import Settings
 from scraper_service.http.client import HttpClient
 from scraper_service.keiba import constants as C
-from scraper_service.keiba.models import OddsSnapshotUpsertRequest, RaceKey
+from scraper_service.keiba.models import RaceKey
 from scraper_service.keiba.soft_errors import SOFT_NO_ODDS_PATTERNS, SOFT_TEMP_UNAVAILABLE_PATTERNS
 from scraper_service.keiba.urls import ODDS_FLG_FIXED, build_url
 from scraper_service.parsers.deba_table import parse_deba_table
@@ -19,7 +18,6 @@ from scraper_service.parsers.odds import (
     parse_odds_waku,
 )
 from scraper_service.parsers.race_list import parse_race_list
-from scraper_service.parsers.race_mark_table import parse_race_mark_table
 from scraper_service.parsers.refund_money_list import parse_refund_money_list
 from scraper_service.parsers.today_top import parse_today_race_info_top
 from scraper_service.utils.raw_fetch_logger import RawFetchLogger
@@ -59,7 +57,6 @@ def _detect_note(body_text: str) -> str:
 class ScrapeRunner:
     settings: Settings
     http: HttpClient
-    api: Optional[ApiClient]
     raw_logger: RawFetchLogger
 
     # in-memory state (not persisted)
@@ -107,9 +104,6 @@ class ScrapeRunner:
             race_no=race_no,
             note=note,
         )
-        if self.api is not None:
-            # push one-by-one is OK (small). batch would be better but keep simple.
-            self.api.post_raw_fetch_logs([log_item])
 
         return res.content, res.final_url, note, [log_item]
 
@@ -148,8 +142,6 @@ class ScrapeRunner:
                 odds_flg=None,
             )
             races = parse_race_list(html, race_date=race_date, baba_code=baba_code)
-            if self.api is not None:
-                self.api.post_races(races)
 
             if race_no is not None:
                 races = [r for r in races if r.race_key.race_no == race_no]
@@ -172,8 +164,6 @@ class ScrapeRunner:
                     baba_code=baba_code,
                     race_no=rn,
                 )
-                if self.api is not None:
-                    self.api.post_race_entries(entries)
 
                 self._scrape_odds_for_race(
                     race_date=race_date,
@@ -192,13 +182,11 @@ class ScrapeRunner:
                     race_no=None,
                     odds_flg=None,
                 )
-                payouts = parse_refund_money_list(
+                _ = parse_refund_money_list(
                     html_refund,
                     race_date=race_date,
                     baba_code=baba_code,
                 )
-                if self.api is not None:
-                    self.api.post_payouts(payouts)
 
     def _scrape_odds_for_race(
         self,
@@ -212,19 +200,7 @@ class ScrapeRunner:
         captured_at = iso_now_jst()
 
         def post_snapshot(source_url: str, bet_type: str, odds_flg: int | None, items):
-            if self.api is None:
-                return
-            req = OddsSnapshotUpsertRequest(
-                race_key=RaceKey(race_date=race_date, baba_code=baba_code, race_no=race_no),
-                bet_type=bet_type,  # type: ignore[arg-type]
-                snapshot_kind=snapshot_kind,  # type: ignore[arg-type]
-                captured_at=captured_at,
-                source_url=source_url,
-                odds_flg=odds_flg,
-                is_final=is_final,
-                items=items,
-            )
-            self.api.post_odds_snapshot(req)
+            _ = (source_url, bet_type, odds_flg, items, captured_at, is_final)
 
         # OddsTanFuku (two modes)
         for flg in ODDS_FLG_FIXED.get(C.PAGE_ODDS_TANFUKU, [None]):

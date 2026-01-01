@@ -69,6 +69,28 @@ class AppError(Exception):
             status_code=409, code="conflict", message=message, details=details
         )
 
+    @staticmethod
+    def bad_gateway(
+        message: str, details: Optional[Dict[str, Any]] = None
+    ) -> "AppError":
+        return AppError(
+            status_code=502,
+            code="bad_gateway",
+            message=message,
+            details=details,
+        )
+
+    @staticmethod
+    def internal(
+        message: str, details: Optional[Dict[str, Any]] = None
+    ) -> "AppError":
+        return AppError(
+            status_code=500,
+            code="internal_error",
+            message=message,
+            details=details,
+        )
+
 
 def _envelope(
     code: str, message: str, details: Optional[Dict[str, Any]] = None

@@ -11,7 +11,7 @@ def _login_admin(client) -> str:
     return r.json()["access_token"]
 
 
-def test_client_credentials_and_scope_gate(client):
+def test_client_credentials_and_scrape_no_auth(client):
     admin_token = _login_admin(client)
 
     r = client.post(
@@ -38,11 +38,11 @@ def test_client_credentials_and_scope_gate(client):
         },
     )
     assert r2.status_code == 200, r2.text
-    access_token = r2.json()["access_token"]
+    assert r2.json()["access_token"]
 
-    # missing token
+    # no auth required for scrape ingest; payload validation still applies
     r3 = client.post("/scrape/raw-fetch-logs", json={"items": []})
-    assert r3.status_code == 401
+    assert r3.status_code == 400
 
     payload = {
         "items": [
@@ -53,16 +53,12 @@ def test_client_credentials_and_scope_gate(client):
                 "http_status": 200,
                 "sha256": None,
                 "storage_path": None,
-                "fetched_at": datetime.now(timezone.utc).isoformat(),
+                "captured_at": datetime.now(timezone.utc).isoformat(),
                 "note": "test",
             }
         ]
     }
-    r4 = client.post(
-        "/scrape/raw-fetch-logs",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json=payload,
-    )
+    r4 = client.post("/scrape/raw-fetch-logs", json=payload)
     assert r4.status_code in (200, 201), r4.text
     body = r4.json()
     assert body["accepted"] == 1

@@ -22,7 +22,7 @@ class FetchResult:
     final_url: str
     page_type: str
     http_status: int
-    fetched_at: str
+    captured_at: str
     elapsed_ms: int
     sha256: Optional[str]
     storage_path: Optional[str]
@@ -101,7 +101,7 @@ class HttpClient:
                     final_url=str(resp.url),
                     page_type=page_type,
                     http_status=resp.status_code,
-                    fetched_at=_utc_iso(),
+                    captured_at=_utc_iso(),
                     elapsed_ms=elapsed_ms,
                     sha256=sha256,
                     storage_path=storage_path,
@@ -119,7 +119,7 @@ class HttpClient:
                 final_url=str(resp.url),
                 page_type=page_type,
                 http_status=resp.status_code,
-                fetched_at=_utc_iso(),
+                captured_at=_utc_iso(),
                 elapsed_ms=elapsed_ms,
                 sha256=sha256,
                 storage_path=storage_path,

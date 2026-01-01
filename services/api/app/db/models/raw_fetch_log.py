@@ -28,5 +28,5 @@ class RawFetchLog(Base):
     storage_path: Mapped[str | None] = mapped_column(
         String(1024), nullable=True
     )
-    fetched_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    captured_at: Mapped[datetime] = mapped_column(DateTime, index=True)
     note: Mapped[str | None] = mapped_column(String(255), nullable=True)

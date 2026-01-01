@@ -345,7 +345,7 @@ class ScrapeService:
                     http_status=item.http_status,
                     sha256=item.sha256,
                     storage_path=item.storage_path,
-                    fetched_at=item.fetched_at,
+                    captured_at=item.captured_at,
                     note=item.note,
                 )
             )

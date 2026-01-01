@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,16 +9,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    api_base_url: str = "http://localhost/api"
-    api_access_token: Optional[str] = None
-    api_username: Optional[str] = None
-    api_password: Optional[str] = None
-
     keiba_device: Literal["pc", "sp"] = "pc"
     user_agent: str = "scraper-service/0.1 (+https://example.invalid)"
     accept_language: str = "ja"
     raw_html_dir: Path = Path("./data/raw_html")
     local_log_dir: Path = Path("./data/logs")
+    ingest_dir: Path = Path("./data/ingest")
 
     control_dir: Path = Path("./data/control")
     schedule_path: Path = Path("./data/control/schedule.json")

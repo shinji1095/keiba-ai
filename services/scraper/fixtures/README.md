@@ -18,7 +18,7 @@
 - `url`: 取得URL（完全URL推奨）
 - `out`: 保存先パス（fixtures_root からの相対パス）
 - `odds_flg`（任意）
-- `snapshot_kind`（任意、既定 `manual`）
+- `snapshot_kind`（任意、未指定は `captured_at` と `t_start` から最近傍に正規化）
 - `expect.http_status`（任意）
 
 ## 2. manifest_log.csv
@@ -26,4 +26,4 @@
 取得結果のログ（append-only）。
 
 列:
-- `name,out_path,url,fetched_at,http_status,sha256,content_type,content_encoding,elapsed_ms,note`
+- `name,out_path,url,captured_at,http_status,sha256,content_type,content_encoding,elapsed_ms,note`

@@ -20,7 +20,7 @@ class RawFetchLogger:
                 w = csv.writer(f)
                 w.writerow(
                     [
-                        "fetched_at",
+                        "captured_at",
                         "page_type",
                         "race_date",
                         "baba_code",
@@ -50,7 +50,7 @@ class RawFetchLogger:
             w = csv.writer(f)
             w.writerow(
                 [
-                    res.fetched_at,
+                    res.captured_at,
                     res.page_type,
                     race_date or "",
                     baba_code if baba_code is not None else "",
@@ -78,6 +78,6 @@ class RawFetchLogger:
             http_status=res.http_status,
             sha256=res.sha256,
             storage_path=res.storage_path,
-            fetched_at=res.fetched_at,
+            captured_at=res.captured_at,
             note=note or None,
         )

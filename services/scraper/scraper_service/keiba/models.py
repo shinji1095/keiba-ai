@@ -34,7 +34,7 @@ class RawFetchLogInsert(BaseModel):
     http_status: int
     sha256: Optional[str] = None
     storage_path: Optional[str] = None
-    fetched_at: str
+    captured_at: str
     note: Optional[str] = None
 
 

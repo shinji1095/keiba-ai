@@ -30,19 +30,19 @@ docker compose up --build
 
 `POST /auth/refresh` は Cookie の refresh token を検証し、新しい refresh token を再発行（ローテーション）します。
 
-### 2.4 Client Credentials（scraper-service）
+### 2.4 Client Credentials（将来予約）
 
-`POST /auth/token` は `client_id / client_secret` により access token を発行します（refresh cookie は発行しません）。
-
-OAuth client は管理者用 API で作成します:
-
-- `POST /admin/oauth-clients`
-
-※ Pi からの `/scrape/schedule` 取得は PC 経由の内部通信のみを想定するため、認証なし運用です。
+`POST /auth/token` は `client_id / client_secret` により access token を発行します（refresh cookie は発行しません）。  
+api-service ⇔ scraper-service は現時点では認証不要（将来 mTLS で対応予定）。
 
 ## 3. 環境変数
 
-`.env.example` を参照してください。
+`.env.example` を参照してください。scraper への転送を有効化する場合は以下を追加します。
+
+- `SCRAPER_FORWARD_ENABLED`（`true` で api→scraper 転送を有効化）
+- `SCRAPER_CONTROL_BASE_URL`（例: `http://scraper-service:8080`）
+- `SCRAPER_FORWARD_TIMEOUT_SEC`（既定: `5`）
+- `SCRAPER_MTLS_CERT` / `SCRAPER_MTLS_KEY` / `SCRAPER_MTLS_CA_CERT`（mTLS 用、任意）
 
 ## 4. データ永続化
 
@@ -50,7 +50,8 @@ OAuth client は管理者用 API で作成します:
 
 ## 5. 開発用メモ
 
-- スコープ判定: `scrape:write`
+- api-service ⇔ scraper-service 間の /scrape 取り込みは **認証不要**（将来対応予定）
+- scraper 側の受け口は `/control/ingest/*`（認証不要）
 - Bearer 認証: `Authorization: Bearer <JWT>`
 
 ## テスト・品質ゲート（docs/50_coding_standard.md, docs/60_ci_cd.md 準拠）

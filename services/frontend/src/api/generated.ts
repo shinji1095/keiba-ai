@@ -234,7 +234,7 @@ export interface RawFetchLog {
   "http_status": number;
   "sha256"?: string | null;
   "storage_path"?: string | null;
-  "fetched_at": string;
+  "captured_at": string;
   "note"?: string | null;
 }
 
@@ -354,7 +354,7 @@ export interface RawFetchLogInsert {
   "http_status": number;
   "sha256"?: string | null;
   "storage_path"?: string | null;
-  "fetched_at": string;
+  "captured_at": string;
   "note"?: string | null;
 }
 

@@ -51,6 +51,25 @@ class Settings(BaseSettings):
         default_factory=lambda: ["*"], alias="CORS_ALLOW_ORIGINS"
     )
 
+    scraper_forward_enabled: bool = Field(
+        default=False, alias="SCRAPER_FORWARD_ENABLED"
+    )
+    scraper_control_base_url: Optional[str] = Field(
+        default=None, alias="SCRAPER_CONTROL_BASE_URL"
+    )
+    scraper_forward_timeout_sec: float = Field(
+        default=5.0, alias="SCRAPER_FORWARD_TIMEOUT_SEC"
+    )
+    scraper_mtls_cert: Optional[str] = Field(
+        default=None, alias="SCRAPER_MTLS_CERT"
+    )
+    scraper_mtls_key: Optional[str] = Field(
+        default=None, alias="SCRAPER_MTLS_KEY"
+    )
+    scraper_mtls_ca_cert: Optional[str] = Field(
+        default=None, alias="SCRAPER_MTLS_CA_CERT"
+    )
+
     def clear_refresh_cookie(self) -> str:
         parts = [
             "refresh_token=",

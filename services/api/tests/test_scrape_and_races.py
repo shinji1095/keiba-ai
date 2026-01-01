@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from uuid import uuid4
 
 
 def _login_admin(client) -> str:
@@ -10,41 +9,11 @@ def _login_admin(client) -> str:
     return r.json()["access_token"]
 
 
-def _issue_scraper_token(client) -> str:
-    admin_token = _login_admin(client)
-    client_name = f"scraper-{uuid4().hex[:8]}"
-    r = client.post(
-        "/admin/oauth-clients",
-        headers={"Authorization": f"Bearer {admin_token}"},
-        json={
-            "name": client_name,
-            "scopes": ["scrape:write"],
-            "is_active": True,
-        },
-    )
-    assert r.status_code in (200, 201), r.text
-    client_info = r.json()["client"]
-
-    r2 = client.post(
-        "/auth/token",
-        json={
-            "grant_type": "client_credentials",
-            "client_id": client_info["client_id"],
-            "client_secret": client_info["client_secret"],
-            "scope": "scrape:write",
-        },
-    )
-    assert r2.status_code == 200, r2.text
-    return r2.json()["access_token"]
-
-
 def _auth_headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
 def test_odds_snapshot_ingest_idempotent(client) -> None:
-    scraper_token = _issue_scraper_token(client)
-
     payload = {
         "race_key": {"race_date": "2025-12-28", "baba_code": 18, "race_no": 1},
         "bet_type": "tansho",
@@ -57,11 +26,11 @@ def test_odds_snapshot_ingest_idempotent(client) -> None:
         ],
     }
 
-    r1 = client.post("/scrape/odds-snapshots", headers=_auth_headers(scraper_token), json=payload)
+    r1 = client.post("/scrape/odds-snapshots", json=payload)
     assert r1.status_code == 201, r1.text
     body1 = r1.json()
 
-    r2 = client.post("/scrape/odds-snapshots", headers=_auth_headers(scraper_token), json=payload)
+    r2 = client.post("/scrape/odds-snapshots", json=payload)
     assert r2.status_code == 201, r2.text
     body2 = r2.json()
 
@@ -80,14 +49,10 @@ def test_odds_snapshot_ingest_idempotent(client) -> None:
 
 
 def test_races_and_related_endpoints(client) -> None:
-    scraper_token = _issue_scraper_token(client)
-    headers = _auth_headers(scraper_token)
-
     race_key: dict[str, Any] = {"race_date": "2025-12-28", "baba_code": 5, "race_no": 7}
 
     r1 = client.post(
         "/scrape/races",
-        headers=headers,
         json={
             "items": [
                 {
@@ -103,7 +68,6 @@ def test_races_and_related_endpoints(client) -> None:
 
     r2 = client.post(
         "/scrape/race-entries",
-        headers=headers,
         json={
             "items": [
                 {
@@ -119,7 +83,6 @@ def test_races_and_related_endpoints(client) -> None:
 
     r3 = client.post(
         "/scrape/race-results",
-        headers=headers,
         json={
             "items": [
                 {
@@ -135,7 +98,6 @@ def test_races_and_related_endpoints(client) -> None:
 
     r4 = client.post(
         "/scrape/payouts",
-        headers=headers,
         json={
             "items": [
                 {
@@ -153,7 +115,6 @@ def test_races_and_related_endpoints(client) -> None:
 
     r5 = client.post(
         "/scrape/race-changes",
-        headers=headers,
         json={
             "items": [
                 {

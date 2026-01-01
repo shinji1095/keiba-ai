@@ -11,8 +11,20 @@ from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import urlparse
 
+from pydantic import ValidationError
+
 from scraper_service.config import Settings, settings
+from scraper_service.ingest.store import IngestStore
 from scraper_service.http.client import HttpClient
+from scraper_service.keiba.models import (
+    OddsSnapshotUpsertRequest,
+    PayoutUpsert,
+    RaceChangeInsert,
+    RaceEntryUpsert,
+    RaceResultUpsert,
+    RaceUpsert,
+    RawFetchLogInsert,
+)
 from scraper_service.scheduler.runner import ScrapeRunner
 from scraper_service.utils.raw_fetch_logger import RawFetchLogger
 from scraper_service.utils.time import iso_now_jst, today_jst_str
@@ -78,10 +90,51 @@ def _build_http(cfg: Settings) -> HttpClient:
     )
 
 
+def _validate_batch(payload: dict[str, Any], model) -> list[dict[str, Any]]:
+    items = payload.get("items")
+    if not isinstance(items, list):
+        raise ValueError("items must be a list")
+    return [model.model_validate(item).model_dump(mode="json") for item in items]
+
+
+def _validate_single(payload: dict[str, Any], model) -> list[dict[str, Any]]:
+    return [model.model_validate(payload).model_dump(mode="json")]
+
+
+INGEST_ROUTES: dict[str, tuple[str, Any]] = {
+    "/control/ingest/races": ("races", lambda p: _validate_batch(p, RaceUpsert)),
+    "/control/ingest/race-entries": (
+        "race_entries",
+        lambda p: _validate_batch(p, RaceEntryUpsert),
+    ),
+    "/control/ingest/odds-snapshots": (
+        "odds_snapshots",
+        lambda p: _validate_single(p, OddsSnapshotUpsertRequest),
+    ),
+    "/control/ingest/race-results": (
+        "race_results",
+        lambda p: _validate_batch(p, RaceResultUpsert),
+    ),
+    "/control/ingest/payouts": (
+        "payouts",
+        lambda p: _validate_batch(p, PayoutUpsert),
+    ),
+    "/control/ingest/race-changes": (
+        "race_changes",
+        lambda p: _validate_batch(p, RaceChangeInsert),
+    ),
+    "/control/ingest/raw-fetch-logs": (
+        "raw_fetch_logs",
+        lambda p: _validate_batch(p, RawFetchLogInsert),
+    ),
+}
+
+
 class ControlApp:
     def __init__(self, cfg: Settings, schedule_path: Path):
         self._cfg = cfg
         self._store = ScheduleStore(schedule_path)
+        self._ingest = IngestStore(cfg.ingest_dir)
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._lock = threading.Lock()
         self._current: Optional[Future] = None
@@ -93,6 +146,9 @@ class ControlApp:
         state = ScheduleState(enabled=enabled, baba_codes=sorted(set(baba_codes)), updated_at=iso_now_jst())
         self._store.save(state)
         return state
+
+    def ingest(self, *, kind: str, payloads: list[dict[str, Any]]) -> int:
+        return self._ingest.append(kind=kind, payloads=payloads)
 
     def submit_scrape(self, req: ScrapeRequest) -> str:
         with self._lock:
@@ -106,7 +162,7 @@ class ControlApp:
         cfg = self._cfg
         http = _build_http(cfg)
         raw_logger = RawFetchLogger(cfg.local_log_dir / "raw_fetch_logs.csv")
-        runner = ScrapeRunner(settings=cfg, http=http, api=None, raw_logger=raw_logger)
+        runner = ScrapeRunner(settings=cfg, http=http, raw_logger=raw_logger)
         runner.run_once(
             race_date=req.race_date,
             baba_codes=[req.baba_code],
@@ -160,6 +216,24 @@ class ControlHandler(BaseHTTPRequestHandler):
             payload = self._read_json()
         except ValueError:
             self._send_json(400, {"error": "invalid json"})
+            return
+
+        if path in INGEST_ROUTES:
+            kind, validator = INGEST_ROUTES[path]
+            try:
+                records = validator(payload)
+            except ValueError as exc:
+                self._send_json(400, {"error": str(exc)})
+                return
+            except ValidationError as exc:
+                self._send_json(
+                    400, {"error": "invalid payload", "details": exc.errors()}
+                )
+                return
+            stored = self._app.ingest(kind=kind, payloads=records)
+            self._send_json(
+                201, {"accepted": len(records), "stored": stored}
+            )
             return
 
         if path == "/control/schedule":

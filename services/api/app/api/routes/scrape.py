@@ -5,8 +5,6 @@ from fastapi import APIRouter, Depends, status
 from app.api.deps import (
     get_current_user,
     get_db,
-    get_scraper_principal,
-    ScraperPrincipal,
 )
 from app.schemas.scrape import (
     BatchUpsertResponse,
@@ -27,6 +25,7 @@ from app.schemas.scrape import (
 )
 from app.services.scrape_control_service import ScrapeControlService
 from app.services.scrape_service import ScrapeService
+from app.services.scraper_ingest_client import ScraperIngestClient
 
 router = APIRouter()
 
@@ -79,10 +78,13 @@ def get_sync_status(
 def upsert_races(
     payload: RaceUpsertBatchRequest,
     db=Depends(get_db),
-    principal: ScraperPrincipal = Depends(get_scraper_principal),
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
-    return svc.upsert_races(payload)
+    resp = svc.upsert_races(payload)
+    client = ScraperIngestClient.from_settings()
+    if client:
+        client.post("/control/ingest/races", payload.model_dump(mode="json"))
+    return resp
 
 
 @router.post(
@@ -93,10 +95,15 @@ def upsert_races(
 def upsert_entries(
     payload: RaceEntryUpsertBatchRequest,
     db=Depends(get_db),
-    principal: ScraperPrincipal = Depends(get_scraper_principal),
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
-    return svc.upsert_entries(payload)
+    resp = svc.upsert_entries(payload)
+    client = ScraperIngestClient.from_settings()
+    if client:
+        client.post(
+            "/control/ingest/race-entries", payload.model_dump(mode="json")
+        )
+    return resp
 
 
 @router.post(
@@ -107,10 +114,15 @@ def upsert_entries(
 def upsert_odds(
     payload: OddsSnapshotUpsertRequest,
     db=Depends(get_db),
-    principal: ScraperPrincipal = Depends(get_scraper_principal),
 ) -> OddsSnapshotUpsertResponse:
     svc = ScrapeService(db)
-    return svc.upsert_odds_snapshot(payload)
+    resp = svc.upsert_odds_snapshot(payload)
+    client = ScraperIngestClient.from_settings()
+    if client:
+        client.post(
+            "/control/ingest/odds-snapshots", payload.model_dump(mode="json")
+        )
+    return resp
 
 
 @router.post(
@@ -121,10 +133,15 @@ def upsert_odds(
 def upsert_results(
     payload: RaceResultUpsertBatchRequest,
     db=Depends(get_db),
-    principal: ScraperPrincipal = Depends(get_scraper_principal),
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
-    return svc.upsert_results(payload)
+    resp = svc.upsert_results(payload)
+    client = ScraperIngestClient.from_settings()
+    if client:
+        client.post(
+            "/control/ingest/race-results", payload.model_dump(mode="json")
+        )
+    return resp
 
 
 @router.post(
@@ -135,10 +152,13 @@ def upsert_results(
 def upsert_payouts(
     payload: PayoutUpsertBatchRequest,
     db=Depends(get_db),
-    principal: ScraperPrincipal = Depends(get_scraper_principal),
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
-    return svc.upsert_payouts(payload)
+    resp = svc.upsert_payouts(payload)
+    client = ScraperIngestClient.from_settings()
+    if client:
+        client.post("/control/ingest/payouts", payload.model_dump(mode="json"))
+    return resp
 
 
 @router.post(
@@ -149,10 +169,15 @@ def upsert_payouts(
 def insert_race_changes(
     payload: RaceChangeInsertBatchRequest,
     db=Depends(get_db),
-    principal: ScraperPrincipal = Depends(get_scraper_principal),
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
-    return svc.insert_race_changes(payload)
+    resp = svc.insert_race_changes(payload)
+    client = ScraperIngestClient.from_settings()
+    if client:
+        client.post(
+            "/control/ingest/race-changes", payload.model_dump(mode="json")
+        )
+    return resp
 
 
 @router.post(
@@ -163,7 +188,12 @@ def insert_race_changes(
 def insert_raw_fetch_logs(
     payload: RawFetchLogInsertBatchRequest,
     db=Depends(get_db),
-    principal: ScraperPrincipal = Depends(get_scraper_principal),
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
-    return svc.insert_raw_fetch_logs(payload)
+    resp = svc.insert_raw_fetch_logs(payload)
+    client = ScraperIngestClient.from_settings()
+    if client:
+        client.post(
+            "/control/ingest/raw-fetch-logs", payload.model_dump(mode="json")
+        )
+    return resp

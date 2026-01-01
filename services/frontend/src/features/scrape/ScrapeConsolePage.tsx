@@ -96,7 +96,7 @@ const templates: Record<ScrapeOpKey, unknown> = {
   "raw-fetch-logs": {
     items: [
       {
-        fetched_at: "2025-01-01T11:59:00Z",
+        captured_at: "2025-01-01T11:59:00Z",
         url: "https://example.com",
         http_status: 200,
         elapsed_ms: 120,
