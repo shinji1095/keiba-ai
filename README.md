@@ -16,8 +16,8 @@
   - inference-service（Hailo 8 推論、必要になってから追加）
 
 ## 開発開始（例）
-- PC側: `deploy/compose/compose.pc.yaml`
-- Pi側: `deploy/compose/compose.pi.yaml`
+- PC側: `docker-compose.pc.yaml`
+- Pi側: `docker-compose.pi.yaml`
 
 詳細は `deploy/compose/README.md` と `docs/10_architecture.md` を参照してください。
 

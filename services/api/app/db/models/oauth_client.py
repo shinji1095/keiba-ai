@@ -4,9 +4,9 @@ from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.types import JSON
 
 from app.db.base import Base
+from app.db.types import JSONValue
 
 
 class OAuthClient(Base):
@@ -15,7 +15,7 @@ class OAuthClient(Base):
     client_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     client_secret_hash: Mapped[str] = mapped_column(String(255))
-    scopes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    scopes: Mapped[list[str]] = mapped_column(JSONValue, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow

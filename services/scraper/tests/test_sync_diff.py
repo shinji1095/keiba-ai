@@ -7,10 +7,8 @@ from scraper_service.sync.diff import build_diff_key, build_scope_key, should_sy
 
 
 def test_build_scope_key_today_top() -> None:
-    assert (
+    with pytest.raises(ValueError):
         build_scope_key(page_type=C.PAGE_TODAY_TOP, race_date="2025-12-28", baba_code=None, race_no=None)
-        == "2025-12-28"
-    )
 
 
 def test_build_scope_key_race_list() -> None:

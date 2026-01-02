@@ -13,6 +13,8 @@ class RaceResult(Base):
         UniqueConstraint(
             "race_id", "finish_position", name="uq_race_finish_position"
         ),
+        # docs/20_data_contracts.md の推奨（安全側）
+        UniqueConstraint("race_id", "horse_number", name="uq_race_horse_number"),
     )
 
     race_result_id: Mapped[int] = mapped_column(

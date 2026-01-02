@@ -4,9 +4,9 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.types import JSON
 
 from app.db.base import Base
+from app.db.types import JSONValue
 
 
 class RaceChange(Base):
@@ -20,5 +20,7 @@ class RaceChange(Base):
     )
 
     change_type: Mapped[str] = mapped_column(String(100))
-    payload: Mapped[dict] = mapped_column(JSON)
-    captured_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    payload: Mapped[dict] = mapped_column(JSONValue)
+    captured_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), index=True
+    )

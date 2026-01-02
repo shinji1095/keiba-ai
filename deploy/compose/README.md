@@ -5,20 +5,20 @@
 
 ## ローカル開発（PC 1台で全サービス）
 ```bash
-cp .env.example .env
-# PC_API_URL を http://reverse-proxy/api に設定
-docker compose --env-file .env -f docker-compose.dev.yaml up --build
+cp env.example .env
+# PC_API_URL を http://reverse-proxy/api に設定（同一 compose 内で reverse-proxy 経由にする）
+docker compose --env-file .env -f docker-compose.pc.yaml -f docker-compose.pi.yaml up --build
 ```
 
 ## PC側（Ubuntu PC）
 ```bash
-cp .env.example .env
+cp env.example .env
 docker compose --env-file .env -f docker-compose.pc.yaml up --build
 ```
 
 ## Pi側（Raspberry Pi 5）
 ```bash
-cp .env.example .env
+cp env.example .env
 # PC_API_URL を PC のLANアドレスに変更
 docker compose --env-file .env -f docker-compose.pi.yaml up --build
 ```

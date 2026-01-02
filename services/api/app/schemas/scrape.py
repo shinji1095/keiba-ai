@@ -16,9 +16,6 @@ class BatchUpsertResponse(BaseModel):
 
 
 class ManualScrapeTaskRequest(BaseModel):
-    event_id: Optional[str] = Field(
-        default=None, description="Idempotency key (optional)"
-    )
     race_date: Optional[dt.date] = Field(
         default=None, description="YYYY-MM-DD (JST). Omit to use today (JST)."
     )
@@ -47,9 +44,6 @@ class ScrapeScheduleUpdateRequest(BaseModel):
 
 
 class ScrapeSyncRequest(BaseModel):
-    event_id: Optional[str] = Field(
-        default=None, description="Idempotency key (optional)"
-    )
     reason: Optional[str] = None
 
 
@@ -92,7 +86,6 @@ class RaceUpsert(BaseModel):
 
 
 class RaceUpsertBatchRequest(BaseModel):
-    event_id: str
     items: list[RaceUpsert] = Field(min_length=1)
 
 
@@ -110,7 +103,6 @@ class RaceEntryUpsert(BaseModel):
 
 
 class RaceEntryUpsertBatchRequest(BaseModel):
-    event_id: str
     items: list[RaceEntryUpsert] = Field(min_length=1)
 
 
@@ -124,7 +116,6 @@ class OddsItemUpsert(BaseModel):
 
 
 class OddsSnapshotUpsertRequest(BaseModel):
-    event_id: str
     race_key: RaceKey
     bet_type: BetType
     snapshot_kind: SnapshotKind
@@ -158,7 +149,6 @@ class RaceResultUpsert(BaseModel):
 
 
 class RaceResultUpsertBatchRequest(BaseModel):
-    event_id: str
     items: list[RaceResultUpsert] = Field(min_length=1)
 
 
@@ -172,7 +162,6 @@ class PayoutUpsert(BaseModel):
 
 
 class PayoutUpsertBatchRequest(BaseModel):
-    event_id: str
     items: list[PayoutUpsert] = Field(min_length=1)
 
 
@@ -184,21 +173,4 @@ class RaceChangeInsert(BaseModel):
 
 
 class RaceChangeInsertBatchRequest(BaseModel):
-    event_id: str
     items: list[RaceChangeInsert] = Field(min_length=1)
-
-
-class RawFetchLogInsert(BaseModel):
-    race_key: Optional[RaceKey] = None
-    page_type: str
-    url: str
-    http_status: int
-    sha256: Optional[str] = None
-    storage_path: Optional[str] = None
-    captured_at: dt.datetime
-    note: Optional[str] = None
-
-
-class RawFetchLogInsertBatchRequest(BaseModel):
-    event_id: str
-    items: list[RawFetchLogInsert] = Field(min_length=1)

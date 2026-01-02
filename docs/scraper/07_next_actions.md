@@ -37,11 +37,11 @@
 ### C1（DBスキーマ初期実装）設計で確定したもの
 
 - 物理DB: PostgreSQL
-- 方式: SQLマイグレーション（`migrations/sql/0001_init.sql` から順次適用）
-- 主要テーブル: `venues, races, race_entries, odds_snapshots, odds_items, race_results, payouts, race_changes`（raw_fetch_logs は任意）
+- 方式: SQLマイグレーション（`services/api/db/migrations/sql/0001_init.sql` から順次適用）
+- 主要テーブル: `venues, races, race_entries, odds_snapshots, odds_items, race_results, payouts, race_changes`
 - `bet_type` は `tansho/fukusho/wakuren/wakutan/umaren/umatan/wide/sanrenpuku/sanrentan` を採用（`tanfuku` の統合表現は使わない）
 - Upsertキーとユニーク制約は `docs/database/25_database_definition.md` に統一
-- Raw HTML はDBに格納せず、**ファイル保存**で参照（必要なら `raw_fetch_logs.storage_path` に保存）
+- Raw HTML はDBに格納せず、**ファイル保存**で参照する
 
 参照: `02_database_design.md`, `docs/database/25_database_definition.md`, `source_shared/29_db_migration_and_bootstrap.md`
 
@@ -50,7 +50,6 @@
 - 取得は **ホスト単位で直列（並列=1）** を初期値とし、必要なら段階的に緩和
 - 1リクエストごとに最小待機（例: 1.5s）＋ジッタを入れる
 - 再試行は **限定的**（ネットワーク例外/一部5xxのみ、最大3回、指数バックオフ）
-- すべてのHTTP取得について `raw_fetch_logs` を **記録してもよい**（成功/失敗を問わない）
 - 監視指標（最低限）: 成功率、HTTPステータス分布、平均/95pレイテンシ、リトライ回数
 
 参照: `04_scraping_requirements.md`, `source_shared/11_scraping_strategy_and_load_control.md`, `source_shared/30_load_control_and_observability.md`

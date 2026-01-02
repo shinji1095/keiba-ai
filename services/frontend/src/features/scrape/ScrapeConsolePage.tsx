@@ -8,6 +8,7 @@ import { ErrorBox } from "@/shared/ui/ErrorBox";
 import { JsonView } from "@/shared/ui/JsonView";
 import { ScrapeScheduleCard } from "./ScrapeScheduleCard";
 import { SyncControlCard } from "./SyncControlCard";
+import { ManualScrapeTaskCard } from "./ManualScrapeTaskCard";
 
 type ScrapeOpKey =
   | "races"
@@ -15,8 +16,7 @@ type ScrapeOpKey =
   | "odds-snapshots"
   | "race-results"
   | "payouts"
-  | "race-changes"
-  | "raw-fetch-logs";
+  | "race-changes";
 
 type OpDef = {
   label: string;
@@ -95,16 +95,6 @@ const templates: Record<ScrapeOpKey, unknown> = {
       },
     ],
   },
-  "raw-fetch-logs": {
-    items: [
-      {
-        captured_at: "2025-01-01T11:59:00Z",
-        url: "https://example.com",
-        http_status: 200,
-        elapsed_ms: 120,
-      },
-    ],
-  },
 };
 
 const ops: Record<ScrapeOpKey, Omit<OpDef, "run">> = {
@@ -114,7 +104,6 @@ const ops: Record<ScrapeOpKey, Omit<OpDef, "run">> = {
   "race-results": { label: "POST /scrape/race-results", template: templates["race-results"] },
   payouts: { label: "POST /scrape/payouts", template: templates.payouts },
   "race-changes": { label: "POST /scrape/race-changes", template: templates["race-changes"] },
-  "raw-fetch-logs": { label: "POST /scrape/raw-fetch-logs", template: templates["raw-fetch-logs"] },
 };
 
 function pretty(x: unknown): string {
@@ -159,6 +148,10 @@ export function ScrapeConsolePage(): React.JSX.Element {
     },
   });
 
+  const manualTaskMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof api.scrapeManualTasksRequest>[1]) => api.scrapeManualTasksRequest(ctx, payload),
+  });
+
   const [op, setOp] = React.useState<ScrapeOpKey>("odds-snapshots");
   const [jsonText, setJsonText] = React.useState(pretty(templates["odds-snapshots"]));
 
@@ -182,8 +175,6 @@ export function ScrapeConsolePage(): React.JSX.Element {
           return await api.scrapePayoutsUpsert(ctx, body);
         case "race-changes":
           return await api.scrapeRaceChangesInsert(ctx, body);
-        case "raw-fetch-logs":
-          return await api.scrapeRawFetchLogsInsert(ctx, body);
       }
     },
   });
@@ -218,6 +209,14 @@ export function ScrapeConsolePage(): React.JSX.Element {
         onSave={(payload) => syncScheduleMutation.mutate(payload)}
         onTrigger={() => syncTriggerMutation.mutate()}
         onRefresh={() => qSyncStatus.refetch()}
+      />
+
+      <ManualScrapeTaskCard
+        response={manualTaskMutation.data}
+        requestError={manualTaskMutation.error}
+        requesting={manualTaskMutation.isPending}
+        onRequest={(payload) => manualTaskMutation.mutate(payload)}
+        onClear={() => manualTaskMutation.reset()}
       />
 
       <div className="card" style={{ marginBottom: 14 }}>

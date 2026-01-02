@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -15,9 +16,7 @@ def _auth_headers(token: str) -> dict[str, str]:
 
 
 def test_odds_snapshot_ingest_idempotent(client) -> None:
-    event_id = str(uuid.uuid4())
     payload = {
-        "event_id": event_id,
         "race_key": {"race_date": "2025-12-28", "baba_code": 18, "race_no": 1},
         "bet_type": "tansho",
         "snapshot_kind": "t_minus_5m",
@@ -51,13 +50,67 @@ def test_odds_snapshot_ingest_idempotent(client) -> None:
     assert len(odds["items"]) == len(payload["items"])
 
 
+def test_odds_snapshot_key_does_not_include_captured_at(client) -> None:
+    """captured_at は一意キーではなく、同一 snapshot_kind は上書きされるべき。"""
+    race_key = {"race_date": "2025-12-28", "baba_code": 18, "race_no": 2}
+
+    payload1 = {
+        "race_key": race_key,
+        "bet_type": "tansho",
+        "snapshot_kind": "t_minus_5m",
+        "captured_at": "2025-12-28T00:00:00+00:00",
+        "source_url": "https://example.invalid/odds?v=1",
+        "items": [
+            {"legs": [1], "is_ordered": False, "odds_min": 2.3, "odds_max": None, "popularity": 1},
+        ],
+    }
+    r1 = client.post("/scrape/odds-snapshots", json=payload1)
+    assert r1.status_code == 201, r1.text
+    body1 = r1.json()
+
+    payload2 = {
+        **payload1,
+        "captured_at": "2025-12-28T00:05:00+00:00",
+        "source_url": "https://example.invalid/odds?v=2",
+        "items": [
+            {"legs": [1], "is_ordered": False, "odds_min": 2.1, "odds_max": None, "popularity": 1},
+            {"legs": [2], "is_ordered": False, "odds_min": 3.2, "odds_max": None, "popularity": 2},
+        ],
+    }
+    r2 = client.post("/scrape/odds-snapshots", json=payload2)
+    assert r2.status_code == 201, r2.text
+    body2 = r2.json()
+
+    # 同一 (race_key, bet_type, snapshot_kind, odds_flg) は captured_at が変わっても同じレコードを上書き
+    assert body2["odds_snapshot_id"] == body1["odds_snapshot_id"]
+    assert body2["num_items"] == len(payload2["items"])
+
+    user_token = _login_admin(client)
+    r3 = client.get(
+        f"/races/{body1['race_id']}/odds",
+        headers=_auth_headers(user_token),
+        params={"snapshot_kind": "t_minus_5m", "bet_type": "tansho"},
+    )
+    assert r3.status_code == 200, r3.text
+    odds = r3.json()
+    assert odds["snapshot"]["source_url"] == payload2["source_url"]
+    # timezone 表現は実装/DBにより変わり得るため、同一瞬間かどうかで判定する
+    got = datetime.fromisoformat(odds["snapshot"]["captured_at"]).astimezone(
+        timezone.utc
+    )
+    expected = datetime.fromisoformat(payload2["captured_at"]).astimezone(
+        timezone.utc
+    )
+    assert got == expected
+    assert len(odds["items"]) == len(payload2["items"])
+
+
 def test_races_and_related_endpoints(client) -> None:
     race_key: dict[str, Any] = {"race_date": "2025-12-28", "baba_code": 5, "race_no": 7}
 
     r1 = client.post(
         "/scrape/races",
         json={
-            "event_id": str(uuid.uuid4()),
             "items": [
                 {
                     "race_key": race_key,
@@ -73,7 +126,6 @@ def test_races_and_related_endpoints(client) -> None:
     r2 = client.post(
         "/scrape/race-entries",
         json={
-            "event_id": str(uuid.uuid4()),
             "items": [
                 {
                     "race_key": race_key,
@@ -89,7 +141,6 @@ def test_races_and_related_endpoints(client) -> None:
     r3 = client.post(
         "/scrape/race-results",
         json={
-            "event_id": str(uuid.uuid4()),
             "items": [
                 {
                     "race_key": race_key,
@@ -105,7 +156,6 @@ def test_races_and_related_endpoints(client) -> None:
     r4 = client.post(
         "/scrape/payouts",
         json={
-            "event_id": str(uuid.uuid4()),
             "items": [
                 {
                     "race_key": race_key,
@@ -119,22 +169,6 @@ def test_races_and_related_endpoints(client) -> None:
         },
     )
     assert r4.status_code == 201, r4.text
-
-    r5 = client.post(
-        "/scrape/race-changes",
-        json={
-            "event_id": str(uuid.uuid4()),
-            "items": [
-                {
-                    "race_key": race_key,
-                    "change_type": "status",
-                    "payload": {"note": "test"},
-                    "captured_at": "2025-12-28T00:10:00+00:00",
-                }
-            ]
-        },
-    )
-    assert r5.status_code == 201, r5.text
 
     user_token = _login_admin(client)
     user_headers = _auth_headers(user_token)

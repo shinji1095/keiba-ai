@@ -1,15 +1,17 @@
 # 20 Data Contracts（DB / API / イベント契約）
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2026-01-01（Asia/Tokyo）
+更新日: 2026-01-02（Asia/Tokyo）
 
 更新履歴
 - 2025-12-27: 初版作成。
 - 2025-12-28: 手動実行/定期実行状態/同期のAPI契約を追記。
 - 2025-12-31: 同期方向を api→scraper に更新。
 - 2026-01-01: 差分評価の判定主体を api-service に明記。
+- 2026-01-01: raw_fetch_logs を契約から削除し、即時転送モードを反映。
+- 2026-01-02: 同期定義を Pi 最新/PC pull に更新。
 
-このドキュメントは、**api-service → scraper-service** の同期契約と **api-service → DB** までの「壊れない約束（契約）」を定義する。  
+このドキュメントは、**scraper-service → api-service** の同期契約と **api-service → DB** までの「壊れない約束（契約）」を定義する。  
 実装（コード・内部構造）は変えてもよいが、**契約変更は原則として後方互換**を維持する。
 
 - DB 概念設計: `02_database_design.md`
@@ -46,9 +48,9 @@
   - `wakutan` / `umatan` / `sanrentan` は `true`
   - それ以外は `false`
 
-### 1.4 event_id（冪等化キー）
-- 送信する「同期イベント」には `event_id`（UUID）を付与する
-- 受信側は `event_id` を用いて **重複受信を検知し、再実行しても同じ結果**になるようにする
+### 1.4 冪等性（自然キー）
+- 本リリースでは `event_id` による冪等化は採用しない
+- 取り込みは **自然キー/一意制約**（例: `race_key`, `race_id × bet_type × snapshot_kind × odds_flg` 等）に基づく Upsert により冪等性を担保する
 
 ---
 
@@ -96,19 +98,13 @@
 - 取得元: `RefundMoneyList` を主、`RaceMarkTable` を従
 
 ### 3.6 race_changes（出走取消/除外/騎手変更など）
-- 推奨 UNIQUE: `(race_id, change_type, horse_number, announced_at)`
-
-### 3.7 raw_fetch_logs（HTTP取得ログ）
-- raw_fetch_logs は **永続データに含める（任意）**（本リリースでは必須としない）
-- 保存する場合の項目（任意）:
-  - `url, page_type?, http_status, captured_at, sha256, storage_path, elapsed_ms?`
-
----
+- **本リリースではスコープ外**（収集・同期・DB反映は将来対応）
+- （将来）推奨 UNIQUE: `(race_id, change_type, horse_number, announced_at)`
 
 ## 4. 反映順序とデータ優先順位（冪等ETL）
 
 ### 4.1 反映順序（推奨）
-1. `RaceList(date,baba_code)` → `races` + `race_changes`
+1. `RaceList(date,baba_code)` → `races`（`race_changes` は将来対応）
 2. `DebaTable(race_key)` → `race_entries` + `races` 補完
 3. `Odds*(race_key, snapshot_kind, odds_flg)` → `odds_snapshots` + `odds_items`
 4. `RaceMarkTable(race_key)` → `race_results`（確定値で上書き）
@@ -139,17 +135,16 @@
 - Logout: refresh token を失効させ、Cookie を削除する
 - `/scrape*` と `/scrape/schedule` は内部通信のため **無認証**
 
-### 5.2 同期イベント（api → scraper）
-api-service は **差分評価の判定主体**として、結果を scraper-service へ反映する。  
-イベントは **冪等**でなければならず、`event_id` を必須とする。
+### 5.2 同期イベント（scraper → api / PC pull）
+api-service は **差分評価の判定主体**として、Pi から pull したデータを PC 側に取り込む。  
+イベントは **冪等**でなければならず、自然キーUpsertにより重複を排除する。
 
 - api-service ⇔ scraper-service 間は **認証不要**（将来のアップデートで対応予定）
-- 同期ペイロードは `/scrape/*` の schema を共通利用する（送信方向は api → scraper）
-- 送信先: scraper-service の control API `/control/ingest/*`
+- 同期ペイロードは `/scrape/*` の schema を共通利用する（scraper が提供し api が取り込む）
+- 取得元: scraper-service の control API `/control/export/*`（`items` に `/scrape/*` 相当の payload を含める）
 - `odds-snapshots`（`/scrape/odds-snapshots` スキーマ）  
   - 目的: 代表時点のオッズ集合を同期（`odds_snapshots` + `odds_items` を Upsert）
   - 入力の最小要件:
-    - `event_id`（UUID）
     - `race_key`
     - `bet_type`
     - `snapshot_kind`
@@ -157,9 +152,7 @@ api-service は **差分評価の判定主体**として、結果を scraper-ser
     - `source_url`
     - `items[]`（legs/is_ordered/odds_min/odds_max/popularity?）
   - `odds_flg` は表示モード識別子（任意）。一意性は `race_key × bet_type × snapshot_kind × odds_flg` に従う
-  - scraper-service は `event_id` 重複時に **同一結果**を返す（少なくとも 200/201 を維持）
-
-> 補足: `raw_fetch_logs` は本リリースでは任意（別API化は将来）。
+  - api-service は自然キーにより **同一結果**を返す（少なくとも 200/201 を維持）
 
 ### 5.3 参照API（frontend / backtest / debug）
 - `GET /races`（`race_date` / `baba_code` で検索、ページング対応）
@@ -171,7 +164,7 @@ api-service は **差分評価の判定主体**として、結果を scraper-ser
 - `POST /scrape/schedule`（定期実行の設定更新）
 - `POST /scrape/sync`（手動同期の開始）
 - `POST /scrape/sync/scheduled`（cron からの定期同期トリガ）
-- `POST /scrape/sync/schedule`（同期スケジュール設定）
+- `POST /scrape/sync/schedule`（同期スケジュール設定: `enabled`/`interval_days`）
 - `GET /scrape/sync/status`（定期同期/差分同期の状態）
 
 ---
@@ -182,7 +175,7 @@ api-service は **差分評価の判定主体**として、結果を scraper-ser
 ただし将来のパイプライン接続を容易にするため、**イベントの形（エンベロープ）を予約**する。
 
 ### 6.1 イベントエンベロープ（予約）
-- `event_id`: UUID
+- `event_key`: string（自然キー。例: `race_key|snapshot_kind|bet_type|odds_flg`）
 - `event_type`: 例 `odds_snapshot.ingested`
 - `occurred_at`: timestamp（JST）
 - `schema_version`: int（初期 1）

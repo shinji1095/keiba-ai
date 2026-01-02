@@ -8,7 +8,6 @@
 
 - **学習（予測/強化学習）に必要な事実データを、冪等に蓄積**できる
 - 代表オッズ（t_minus_60m / t_minus_30m / t_minus_20m / t_minus_10m / t_minus_5m / t_minus_1m / final 等）を **同一 race_key** に時系列で保持できる
-- スクレイピング失敗や HTML 差分を追跡できるように、必要に応じて **Raw層**（HTML/HTTPログ）も持てる
 
 > 本書は方針ドキュメント（概念設計）。具体DDLは `docs/database/25_database_definition.md` を正とする。
 
@@ -31,7 +30,6 @@ erDiagram
   races ||--o{ race_results : has
   races ||--o{ payouts : has
   races ||--o{ race_changes : has
-  races ||--o{ raw_fetch_logs : may_have
 ```
 
 ---
@@ -95,11 +93,6 @@ erDiagram
 - 目的: 変更イベントを事後検証・特徴量化できるように保持
 - UNIQUE（推奨）: `(race_id, change_type, horse_number, announced_at)` など（詳細は `docs/database/25_database_definition.md`）
 
-### 5.7 raw_fetch_logs（Raw層: 取得監査）
-- 永続データに含める（任意）（必要になった段階で追加）
-- 保存対象（推奨）: `url, page_type, http_status, captured_at, sha256, out_path(任意), elapsed_ms(任意)`
-- 目的: HTML差分/障害再現/アクセス監査（必要時のみ）
-
 ---
 
 ## 6. 一意制約（まとめ）
@@ -119,7 +112,6 @@ erDiagram
 
 - 公式の馬ID（horse_code）を取得できる場合は `horses` を強化して正規化
 - CompeteTable（対戦表）は「過去レースが可変列」なので、保存する場合は縦持ち（horse × past_race）で別テーブル化
-- Raw層（url/http_status/sha256/html）を持つ場合、HTML差分やバグ再現が容易になる
 
 ---
 
@@ -155,7 +147,7 @@ erDiagram
 
 ### 8.2 マイグレーション構成（提案）
 
-- `db/migrations/sql/`
+- （本リポジトリの実体）`services/api/db/migrations/sql/`（api-service が適用）
   - `0001_init.sql`（本スキーマの初期作成）
   - `0002_add_indexes.sql`（必要なら分割）
   - `0003_add_columns_*.sql`（フィクスチャ確定後の拡張）
@@ -173,8 +165,5 @@ erDiagram
 - それ以外は scraper の upsert により蓄積する
 
 ### 8.5 監査・運用ログ（任意）
-
-- `raw_fetch_logs` は必要時のみ記録（成功/失敗を問わない）
-- HTMLの保存先（ファイルパス）は必要に応じて `raw_fetch_logs.storage_path` に保存する
 
 参照: `source_shared/29_db_migration_and_bootstrap.md`

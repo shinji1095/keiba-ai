@@ -79,7 +79,7 @@ services:
     build:
       context: ../../services/frontend
     environment:
-      VITE_API_BASE: /api
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     ports:
       - "5173:5173"
 

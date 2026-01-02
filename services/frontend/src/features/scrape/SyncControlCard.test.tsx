@@ -33,8 +33,8 @@ describe("SyncControlCard", () => {
       />,
     );
 
-    const checkbox = screen.getByRole("checkbox");
-    await userEvent.click(checkbox);
+    const enabledCheckbox = screen.getByLabelText("enabled");
+    await userEvent.click(enabledCheckbox);
 
     const intervalInput = screen.getByRole("spinbutton");
     await userEvent.clear(intervalInput);

@@ -22,7 +22,7 @@ from scraper_service.parsers.race_mark_table import parse_race_mark_table
 from scraper_service.parsers.race_list import parse_race_list
 from scraper_service.parsers.refund_money_list import parse_refund_money_list
 from scraper_service.parsers.today_top import parse_today_race_info_top
-from scraper_service.utils.raw_fetch_logger import RawFetchLogger
+from scraper_service.ingest.store import IngestStore
 from scraper_service.utils.time import JST, combine_date_time_jst, iso_now_jst
 
 SCHEDULED_ODDS_WINDOWS = [
@@ -144,8 +144,7 @@ def _should_fetch_refund(
 class ScrapeRunner:
     settings: Settings
     http: HttpClient
-    raw_logger: RawFetchLogger
-
+    sync_store: Optional[IngestStore] = None
     # in-memory state (not persisted)
     _recent_url_ts: dict[str, datetime] = field(default_factory=dict, init=False)
 
@@ -157,7 +156,7 @@ class ScrapeRunner:
         baba_code: int | None,
         race_no: int | None,
         odds_flg: int | None,
-    ) -> tuple[bytes, str, str, list]:
+    ) -> tuple[bytes, str, str]:
         rk = None
         if baba_code is not None and race_no is not None:
             rk = RaceKey(race_date=race_date, baba_code=baba_code, race_no=race_no)
@@ -191,15 +190,12 @@ class ScrapeRunner:
 
         body_text = res.content.decode("utf-8", errors="ignore")
         note = _detect_note(body_text)
-        log_item = self.raw_logger.record(
-            res,
-            race_date=race_date,
-            baba_code=baba_code,
-            race_no=race_no,
-            note=note,
-        )
+        return res.content, res.final_url, note
 
-        return res.content, res.final_url, note, [log_item]
+    def _append_sync(self, kind: str, payloads: list[dict[str, object]]) -> None:
+        if not self.sync_store or not payloads:
+            return
+        self.sync_store.append(kind=kind, payloads=payloads)
 
     def run_once(
         self,
@@ -213,7 +209,7 @@ class ScrapeRunner:
             raise RuntimeError("race_no requires baba_code")
 
         if baba_codes is None:
-            html, _, _, _ = self._fetch(
+            html, _, _ = self._fetch(
                 C.PAGE_TODAY_TOP,
                 race_date=race_date,
                 baba_code=None,
@@ -229,7 +225,7 @@ class ScrapeRunner:
         # for each venue
         for baba_code in baba_codes:
             # RaceList
-            html, _, _, _ = self._fetch(
+            html, _, _ = self._fetch(
                 C.PAGE_RACE_LIST,
                 race_date=race_date,
                 baba_code=baba_code,
@@ -237,6 +233,9 @@ class ScrapeRunner:
                 odds_flg=None,
             )
             races = parse_race_list(html, race_date=race_date, baba_code=baba_code)
+            self._append_sync(
+                "races", [r.model_dump(mode="json") for r in races]
+            )
 
             if race_no is not None:
                 races = [r for r in races if r.race_key.race_no == race_no]
@@ -250,7 +249,7 @@ class ScrapeRunner:
                 start_dt = _race_start_dt(race_date, r.start_time)
                 if start_dt and (last_start_dt is None or start_dt > last_start_dt):
                     last_start_dt = start_dt
-                html_deba, _, _, _ = self._fetch(
+                html_deba, _, _ = self._fetch(
                     C.PAGE_DEBA_TABLE,
                     race_date=race_date,
                     baba_code=baba_code,
@@ -262,6 +261,10 @@ class ScrapeRunner:
                     race_date=race_date,
                     baba_code=baba_code,
                     race_no=rn,
+                )
+                self._append_sync(
+                    "race_entries",
+                    [e.model_dump(mode="json") for e in entries],
                 )
 
                 snapshot_kind, is_final = _select_manual_snapshot_kind(
@@ -276,34 +279,42 @@ class ScrapeRunner:
                 )
 
                 if _should_fetch_race_mark(start_dt=start_dt, now=now):
-                    html_result, _, _, _ = self._fetch(
+                    html_result, _, _ = self._fetch(
                         C.PAGE_RACE_MARK_TABLE,
                         race_date=race_date,
                         baba_code=baba_code,
                         race_no=rn,
                         odds_flg=None,
                     )
-                    _ = parse_race_mark_table(
+                    results = parse_race_mark_table(
                         html_result,
                         race_date=race_date,
                         baba_code=baba_code,
                         race_no=rn,
                     )
+                    self._append_sync(
+                        "race_results",
+                        [r.model_dump(mode="json") for r in results],
+                    )
 
             if race_no is None:
                 if _should_fetch_refund(last_start_dt=last_start_dt, now=now):
                     # payouts (for venues with completed races)
-                    html_refund, _, _, _ = self._fetch(
+                    html_refund, _, _ = self._fetch(
                         C.PAGE_REFUND_MONEY_LIST,
                         race_date=race_date,
                         baba_code=baba_code,
                         race_no=None,
                         odds_flg=None,
                     )
-                    _ = parse_refund_money_list(
+                    payouts = parse_refund_money_list(
                         html_refund,
                         race_date=race_date,
                         baba_code=baba_code,
+                    )
+                    self._append_sync(
+                        "payouts",
+                        [p.model_dump(mode="json") for p in payouts],
                     )
 
     def run_scheduled(
@@ -318,7 +329,7 @@ class ScrapeRunner:
             raise RuntimeError("race_no requires baba_code")
 
         if baba_codes is None:
-            html, _, _, _ = self._fetch(
+            html, _, _ = self._fetch(
                 C.PAGE_TODAY_TOP,
                 race_date=race_date,
                 baba_code=None,
@@ -332,7 +343,7 @@ class ScrapeRunner:
             raise RuntimeError("race_no requires a single baba_code")
 
         for baba_code in baba_codes:
-            html, _, _, _ = self._fetch(
+            html, _, _ = self._fetch(
                 C.PAGE_RACE_LIST,
                 race_date=race_date,
                 baba_code=baba_code,
@@ -340,6 +351,9 @@ class ScrapeRunner:
                 odds_flg=None,
             )
             races = parse_race_list(html, race_date=race_date, baba_code=baba_code)
+            self._append_sync(
+                "races", [r.model_dump(mode="json") for r in races]
+            )
 
             if race_no is not None:
                 races = [r for r in races if r.race_key.race_no == race_no]
@@ -354,18 +368,22 @@ class ScrapeRunner:
                     last_start_dt = start_dt
 
                 if _should_fetch_deba(start_dt=start_dt, now=now):
-                    html_deba, _, _, _ = self._fetch(
+                    html_deba, _, _ = self._fetch(
                         C.PAGE_DEBA_TABLE,
                         race_date=race_date,
                         baba_code=baba_code,
                         race_no=rn,
                         odds_flg=None,
                     )
-                    _ = parse_deba_table(
+                    entries = parse_deba_table(
                         html_deba,
                         race_date=race_date,
                         baba_code=baba_code,
                         race_no=rn,
+                    )
+                    self._append_sync(
+                        "race_entries",
+                        [e.model_dump(mode="json") for e in entries],
                     )
 
                 snapshot = _scheduled_snapshot_kind(start_dt=start_dt, now=now)
@@ -380,33 +398,41 @@ class ScrapeRunner:
                     )
 
                 if _should_fetch_race_mark(start_dt=start_dt, now=now):
-                    html_result, _, _, _ = self._fetch(
+                    html_result, _, _ = self._fetch(
                         C.PAGE_RACE_MARK_TABLE,
                         race_date=race_date,
                         baba_code=baba_code,
                         race_no=rn,
                         odds_flg=None,
                     )
-                    _ = parse_race_mark_table(
+                    results = parse_race_mark_table(
                         html_result,
                         race_date=race_date,
                         baba_code=baba_code,
                         race_no=rn,
                     )
+                    self._append_sync(
+                        "race_results",
+                        [r.model_dump(mode="json") for r in results],
+                    )
 
             if race_no is None:
                 if _should_fetch_refund(last_start_dt=last_start_dt, now=now):
-                    html_refund, _, _, _ = self._fetch(
+                    html_refund, _, _ = self._fetch(
                         C.PAGE_REFUND_MONEY_LIST,
                         race_date=race_date,
                         baba_code=baba_code,
                         race_no=None,
                         odds_flg=None,
                     )
-                    _ = parse_refund_money_list(
+                    payouts = parse_refund_money_list(
                         html_refund,
                         race_date=race_date,
                         baba_code=baba_code,
+                    )
+                    self._append_sync(
+                        "payouts",
+                        [p.model_dump(mode="json") for p in payouts],
                     )
 
     def _scrape_odds_for_race(
@@ -421,11 +447,27 @@ class ScrapeRunner:
         captured_at = iso_now_jst()
 
         def post_snapshot(source_url: str, bet_type: str, odds_flg: int | None, items):
-            _ = (source_url, bet_type, odds_flg, items, captured_at, is_final)
+            if not items:
+                return
+            payload = {
+                "race_key": {
+                    "race_date": race_date,
+                    "baba_code": baba_code,
+                    "race_no": race_no,
+                },
+                "bet_type": bet_type,
+                "snapshot_kind": snapshot_kind,
+                "captured_at": captured_at,
+                "source_url": source_url,
+                "odds_flg": odds_flg,
+                "is_final": is_final,
+                "items": [it.model_dump(mode="json") for it in items],
+            }
+            self._append_sync("odds_snapshots", [payload])
 
         # OddsTanFuku (two modes)
         for flg in ODDS_FLG_FIXED.get(C.PAGE_ODDS_TANFUKU, [None]):
-            html, final_url, note, _ = self._fetch(
+            html, final_url, note = self._fetch(
                 C.PAGE_ODDS_TANFUKU,
                 race_date=race_date,
                 baba_code=baba_code,
@@ -440,7 +482,7 @@ class ScrapeRunner:
 
         # OddsWakuLenFukuTan (two modes)
         for flg in ODDS_FLG_FIXED.get(C.PAGE_ODDS_WAKU, [None]):
-            html, final_url, note, _ = self._fetch(
+            html, final_url, note = self._fetch(
                 C.PAGE_ODDS_WAKU,
                 race_date=race_date,
                 baba_code=baba_code,
@@ -454,7 +496,7 @@ class ScrapeRunner:
             post_snapshot(final_url, "wakutan", flg, parsed.get("wakutan", []))
 
         # Umaren (OddsUmLenFuku)
-        html, final_url, note, _ = self._fetch(
+        html, final_url, note = self._fetch(
             C.PAGE_ODDS_UMAREN,
             race_date=race_date,
             baba_code=baba_code,
@@ -466,7 +508,7 @@ class ScrapeRunner:
             post_snapshot(final_url, "umaren", None, items)
 
         # Umatan (OddsUmLenTan)
-        html, final_url, note, _ = self._fetch(
+        html, final_url, note = self._fetch(
             C.PAGE_ODDS_UMATAN,
             race_date=race_date,
             baba_code=baba_code,
@@ -478,7 +520,7 @@ class ScrapeRunner:
             post_snapshot(final_url, "umatan", None, items)
 
         # Wide
-        html, final_url, note, _ = self._fetch(
+        html, final_url, note = self._fetch(
             C.PAGE_ODDS_WIDE,
             race_date=race_date,
             baba_code=baba_code,
@@ -490,7 +532,7 @@ class ScrapeRunner:
             post_snapshot(final_url, "wide", None, items)
 
         # Sanrenpuku
-        html, final_url, note, _ = self._fetch(
+        html, final_url, note = self._fetch(
             C.PAGE_ODDS_3LENFUKU,
             race_date=race_date,
             baba_code=baba_code,
@@ -502,7 +544,7 @@ class ScrapeRunner:
             post_snapshot(final_url, "sanrenpuku", None, items)
 
         # Sanrentan
-        html, final_url, note, _ = self._fetch(
+        html, final_url, note = self._fetch(
             C.PAGE_ODDS_3LENTAN,
             race_date=race_date,
             baba_code=baba_code,

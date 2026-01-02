@@ -268,6 +268,15 @@ test("oauth clients manage flow", async ({ page }) => {
   });
 
   await page.route("**/api/auth/token", async (route) => {
+    const body = route.request().postDataJSON?.() as any;
+    if (!body || body.grant_type !== "client_credentials") {
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { message: "missing grant_type" } }),
+      });
+      return;
+    }
     const tr = tokenResponse();
     await route.fulfill({
       status: 200,
@@ -331,6 +340,66 @@ test("scrape console run shows response", async ({ page }) => {
 
   await page.getByRole("button", { name: "Run" }).click();
   await expect(page.getByText("odds_snapshot_id")).toBeVisible();
+});
+
+test("manual scrape task request shows task id", async ({ page }) => {
+  await setAuthStorage(page);
+  await page.route("**/api/scrape/schedule", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        enabled: false,
+        baba_codes: [18],
+        mode: null,
+        updated_at: "2025-01-01T00:00:00Z",
+        note: null,
+      }),
+    });
+  });
+  await page.route("**/api/scrape/sync/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        enabled: false,
+        interval_days: 2,
+        diff_enabled: true,
+        last_synced_at: null,
+        next_scheduled_at: null,
+        last_fingerprint: null,
+        last_attempted_at: null,
+        last_status: null,
+        last_error: null,
+        last_trigger: null,
+        schedule_updated_at: null,
+      }),
+    });
+  });
+  await page.route("**/api/scrape/manual-tasks", async (route) => {
+    const body = route.request().postDataJSON?.() as any;
+    if (!body || typeof body.baba_code !== "number") {
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { message: "invalid body" } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({ task_id: "task-1", status: "accepted", accepted_at: "2025-01-01T00:00:00Z" }),
+    });
+  });
+
+  await page.goto("/scrape");
+  await expect(page.getByRole("heading", { name: "Manual Scrape Task" })).toBeVisible();
+
+  await page.getByPlaceholder("18").fill("18");
+  await page.getByRole("button", { name: "Request" }).click();
+
+  await expect(page.getByText("task-1")).toBeVisible();
 });
 
 test("sync scheduler updates and triggers manual sync", async ({ page }) => {

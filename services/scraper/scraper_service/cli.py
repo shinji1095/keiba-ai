@@ -8,8 +8,8 @@ import typer
 from scraper_service.config import Settings, settings
 from scraper_service.fixtures.downloader import FixtureDownloader
 from scraper_service.http.client import HttpClient
+from scraper_service.ingest.store import IngestStore
 from scraper_service.scheduler.runner import ScrapeRunner
-from scraper_service.utils.raw_fetch_logger import RawFetchLogger
 from scraper_service.utils.time import today_jst_str
 
 
@@ -61,8 +61,9 @@ def scrape_once(
     race_date = _resolve_race_date(race_date)
     cfg = settings
     http = _build_http(cfg)
-    raw_logger = RawFetchLogger(cfg.local_log_dir / "raw_fetch_logs.csv")
-    runner = ScrapeRunner(settings=cfg, http=http, raw_logger=raw_logger)
+    runner = ScrapeRunner(
+        settings=cfg, http=http, sync_store=IngestStore(cfg.ingest_dir)
+    )
     runner.run_once(race_date=race_date, baba_codes=baba_code or None, race_no=race_no)
     typer.echo("ok")
 
@@ -77,8 +78,9 @@ def scrape_scheduled(
     race_date = _resolve_race_date(race_date)
     cfg = settings
     http = _build_http(cfg)
-    raw_logger = RawFetchLogger(cfg.local_log_dir / "raw_fetch_logs.csv")
-    runner = ScrapeRunner(settings=cfg, http=http, raw_logger=raw_logger)
+    runner = ScrapeRunner(
+        settings=cfg, http=http, sync_store=IngestStore(cfg.ingest_dir)
+    )
     runner.run_scheduled(
         race_date=race_date, baba_codes=baba_code or None, race_no=race_no
     )

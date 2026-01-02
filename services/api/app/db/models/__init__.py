@@ -7,7 +7,6 @@ from app.db.models.race import Race
 from app.db.models.race_change import RaceChange
 from app.db.models.race_entry import RaceEntry
 from app.db.models.race_result import RaceResult
-from app.db.models.raw_fetch_log import RawFetchLog
 from app.db.models.user import User
 from app.db.models.venue import Venue
 
@@ -22,5 +21,4 @@ __all__ = [
     "RaceResult",
     "Payout",
     "RaceChange",
-    "RawFetchLog",
 ]

@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements-dev.txt
 
 COPY app /app/app
+COPY db /app/db
 COPY cron /app/cron
 RUN chmod +x /app/cron/entrypoint.sh
 COPY tests /app/tests

@@ -1,4 +1,4 @@
-更新日: 2025-12-27
+更新日: 2026-01-02
 
 # Keiba AI API (FastAPI)
 
@@ -37,11 +37,10 @@ api-service ⇔ scraper-service は現時点では認証不要（将来 mTLS で
 
 ## 3. 環境変数
 
-`.env.example` を参照してください。scraper への転送を有効化する場合は以下を追加します。
+`env.example`（リポジトリroot）を参照してください。scraper からの pull 同期に必要な設定は以下です。
 
-- `SCRAPER_FORWARD_ENABLED`（`true` で api→scraper 転送を有効化）
 - `SCRAPER_CONTROL_BASE_URL`（例: `http://scraper-service:8080`）
-- `SCRAPER_FORWARD_TIMEOUT_SEC`（既定: `5`）
+- `SCRAPER_FORWARD_TIMEOUT_SEC`（control API のタイムアウト秒、既定: `5`）
 - `SCRAPER_MTLS_CERT` / `SCRAPER_MTLS_KEY` / `SCRAPER_MTLS_CA_CERT`（mTLS 用、任意）
 - `SCRAPE_SYNC_STATE_PATH`（同期状態の保存先。既定: `./data/logs/sync_state.json`）
 - `SCRAPE_SYNC_CRON`（api-sync cron の実行間隔。例: `5 0 * * *`）
@@ -49,12 +48,13 @@ api-service ⇔ scraper-service は現時点では認証不要（将来 mTLS で
 
 ## 4. データ永続化
 
-デフォルトは SQLite を `/app/data/app.db` に作成します（compose の volume で保持）。
+- `DATABASE_URL` を省略した場合は SQLite を `/app/data/app.db` に作成します（開発用）。
+- PC 側の compose（`docker-compose.pc.yaml`）は Postgres 前提で `DATABASE_URL` を指定します。
 
 ## 5. 開発用メモ
 
 - api-service ⇔ scraper-service 間の /scrape 取り込みは **認証不要**（将来対応予定）
-- scraper 側の受け口は `/control/ingest/*`（認証不要）
+- scraper 側の提供口は `/control/export/*`（認証不要）
 - Bearer 認証: `Authorization: Bearer <JWT>`
 
 ## テスト・品質ゲート（docs/50_coding_standard.md, docs/60_ci_cd.md 準拠）

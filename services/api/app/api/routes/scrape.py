@@ -14,7 +14,6 @@ from app.schemas.scrape import (
     RaceEntryUpsertBatchRequest,
     RaceResultUpsertBatchRequest,
     RaceUpsertBatchRequest,
-    RawFetchLogInsertBatchRequest,
     ScrapeScheduleStatus,
     ScrapeScheduleUpdateRequest,
     ScrapeSyncRequest,
@@ -24,7 +23,6 @@ from app.schemas.scrape import (
 )
 from app.services.scrape_control_service import ScrapeControlService
 from app.services.scrape_service import ScrapeService
-from app.services.scraper_ingest_client import ScraperIngestClient
 
 router = APIRouter()
 
@@ -115,9 +113,6 @@ def upsert_races(
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
     resp = svc.upsert_races(payload)
-    client = ScraperIngestClient.from_settings()
-    if client:
-        client.post("/control/ingest/races", payload.model_dump(mode="json"))
     return resp
 
 
@@ -132,11 +127,6 @@ def upsert_entries(
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
     resp = svc.upsert_entries(payload)
-    client = ScraperIngestClient.from_settings()
-    if client:
-        client.post(
-            "/control/ingest/race-entries", payload.model_dump(mode="json")
-        )
     return resp
 
 
@@ -151,11 +141,6 @@ def upsert_odds(
 ) -> OddsSnapshotUpsertResponse:
     svc = ScrapeService(db)
     resp = svc.upsert_odds_snapshot(payload)
-    client = ScraperIngestClient.from_settings()
-    if client:
-        client.post(
-            "/control/ingest/odds-snapshots", payload.model_dump(mode="json")
-        )
     return resp
 
 
@@ -170,11 +155,6 @@ def upsert_results(
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
     resp = svc.upsert_results(payload)
-    client = ScraperIngestClient.from_settings()
-    if client:
-        client.post(
-            "/control/ingest/race-results", payload.model_dump(mode="json")
-        )
     return resp
 
 
@@ -189,9 +169,6 @@ def upsert_payouts(
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
     resp = svc.upsert_payouts(payload)
-    client = ScraperIngestClient.from_settings()
-    if client:
-        client.post("/control/ingest/payouts", payload.model_dump(mode="json"))
     return resp
 
 
@@ -206,28 +183,4 @@ def insert_race_changes(
 ) -> BatchUpsertResponse:
     svc = ScrapeService(db)
     resp = svc.insert_race_changes(payload)
-    client = ScraperIngestClient.from_settings()
-    if client:
-        client.post(
-            "/control/ingest/race-changes", payload.model_dump(mode="json")
-        )
-    return resp
-
-
-@router.post(
-    "/scrape/raw-fetch-logs",
-    response_model=BatchUpsertResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def insert_raw_fetch_logs(
-    payload: RawFetchLogInsertBatchRequest,
-    db=Depends(get_db),
-) -> BatchUpsertResponse:
-    svc = ScrapeService(db)
-    resp = svc.insert_raw_fetch_logs(payload)
-    client = ScraperIngestClient.from_settings()
-    if client:
-        client.post(
-            "/control/ingest/raw-fetch-logs", payload.model_dump(mode="json")
-        )
     return resp

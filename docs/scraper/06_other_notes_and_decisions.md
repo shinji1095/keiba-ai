@@ -14,7 +14,7 @@
 5. レース終了後に `RaceMarkTable` / `RefundMoneyList` を取得し、成績・払戻を保存
 
 ### 1.2 ログ・監視（推奨）
-- すべてのHTTP取得について以下を保存（Raw層 or 監視ログ）
+- すべてのHTTP取得について取得結果ログ（CSV等）を残す
   - `url`, `captured_at`, `http_status`, `sha256(body)`, `elapsed_ms`
 - 例外（404/5xx/定型文による欠損）は **件数とURLを集計**し、スクレイパの健全性監視に使う
 
@@ -92,6 +92,5 @@
 
 - per-host concurrency は初期値 1（直列）
 - min interval 1.5s + jitter
-- `raw_fetch_logs` は任意（必要時のみ記録）
 
 参照: `source_shared/30_load_control_and_observability.md`

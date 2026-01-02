@@ -11,22 +11,10 @@ from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import urlparse
 
-from pydantic import ValidationError
-
 from scraper_service.config import Settings, settings
 from scraper_service.ingest.store import IngestStore
 from scraper_service.http.client import HttpClient
-from scraper_service.keiba.models import (
-    OddsSnapshotUpsertRequest,
-    PayoutUpsert,
-    RaceChangeInsert,
-    RaceEntryUpsert,
-    RaceResultUpsert,
-    RaceUpsert,
-    RawFetchLogInsert,
-)
 from scraper_service.scheduler.runner import ScrapeRunner
-from scraper_service.utils.raw_fetch_logger import RawFetchLogger
 from scraper_service.utils.time import iso_now_jst, today_jst_str
 
 
@@ -90,43 +78,37 @@ def _build_http(cfg: Settings) -> HttpClient:
     )
 
 
-def _validate_batch(payload: dict[str, Any], model) -> list[dict[str, Any]]:
-    items = payload.get("items")
-    if not isinstance(items, list):
-        raise ValueError("items must be a list")
-    return [model.model_validate(item).model_dump(mode="json") for item in items]
+def _parse_export_filter(
+    payload: dict[str, Any],
+) -> tuple[Optional[str], Optional[int], Optional[int]]:
+    race_date = payload.get("race_date")
+    if race_date is not None and (not isinstance(race_date, str) or not race_date):
+        raise ValueError("race_date must be a non-empty string")
+
+    baba_code = payload.get("baba_code")
+    if baba_code is not None:
+        try:
+            baba_code = int(baba_code)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("baba_code must be an integer") from exc
+
+    race_no = payload.get("race_no")
+    if race_no is not None:
+        try:
+            race_no = int(race_no)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("race_no must be an integer") from exc
+
+    return race_date, baba_code, race_no
 
 
-def _validate_single(payload: dict[str, Any], model) -> list[dict[str, Any]]:
-    return [model.model_validate(payload).model_dump(mode="json")]
-
-
-INGEST_ROUTES: dict[str, tuple[str, Any]] = {
-    "/control/ingest/races": ("races", lambda p: _validate_batch(p, RaceUpsert)),
-    "/control/ingest/race-entries": (
-        "race_entries",
-        lambda p: _validate_batch(p, RaceEntryUpsert),
-    ),
-    "/control/ingest/odds-snapshots": (
-        "odds_snapshots",
-        lambda p: _validate_single(p, OddsSnapshotUpsertRequest),
-    ),
-    "/control/ingest/race-results": (
-        "race_results",
-        lambda p: _validate_batch(p, RaceResultUpsert),
-    ),
-    "/control/ingest/payouts": (
-        "payouts",
-        lambda p: _validate_batch(p, PayoutUpsert),
-    ),
-    "/control/ingest/race-changes": (
-        "race_changes",
-        lambda p: _validate_batch(p, RaceChangeInsert),
-    ),
-    "/control/ingest/raw-fetch-logs": (
-        "raw_fetch_logs",
-        lambda p: _validate_batch(p, RawFetchLogInsert),
-    ),
+EXPORT_ROUTES: dict[str, str] = {
+    "/control/export/races": "races",
+    "/control/export/race-entries": "race_entries",
+    "/control/export/odds-snapshots": "odds_snapshots",
+    "/control/export/race-results": "race_results",
+    "/control/export/payouts": "payouts",
+    "/control/export/race-changes": "race_changes",
 }
 
 
@@ -134,7 +116,7 @@ class ControlApp:
     def __init__(self, cfg: Settings, schedule_path: Path):
         self._cfg = cfg
         self._store = ScheduleStore(schedule_path)
-        self._ingest = IngestStore(cfg.ingest_dir)
+        self._sync_store = IngestStore(cfg.ingest_dir)
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._lock = threading.Lock()
         self._current: Optional[Future] = None
@@ -147,8 +129,17 @@ class ControlApp:
         self._store.save(state)
         return state
 
-    def ingest(self, *, kind: str, payloads: list[dict[str, Any]]) -> int:
-        return self._ingest.append(kind=kind, payloads=payloads)
+    def export(
+        self,
+        *,
+        kind: str,
+        race_date: Optional[str],
+        baba_code: Optional[int],
+        race_no: Optional[int],
+    ) -> list[dict[str, Any]]:
+        return self._sync_store.list_latest(
+            kind=kind, race_date=race_date, baba_code=baba_code, race_no=race_no
+        )
 
     def submit_scrape(self, req: ScrapeRequest) -> str:
         with self._lock:
@@ -161,8 +152,7 @@ class ControlApp:
     def _run_scrape(self, req: ScrapeRequest) -> None:
         cfg = self._cfg
         http = _build_http(cfg)
-        raw_logger = RawFetchLogger(cfg.local_log_dir / "raw_fetch_logs.csv")
-        runner = ScrapeRunner(settings=cfg, http=http, raw_logger=raw_logger)
+        runner = ScrapeRunner(settings=cfg, http=http, sync_store=self._sync_store)
         runner.run_once(
             race_date=req.race_date,
             baba_codes=[req.baba_code],
@@ -218,22 +208,20 @@ class ControlHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": "invalid json"})
             return
 
-        if path in INGEST_ROUTES:
-            kind, validator = INGEST_ROUTES[path]
+        if path in EXPORT_ROUTES:
+            kind = EXPORT_ROUTES[path]
             try:
-                records = validator(payload)
+                race_date, baba_code, race_no = _parse_export_filter(payload)
             except ValueError as exc:
                 self._send_json(400, {"error": str(exc)})
                 return
-            except ValidationError as exc:
-                self._send_json(
-                    400, {"error": "invalid payload", "details": exc.errors()}
-                )
-                return
-            stored = self._app.ingest(kind=kind, payloads=records)
-            self._send_json(
-                201, {"accepted": len(records), "stored": stored}
+            items = self._app.export(
+                kind=kind,
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
             )
+            self._send_json(200, {"items": items})
             return
 
         if path == "/control/schedule":

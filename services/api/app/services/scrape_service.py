@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.db.models.odds import OddsItem as OddsItemModel
@@ -9,7 +10,6 @@ from app.db.models.race import Race as RaceModel
 from app.db.models.race_change import RaceChange as RaceChangeModel
 from app.db.models.race_entry import RaceEntry as RaceEntryModel
 from app.db.models.race_result import RaceResult as RaceResultModel
-from app.db.models.raw_fetch_log import RawFetchLog as RawFetchLogModel
 from app.db.models.venue import Venue as VenueModel
 from app.schemas.scrape import (
     BatchUpsertResponse,
@@ -20,7 +20,6 @@ from app.schemas.scrape import (
     RaceEntryUpsertBatchRequest,
     RaceResultUpsertBatchRequest,
     RaceUpsertBatchRequest,
-    RawFetchLogInsertBatchRequest,
 )
 
 
@@ -150,18 +149,22 @@ class ScrapeService:
     ) -> OddsSnapshotUpsertResponse:
         r = self._get_or_create_race(payload.race_key)
 
-        snap = (
+        # Contract:
+        # - UNIQUE: (race_id, bet_type, snapshot_kind, odds_flg)
+        # - captured_at は「取得時刻」であり、キーではない（最新を上書きする）
+        snaps = (
             self.db.query(OddsSnapshotModel)
             .filter(
                 OddsSnapshotModel.race_id == r.race_id,
                 OddsSnapshotModel.bet_type == payload.bet_type.value,
                 OddsSnapshotModel.snapshot_kind == payload.snapshot_kind,
-                OddsSnapshotModel.captured_at == payload.captured_at,
                 OddsSnapshotModel.odds_flg == payload.odds_flg,
             )
-            .one_or_none()
+            .order_by(desc(OddsSnapshotModel.captured_at))
+            .all()
         )
-        if snap is None:
+
+        if not snaps:
             snap = OddsSnapshotModel(
                 race_id=r.race_id,
                 bet_type=payload.bet_type.value,
@@ -174,6 +177,16 @@ class ScrapeService:
             self.db.add(snap)
             self.db.flush()
         else:
+            # 古いスキーマ（captured_at を一意キーに含めていた）からの移行で重複が残る場合に備え、
+            # 最新1件に集約して残りは削除する。
+            snap = snaps[0]
+            for old in snaps[1:]:
+                self.db.query(OddsItemModel).filter(
+                    OddsItemModel.odds_snapshot_id == old.odds_snapshot_id
+                ).delete()
+                self.db.delete(old)
+
+            snap.captured_at = payload.captured_at
             snap.source_url = payload.source_url
             snap.is_final = payload.is_final
 
@@ -316,37 +329,6 @@ class ScrapeService:
                     change_type=item.change_type,
                     payload=item.payload,
                     captured_at=item.captured_at,
-                )
-            )
-            upserted += 1
-
-        self.db.commit()
-        return BatchUpsertResponse(
-            accepted=accepted, upserted=upserted, warnings=None
-        )
-
-    def insert_raw_fetch_logs(
-        self, payload: RawFetchLogInsertBatchRequest
-    ) -> BatchUpsertResponse:
-        accepted = len(payload.items)
-        upserted = 0
-
-        for item in payload.items:
-            race_id = None
-            if item.race_key is not None:
-                r = self._get_or_create_race(item.race_key)
-                race_id = r.race_id
-
-            self.db.add(
-                RawFetchLogModel(
-                    race_id=race_id,
-                    page_type=item.page_type,
-                    url=item.url,
-                    http_status=item.http_status,
-                    sha256=item.sha256,
-                    storage_path=item.storage_path,
-                    captured_at=item.captured_at,
-                    note=item.note,
                 )
             )
             upserted += 1

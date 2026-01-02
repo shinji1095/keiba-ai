@@ -15,7 +15,6 @@
 ### 1.3 データ層
 
 * **Fact層（必須）**：学習や集計に使う正規化データ
-* **Raw層（任意）**：HTTPステータス、HTML保存先、sha256等（デバッグ・再現性用）
 
 ---
 
@@ -34,7 +33,6 @@ erDiagram
   RACES ||--o{ RACE_RESULTS : has
   RACES ||--o{ PAYOUTS : has
 
-  RACES ||--o{ RAW_FETCH_LOGS : has
 
   VENUES {
     smallint baba_code PK
@@ -133,17 +131,6 @@ erDiagram
     int popularity
   }
 
-  RAW_FETCH_LOGS {
-    bigserial raw_fetch_log_id PK
-    bigint race_id FK
-    text page_type
-    text url
-    int http_status
-    text sha256
-    text storage_path
-    timestamptz captured_at
-    text note
-  }
 ```
 
 ---
@@ -154,8 +141,10 @@ erDiagram
 
 | 値            | 意味      |
 | ------------ | ------- |
-| `tanfuku`    | 単勝/複勝   |
-| `wakuren`    | 枠連複/枠連単 |
+| `tansho`     | 単勝      |
+| `fukusho`    | 複勝      |
+| `wakuren`    | 枠連複     |
+| `wakutan`    | 枠連単     |
 | `umaren`     | 馬連複     |
 | `umatan`     | 馬連単     |
 | `wide`       | ワイド     |
@@ -229,6 +218,8 @@ erDiagram
 ### 4.3 race_changes（変更情報）
 
 **目的**：出走取消、騎手変更等（RaceList下部の変更テーブル由来）
+  
+**注意**：本リリースではスコープ外（収集・同期・参照は将来対応）
 
 | 列名             |           型 | NULL |  キー | 説明           |
 | -------------- | ----------: | :--: | :-: | ------------ |
@@ -386,27 +377,7 @@ erDiagram
 
 ---
 
-## 5. テーブル定義（Raw層：任意）
-
-### 5.1 raw_fetch_logs（取得ログ）
-
-**目的**：取得失敗やHTML差分検知の根拠を残す（運用・監視用）
-
-| 列名               |           型 | NULL |  キー | 説明                               |
-| ---------------- | ----------: | :--: | :-: | -------------------------------- |
-| raw_fetch_log_id |   bigserial |  NO  |  PK | 内部ID                             |
-| race_id          |      bigint |  YES |  FK | races（race_no未確定ならNULL可）         |
-| page_type        |        text |  NO  |     | RaceList/DebaTable/OddsTanFuku 等 |
-| url              |        text |  NO  |     | 取得URL                            |
-| http_status      |         int |  NO  |     | HTTPステータス                        |
-| sha256           |        text |  YES |     | 本文ハッシュ                           |
-| storage_path     |        text |  YES |     | HTML保存先                          |
-| captured_at       | timestamptz |  NO  |     | 取得時刻                             |
-| note             |        text |  YES |     | 例外やエラー文言                         |
-
----
-
-## 6. Upsert（冪等）キーまとめ
+## 5. Upsert（冪等）キーまとめ
 
 | 対象             | Upsertキー                                                 |
 | -------------- | -------------------------------------------------------- |

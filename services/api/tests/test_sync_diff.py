@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -9,20 +9,46 @@ import app.services.scrape_sync_service as sync_service
 from app.services.scrape_sync_state import SyncEntry, SyncState, SyncStateStore
 
 
-class DummyIngestClient:
-    def __init__(self) -> None:
-        self.posts: list[tuple[str, dict]] = []
+class DummyExportClient:
+    def __init__(self, responses: dict[str, list[dict]] | None = None) -> None:
+        self.responses = responses or {}
 
-    def post(self, path: str, payload: dict) -> None:
-        self.posts.append((path, payload))
+    def post_json(self, path: str, payload: dict) -> dict:
+        return {"items": self.responses.get(path, [])}
 
 
-def _patch_sync_client(monkeypatch, dummy: DummyIngestClient) -> None:
+def _patch_sync_client(monkeypatch, dummy: DummyExportClient) -> None:
     monkeypatch.setattr(
-        sync_service.ScraperIngestClient,
+        sync_service.ScraperControlClient,
         "from_settings",
         classmethod(lambda cls: dummy),
     )
+
+
+class DummyScrapeService:
+    total_odds_calls = 0
+
+    def __init__(self, db=None) -> None:
+        _ = db
+
+    def upsert_races(self, payload) -> None:
+        _ = payload
+
+    def upsert_entries(self, payload) -> None:
+        _ = payload
+
+    def upsert_results(self, payload) -> None:
+        _ = payload
+
+    def upsert_payouts(self, payload) -> None:
+        _ = payload
+
+    def insert_race_changes(self, payload) -> None:
+        _ = payload
+
+    def upsert_odds_snapshot(self, payload) -> None:
+        _ = payload
+        DummyScrapeService.total_odds_calls += 1
 
 
 def test_build_scope_key_by_page_type() -> None:
@@ -91,81 +117,36 @@ def test_fingerprint_payload_is_deterministic() -> None:
     )
 
 
-def test_sync_uses_raw_fetch_log_sha_for_odds(
+def test_sync_skips_same_odds_payload(
     client, monkeypatch, tmp_path: Path
 ) -> None:
-    from app.db.models.odds import OddsItem as OddsItemModel
-    from app.db.models.odds import OddsSnapshot as OddsSnapshotModel
-    from app.db.models.race import Race as RaceModel
-    from app.db.models.raw_fetch_log import RawFetchLog as RawFetchLogModel
-    from app.db.session import SessionLocal
-
-    dummy = DummyIngestClient()
+    dummy = DummyExportClient(
+        responses={
+            "/control/export/odds-snapshots": [
+                {
+                    "race_key": {"race_date": "2025-12-28", "baba_code": 5, "race_no": 7},
+                    "bet_type": "tansho",
+                    "snapshot_kind": "t_minus_5m",
+                    "captured_at": "2025-12-28T00:00:00+00:00",
+                    "source_url": "https://example.invalid/odds",
+                    "odds_flg": 1,
+                    "is_final": False,
+                    "items": [
+                        {"legs": [1], "is_ordered": False, "odds_min": 2.3, "odds_max": None, "popularity": 1}
+                    ],
+                }
+            ],
+        }
+    )
     _patch_sync_client(monkeypatch, dummy)
+    monkeypatch.setattr(sync_service, "ScrapeService", DummyScrapeService)
+    DummyScrapeService.total_odds_calls = 0
 
-    db = SessionLocal()
-    try:
-        race = RaceModel(
-            race_date=date(2025, 12, 28),
-            baba_code=5,
-            race_no=7,
-        )
-        db.add(race)
-        db.commit()
-        db.refresh(race)
+    store = SyncStateStore(tmp_path / "sync_state.json")
+    service = sync_service.ScrapeSyncService(db=None, state_store=store)
 
-        captured_at = datetime(2025, 12, 28, 0, 0, tzinfo=timezone.utc)
-        snapshot = OddsSnapshotModel(
-            race_id=race.race_id,
-            bet_type="tansho",
-            snapshot_kind="t_minus_5m",
-            captured_at=captured_at,
-            source_url="https://example.invalid/odds",
-            odds_flg=1,
-            is_final=False,
-        )
-        db.add(snapshot)
-        db.commit()
-        db.refresh(snapshot)
+    service.run_sync(trigger="test")
+    first_count = DummyScrapeService.total_odds_calls
 
-        item = OddsItemModel(
-            odds_snapshot_id=snapshot.odds_snapshot_id,
-            legs=[1],
-            is_ordered=False,
-            odds_min=2.3,
-            odds_max=None,
-            popularity=1,
-            raw_text=None,
-        )
-        db.add(item)
-
-        log_sha = "0" * 64
-        log = RawFetchLogModel(
-            race_id=race.race_id,
-            page_type=sync_service.ODDS_PAGE_BY_BET_TYPE["tansho"],
-            url=snapshot.source_url,
-            http_status=200,
-            sha256=log_sha,
-            storage_path=None,
-            captured_at=captured_at,
-            note=None,
-        )
-        db.add(log)
-        db.commit()
-
-        store = SyncStateStore(tmp_path / "sync_state.json")
-        service = sync_service.ScrapeSyncService(db, store)
-        service.run_sync(trigger="test")
-
-        diff_key = sync_service._diff_key(
-            page_type=sync_service.ODDS_PAGE_BY_BET_TYPE["tansho"],
-            race_date=race.race_date.isoformat(),
-            baba_code=race.baba_code,
-            race_no=race.race_no,
-            snapshot_kind=snapshot.snapshot_kind,
-            odds_flg=snapshot.odds_flg,
-        )
-        state = store.load()
-        assert state.items[diff_key].fingerprint == log_sha
-    finally:
-        db.close()
+    service.run_sync(trigger="test")
+    assert DummyScrapeService.total_odds_calls == first_count

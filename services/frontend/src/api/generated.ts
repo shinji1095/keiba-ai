@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * Auto-generated TypeScript types from openapi/21_openapi.yaml.
+ * Auto-generated TypeScript types from docs/21_openapi.yaml.
  *
  * If you update the OpenAPI spec, regenerate this file accordingly.
- * (This repository includes the spec under openapi/21_openapi.yaml.)
+ * (This repository includes the spec under docs/21_openapi.yaml.)
  */
 export interface ErrorEnvelope {
   "error": {
@@ -76,11 +76,23 @@ export interface ScrapeScheduleUpdateRequest {
   "baba_codes"?: number[] | null;
 }
 
-export interface ScrapeSyncRequest {
+export interface ManualScrapeTaskRequest {
+  "race_date"?: string | null;
   /**
-   * Idempotency key (optional)
+   * 競馬場コード
    */
-  "event_id"?: string | null;
+  "baba_code": number;
+  "race_no"?: number | null;
+  "reason"?: string | null;
+}
+
+export interface ManualScrapeTaskResponse {
+  "task_id": string;
+  "status": string;
+  "accepted_at": string;
+}
+
+export interface ScrapeSyncRequest {
   "reason"?: string | null;
 }
 
@@ -273,18 +285,6 @@ export interface PayoutListResponse {
   "items": Payout[];
 }
 
-export interface RawFetchLog {
-  "raw_fetch_log_id": number;
-  "race_id"?: number | null;
-  "page_type": string;
-  "url": string;
-  "http_status": number;
-  "sha256"?: string | null;
-  "storage_path"?: string | null;
-  "captured_at": string;
-  "note"?: string | null;
-}
-
 export interface BatchUpsertResponse {
   "accepted": number;
   "upserted": number;
@@ -392,19 +392,4 @@ export interface RaceChangeInsert {
 
 export interface RaceChangeInsertBatchRequest {
   "items": RaceChangeInsert[];
-}
-
-export interface RawFetchLogInsert {
-  "race_key"?: RaceKey | null;
-  "page_type": string;
-  "url": string;
-  "http_status": number;
-  "sha256"?: string | null;
-  "storage_path"?: string | null;
-  "captured_at": string;
-  "note"?: string | null;
-}
-
-export interface RawFetchLogInsertBatchRequest {
-  "items": RawFetchLogInsert[];
 }

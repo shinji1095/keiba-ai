@@ -27,11 +27,14 @@ services:
       context: services/api
     environment:
       TZ: ${TZ}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
+      # Pi 側 scraper-service(control API) の到達先（例: http://<pi-lan-ip>:8080）
+      SCRAPER_CONTROL_BASE_URL: ${SCRAPER_CONTROL_BASE_URL}
     depends_on:
       - postgres
 
@@ -92,7 +95,7 @@ services:
     build:
       context: services/frontend
     environment:
-      VITE_API_BASE: /api
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     ports:
       - "5173:5173"
 

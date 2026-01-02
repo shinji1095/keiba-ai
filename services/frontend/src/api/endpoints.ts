@@ -3,6 +3,8 @@ import {
   BetType,
   ClientCredentialsTokenRequest,
   HealthResponse,
+  ManualScrapeTaskRequest,
+  ManualScrapeTaskResponse,
   OAuthClientCreateRequest,
   OAuthClientCreateResponse,
   OAuthClientListResponse,
@@ -23,7 +25,6 @@ import {
   RaceResultListResponse,
   RaceResultUpsertBatchRequest,
   RaceUpsertBatchRequest,
-  RawFetchLogInsertBatchRequest,
   ScrapeScheduleStatus,
   ScrapeScheduleUpdateRequest,
   ScrapeSyncRequest,
@@ -141,14 +142,14 @@ export const api = {
   scrapeRaceChangesInsert: (ctx: ApiCtx, req: RaceChangeInsertBatchRequest) =>
     apiFetch<BatchUpsertResponse>({ ...ctx, path: "/scrape/race-changes", method: "POST", body: req }),
 
-  scrapeRawFetchLogsInsert: (ctx: ApiCtx, req: RawFetchLogInsertBatchRequest) =>
-    apiFetch<BatchUpsertResponse>({ ...ctx, path: "/scrape/raw-fetch-logs", method: "POST", body: req }),
-
   scrapeScheduleStatus: (ctx: ApiCtx) =>
     apiFetch<ScrapeScheduleStatus>({ ...ctx, path: "/scrape/schedule", method: "GET" }),
 
   scrapeScheduleUpdate: (ctx: ApiCtx, req: ScrapeScheduleUpdateRequest) =>
     apiFetch<ScrapeScheduleStatus>({ ...ctx, path: "/scrape/schedule", method: "POST", body: req }),
+
+  scrapeManualTasksRequest: (ctx: ApiCtx, req: ManualScrapeTaskRequest) =>
+    apiFetch<ManualScrapeTaskResponse>({ ...ctx, path: "/scrape/manual-tasks", method: "POST", body: req }),
 
   scrapeSyncStatus: (ctx: ApiCtx) =>
     apiFetch<ScrapeSyncStatus>({ ...ctx, path: "/scrape/sync/status", method: "GET" }),

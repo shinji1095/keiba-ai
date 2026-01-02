@@ -8,7 +8,10 @@
 - 2025-12-31: 同期方向を api→scraper に更新。
 - 2026-01-01: 同期スケジューラ/cron/フロントエンド同期テスト要件を追加。
 - 2026-01-01: 差分同期の判定主体を api-service に更新。
-- 2026-01-01: TR-014 の fingerprint フォールバック要件を追記。
+- 2026-01-01: TR-014 の fingerprint 要件を更新（payload sha256）。
+- 2026-01-01: 即時転送モードのテスト要件を追加。
+- 2026-01-02: pull 同期の実装/テスト反映に伴い、同期要件の実装状況を更新。
+- 2026-01-02: 同期定義を Pi 最新/PC pull に更新し、即時転送モード要件を廃止。
 
 # テスト要件
 
@@ -57,11 +60,11 @@
 - 対象機能・モジュール: api-service scrape routes, DB upsert
 - 実装状況: 既存テストあり（services/api/tests/test_scrape_and_races.py）
 
-### TR-004: event_id による冪等性
+### TR-004: 自然キーによる冪等性
 - 要件ID: TR-004
-- 要件名: event_id の冪等投入
-- 要件の説明: 同一 `event_id` の再送が成功レスポンスとなり、重複レコードを生成しないこと。
-- 根拠となる仕様・要件ID: docs/20_data_contracts.md#1.4, docs/20_data_contracts.md#5.2
+- 要件名: 自然キーの冪等投入
+- 要件の説明: 同一の自然キー（例: `race_key`, `race_id × bet_type × snapshot_kind × odds_flg` など）を再送しても成功レスポンスとなり、重複レコードを生成しないこと。
+- 根拠となる仕様・要件ID: docs/20_data_contracts.md#1.4, docs/20_data_contracts.md#3
 - 関連リスクID: RISK-001
 - テスト観点: 正常系／境界値
 - テスト分類: 結合テスト
@@ -148,7 +151,7 @@
 ### TR-012: 収集イベント投入（races/entries/results/payouts/changes）
 - 要件ID: TR-012
 - 要件名: 収集イベント投入（odds 以外）
-- 要件の説明: `/scrape/races` `/scrape/race-entries` `/scrape/race-results` `/scrape/payouts` `/scrape/race-changes` が最小ペイロードで upsert されること。
+- 要件の説明: `/scrape/races` `/scrape/race-entries` `/scrape/race-results` `/scrape/payouts` が最小ペイロードで upsert されること。`/scrape/race-changes` は将来予約（本リリースはスコープ外）。
 - 根拠となる仕様・要件ID: docs/20_data_contracts.md#3, docs/20_data_contracts.md#4, docs/21_openapi.yaml:/scrape/*
 - 関連リスクID: RISK-001
 - テスト観点: 正常系
@@ -170,7 +173,7 @@
 ### TR-014: api 差分同期の判定
 - 要件ID: TR-014
 - 要件名: 差分キーとfingerprint判定
-- 要件の説明: api-service が scope_key と page_type 等で差分キーを構成し、fingerprint（raw_fetch_logs の sha256 を優先、未取得時は payload sha256）で前回と同一なら同期をスキップできること。
+- 要件の説明: api-service が scope_key と page_type 等で差分キーを構成し、fingerprint（payload sha256）で前回と同一なら同期をスキップできること。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.1
 - 関連リスクID: RISK-001
 - テスト観点: 正常系／異常系
@@ -214,7 +217,7 @@
 ### TR-017: 同期トリガAPI
 - 要件ID: TR-017
 - 要件名: 手動同期の開始
-- 要件の説明: `POST /scrape/sync` が api-service 起点の同期要求を受理し、api-service が差分評価を開始すること。
+- 要件の説明: `POST /scrape/sync` が api-service 起点の pull 同期要求を受理し、scraper-service からの取得と差分評価を開始すること。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/sync
 - 関連リスクID: RISK-003
 - テスト観点: 正常系
@@ -225,13 +228,13 @@
 ### TR-018: 同期状態API
 - 要件ID: TR-018
 - 要件名: 定期同期/差分同期の状態参照
-- 要件の説明: `GET /scrape/sync/status` が api→scraper 同期の状態（1日おき/差分）を返すこと。
+- 要件の説明: `GET /scrape/sync/status` が Pi → PC pull 同期の状態（1日おき/差分）を返すこと。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/sync/status
 - 関連リスクID: RISK-003
 - テスト観点: 正常系
 - テスト分類: 結合テスト
 - 対象機能・モジュール: api-service scrape sync
-- 実装状況: 追加テストあり（services/api/tests/test_scrape_control.py）
+- 実装状況: 未対応（pull 同期の実装/テスト未追加）
 
 ### TR-019: cron コンテナによる定期実行トリガ
 - 要件ID: TR-019
@@ -244,16 +247,16 @@
 - 対象機能・モジュール: scraper-cron, scraper-service control API
 - 実装状況: 追加テストあり（services/scraper/tests/test_cron_run.py）
 
-### TR-020: api→scraper 同期データ送信
+### TR-020: scraper→api 同期データ取り込み
 - 要件ID: TR-020
-- 要件名: API から scraper への同期送信
-- 要件の説明: api-service が同期要求の結果として scraper-service に差分ペイロードを送信し、scraper 側に反映されること。
-- 根拠となる仕様・要件ID: docs/10_architecture.md#3, docs/20_data_contracts.md#5.2, docs/21_openapi.yaml:/scrape/*
+- 要件名: Pi から PC への同期取り込み
+- 要件の説明: api-service が scraper-service から差分ペイロードを pull し、PC 側に反映されること。
+- 根拠となる仕様・要件ID: docs/10_architecture.md#3, docs/20_data_contracts.md#5.2
 - 関連リスクID: RISK-001, RISK-004
 - テスト観点: 正常系
 - テスト分類: システムテスト
-- 対象機能・モジュール: api-service sync runner, scraper-service sync receiver
-- 実装状況: 追加テストあり（services/api/tests/test_scrape_control.py）
+- 対象機能・モジュール: api-service sync runner, scraper-service sync export
+- 実装状況: 追加テストあり（services/api/tests/test_scrape_control.py, services/api/tests/test_sync_integration.py）
 
 ### TR-021: 同期スケジュール設定API
 - 要件ID: TR-021
@@ -332,26 +335,26 @@
 - 対象機能・モジュール: frontend sync console, api-service scrape sync
 - 実装状況: 追加テストあり（services/frontend/tests/e2e/ui_flows.spec.ts）
 
-### TR-028: api → scraper 同期連携
+### TR-028: Pi → PC 同期連携
 - 要件ID: TR-028
-- 要件名: 同期ペイロードの HTTP 送信
-- 要件の説明: api-service が scraper control API（/control/ingest/*）へ HTTP 送信し、成功レスポンスを受理できること。
-- 根拠となる仕様・要件ID: docs/20_data_contracts.md#5.2, docs/21_openapi.yaml:/scrape/sync
+- 要件名: 同期ペイロードの pull 取得
+- 要件の説明: api-service が scraper control API（/control/export/*）へリクエストし、同期データを受理できること。
+- 根拠となる仕様・要件ID: docs/20_data_contracts.md#5.2
 - 関連リスクID: RISK-001, RISK-004
 - テスト観点: 正常系
 - テスト分類: 結合テスト
-- 対象機能・モジュール: api-service scrape sync, scraper-service control ingest
+- 対象機能・モジュール: api-service scrape sync, scraper-service control export
 - 実装状況: 追加テストあり（services/api/tests/test_sync_integration.py）
 
-### TR-029: scraper 同期受信の永続化
+### TR-029: scraper 同期提供の永続化
 - 要件ID: TR-029
-- 要件名: ingest ストアへの書き込み
-- 要件の説明: scraper-service が `/control/ingest/*` で受け取った payload を ingest ストアへ追記できること。
+- 要件名: 同期データ提供の読み出し
+- 要件の説明: scraper-service が Pi 側に保存した正規化データを pull 要求で返却できること。
 - 根拠となる仕様・要件ID: docs/20_data_contracts.md#5.2, docs/10_architecture.md#3
 - 関連リスクID: RISK-001
 - テスト観点: 正常系
 - テスト分類: 単体テスト
-- 対象機能・モジュール: scraper-service ingest store
+- 対象機能・モジュール: scraper-service sync export
 - 実装状況: 追加テストあり（services/scraper/tests/test_ingest_store.py）
 
 ### TR-101: ログイン画面（UI/E2E）

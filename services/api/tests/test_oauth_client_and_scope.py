@@ -44,27 +44,25 @@ def test_client_credentials_and_scrape_no_auth(client):
 
     # no auth required for scrape ingest; payload validation still applies
     r3 = client.post(
-        "/scrape/raw-fetch-logs",
-        json={"event_id": str(uuid.uuid4()), "items": []},
+        "/scrape/races",
+        json={"items": []},
     )
+    # NOTE: validation error is mapped to 400 by app/core/errors.py (contract-oriented envelope)
     assert r3.status_code == 400
 
     payload = {
-        "event_id": str(uuid.uuid4()),
         "items": [
             {
-                "race_key": None,
-                "page_type": "odds",
-                "url": "https://example.invalid/odds",
-                "http_status": 200,
-                "sha256": None,
-                "storage_path": None,
-                "captured_at": datetime.now(timezone.utc).isoformat(),
-                "note": "test",
+                "race_key": {
+                    "race_date": datetime.now(timezone.utc).date().isoformat(),
+                    "baba_code": 1,
+                    "race_no": 1,
+                },
+                "race_name": "Sample Race",
             }
-        ]
+        ],
     }
-    r4 = client.post("/scrape/raw-fetch-logs", json=payload)
+    r4 = client.post("/scrape/races", json=payload)
     assert r4.status_code in (200, 201), r4.text
     body = r4.json()
     assert body["accepted"] == 1

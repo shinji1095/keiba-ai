@@ -52,9 +52,6 @@ class Settings(BaseSettings):
         default_factory=lambda: ["*"], alias="CORS_ALLOW_ORIGINS"
     )
 
-    scraper_forward_enabled: bool = Field(
-        default=False, alias="SCRAPER_FORWARD_ENABLED"
-    )
     scraper_control_base_url: Optional[str] = Field(
         default=None, alias="SCRAPER_CONTROL_BASE_URL"
     )

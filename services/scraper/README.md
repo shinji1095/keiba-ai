@@ -1,7 +1,7 @@
 # scraper-service
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2025-12-31（Asia/Tokyo）
+更新日: 2026-01-02（Asia/Tokyo）
 
 更新履歴
 - 2025-12-27: 初版作成。
@@ -9,8 +9,10 @@
 - 2025-12-28: 外部スケジューラ手順を追記。
 - 2025-12-28: cronコンテナ運用とAPI制御方針を追記。
 - 2025-12-31: api→scraper の同期受け口（/control/ingest）を追記。
+- 2026-01-01: raw_fetch_logs を削除し、取得ログはCSVで管理する方針に更新。
+- 2026-01-02: 同期を Pi 最新/PC pull に更新し、/control/export を追加。
 
-本サービスは `keiba.go.jp / TodayRaceInfo` を**低負荷ポリシー**で定期/手動トリガ実行し、Pi 側に保存します。正規化データは api-service からの同期ペイロードを受け取り Pi 側に保存します。
+本サービスは `keiba.go.jp / TodayRaceInfo` を**低負荷ポリシー**で定期/手動トリガ実行し、Pi 側に保存します。正規化データは Pi 側に保存し、api-service が pull して取り込みます。
 
 - 取得対象/スケジュール/例外/負荷: `04_scraping_requirements.md`
 - サイト構造（PageName / URL規約）: `01_site_structure.md`
@@ -22,8 +24,7 @@
 
 - PC版を正として、以下のページを取得し HTML を保存（sha256 採番）します。
   - TodayRaceInfoTop / RaceList / DebaTable / RaceMarkTable / RefundMoneyList / Odds*（7ページ）
-- 取得ログ（raw_fetch_logs）は Pi 側に保存します。
-- api-service からの同期ペイロード（/control/ingest/*）を受け取り、Pi 側に保存します。
+- scraper が取得した正規化データを Pi 側に保存し、api-service が /control/export/* で pull します。
 - フィクスチャ収集（manifest.yml → HTML保存 + manifest_log.csv）を CLI で実行できます。
 
 > 注意  
@@ -34,7 +35,7 @@
 - per-host concurrency: 1
 - 連続リクエスト最小間隔: 1.5 秒以上（+ ジッタ）
 - リトライ: 最大 3 回（ネットワーク例外 / 一部 5xx のみ、指数バックオフ）
-- 全リクエストで取得ログを残す（成功/失敗問わず）
+- 全リクエストで取得結果ログを残す（成功/失敗問わず）
 
 上記は `04_scraping_requirements.md` の C2 に基づき実装しています。
 
@@ -44,7 +45,7 @@
 
 - `KEIBA_DEVICE`（`pc` | `sp`、既定 `pc`）
 - `RAW_HTML_DIR`（既定: `./data/raw_html`）
-- `INGEST_DIR`（api-service からの同期ペイロード保存先。既定: `./data/ingest`）
+- `INGEST_DIR`（同期データの保存先。既定: `./data/ingest`）
 - `USER_AGENT`（既定は設定済み。必要に応じて変更）
 - `SCRAPER_CRON`（cron コンテナの実行間隔。例: `0 6 * * *`）
 - `SCRAPER_CONTROL_HOST` / `SCRAPER_CONTROL_PORT`（control API の待受。既定: `0.0.0.0:8080`）
@@ -100,11 +101,11 @@ docker compose -f docker-compose.pi.yaml run --rm scraper scrape once --baba-cod
 > わからない  
 > レース終了のリアルタイム検知が可能かは未確認のため、RaceMarkTable/RefundMoneyList は固定遅延 + 少回数リトライで実装しています。
 
-### 3.7 api-service からの同期受け口（ingest）
+### 3.7 api-service への同期データ提供（export）
 
-- 受信先: `POST /control/ingest/*`（認証不要）
-- 受信後: `INGEST_DIR` 配下に JSONL で保存
-- ペイロードは api-service の `/scrape/*` と同一スキーマ
+- 提供先: `POST /control/export/*`（認証不要）
+- `INGEST_DIR` 配下に保存した正規化データを JSONL から読み出して返す
+- レスポンスの各 item は api-service の `/scrape/*` と同一スキーマ
 
 ## 4. Docker
 
@@ -129,5 +130,4 @@ mypy .
 
 ## 6. TODO（契約の整合）
 
-- `20_data_contracts.md` では「event_id による冪等化」を言及していますが、`21_openapi.yaml` の /scrape 系スキーマには `event_id` が存在しません。  
-  どちらを正とするかを Decision Log に記録し、必要なら OpenAPI を更新してください。
+- 冥等性は自然キーUpsertを正とする（Decision Log を参照）

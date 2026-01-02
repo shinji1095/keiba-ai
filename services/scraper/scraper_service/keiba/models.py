@@ -36,17 +36,6 @@ SnapshotKind = Literal[
 ]
 
 
-class RawFetchLogInsert(BaseModel):
-    race_key: Optional[RaceKey] = None
-    page_type: str
-    url: str
-    http_status: int
-    sha256: Optional[str] = None
-    storage_path: Optional[str] = None
-    captured_at: str
-    note: Optional[str] = None
-
-
 class OddsItemUpsert(BaseModel):
     legs: list[int]
     is_ordered: bool
@@ -56,7 +45,6 @@ class OddsItemUpsert(BaseModel):
 
 
 class OddsSnapshotUpsertRequest(BaseModel):
-    event_id: Optional[str] = None
     race_key: RaceKey
     bet_type: BetType
     snapshot_kind: SnapshotKind

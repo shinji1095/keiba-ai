@@ -69,7 +69,7 @@ export function OAuthClientsPage(): React.JSX.Element {
     mutationFn: () =>
       api.clientCredentialsToken(
         { baseUrl: ctx.baseUrl },
-        { client_id: issueClientId, client_secret: issueClientSecret },
+        { grant_type: "client_credentials", client_id: issueClientId, client_secret: issueClientSecret },
       ),
     onSuccess: (tr) => {
       setIssuedToken(tr);

@@ -29,8 +29,6 @@ def build_scope_key(*, page_type: str, race_date: Optional[str], baba_code: Opti
     if not race_date:
         raise ValueError("race_date is required for scope key")
 
-    if page_type == C.PAGE_TODAY_TOP:
-        return race_date
     if page_type in VENUE_PAGES:
         if baba_code is None:
             raise ValueError("baba_code is required for venue scope")

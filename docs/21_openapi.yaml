@@ -582,6 +582,7 @@ paths:
       summary: Trigger manual sync
       description: |
         差分同期（fingerprint ベース）を手動で開始する。
+        api-service が scraper-service から pull し、PC 側へ取り込む。
       requestBody:
         required: false
         content:
@@ -602,7 +603,7 @@ paths:
       summary: Trigger scheduled sync
       description: |
         定期同期（JST 1日おき）を cron からトリガする。
-        スケジュールが無効または未到来の場合はスキップする。
+        api-service が scraper-service から pull し、スケジュールが無効または未到来の場合はスキップする。
       requestBody:
         required: false
         content:
@@ -648,7 +649,7 @@ paths:
       tags: [scrape]
       summary: Get sync status
       description: |
-        定期同期（JST 1日おき）と差分同期の状態を返す。
+        定期同期（JST 1日おき）と差分同期（Pi → PC pull）の状態を返す。
       responses:
         "200":
           description: OK
@@ -768,33 +769,16 @@ paths:
     post:
       tags: [scrape]
       summary: Insert race changes (cancel/jockey change etc.)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RaceChangeInsertBatchRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BatchUpsertResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
-  /scrape/raw-fetch-logs:
-    post:
-      tags: [scrape]
-      summary: Insert raw fetch logs (optional raw layer)
+      description: |
+        将来予約（本リリースではスコープ外）。
+        現時点の scraper → api 同期では通常利用しない（race_changes の収集/同期は将来対応）。
       deprecated: true
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RawFetchLogInsertBatchRequest"
+              $ref: "#/components/schemas/RaceChangeInsertBatchRequest"
       responses:
         "201":
           description: Created
@@ -983,11 +967,6 @@ components:
       type: object
       required: [baba_code]
       properties:
-        event_id:
-          type: string
-          format: uuid
-          nullable: true
-          description: Idempotency key (optional)
         race_date:
           type: string
           format: date
@@ -1060,11 +1039,6 @@ components:
     ScrapeSyncRequest:
       type: object
       properties:
-        event_id:
-          type: string
-          format: uuid
-          nullable: true
-          description: Idempotency key (optional)
         reason:
           type: string
           nullable: true
@@ -1554,37 +1528,6 @@ components:
           items:
             $ref: "#/components/schemas/Payout"
 
-    RawFetchLog:
-      type: object
-      required: [raw_fetch_log_id, page_type, url, http_status, captured_at]
-      properties:
-        raw_fetch_log_id:
-          type: integer
-          format: int64
-        race_id:
-          type: integer
-          format: int64
-          nullable: true
-        page_type:
-          type: string
-        url:
-          type: string
-        http_status:
-          type: integer
-          format: int32
-        sha256:
-          type: string
-          nullable: true
-        storage_path:
-          type: string
-          nullable: true
-        captured_at:
-          type: string
-          format: date-time
-        note:
-          type: string
-          nullable: true
-
     # -------------------------
     # Scrape ingest requests
     # -------------------------
@@ -1640,11 +1583,8 @@ components:
 
     RaceUpsertBatchRequest:
       type: object
-      required: [event_id, items]
+      required: [items]
       properties:
-        event_id:
-          type: string
-          format: uuid
         items:
           type: array
           minItems: 1
@@ -1691,11 +1631,8 @@ components:
 
     RaceEntryUpsertBatchRequest:
       type: object
-      required: [event_id, items]
+      required: [items]
       properties:
-        event_id:
-          type: string
-          format: uuid
         items:
           type: array
           minItems: 1
@@ -1730,11 +1667,8 @@ components:
 
     OddsSnapshotUpsertRequest:
       type: object
-      required: [event_id, race_key, bet_type, snapshot_kind, captured_at, source_url, items]
+      required: [race_key, bet_type, snapshot_kind, captured_at, source_url, items]
       properties:
-        event_id:
-          type: string
-          format: uuid
         race_key:
           $ref: "#/components/schemas/RaceKey"
         bet_type:
@@ -1817,11 +1751,8 @@ components:
 
     RaceResultUpsertBatchRequest:
       type: object
-      required: [event_id, items]
+      required: [items]
       properties:
-        event_id:
-          type: string
-          format: uuid
         items:
           type: array
           minItems: 1
@@ -1853,11 +1784,8 @@ components:
 
     PayoutUpsertBatchRequest:
       type: object
-      required: [event_id, items]
+      required: [items]
       properties:
-        event_id:
-          type: string
-          format: uuid
         items:
           type: array
           minItems: 1
@@ -1881,53 +1809,10 @@ components:
 
     RaceChangeInsertBatchRequest:
       type: object
-      required: [event_id, items]
+      required: [items]
       properties:
-        event_id:
-          type: string
-          format: uuid
         items:
           type: array
           minItems: 1
           items:
             $ref: "#/components/schemas/RaceChangeInsert"
-
-    RawFetchLogInsert:
-      type: object
-      required: [page_type, url, http_status, captured_at]
-      properties:
-        race_key:
-          $ref: "#/components/schemas/RaceKey"
-          nullable: true
-        page_type:
-          type: string
-        url:
-          type: string
-        http_status:
-          type: integer
-          format: int32
-        sha256:
-          type: string
-          nullable: true
-        storage_path:
-          type: string
-          nullable: true
-        captured_at:
-          type: string
-          format: date-time
-        note:
-          type: string
-          nullable: true
-
-    RawFetchLogInsertBatchRequest:
-      type: object
-      required: [event_id, items]
-      properties:
-        event_id:
-          type: string
-          format: uuid
-        items:
-          type: array
-          minItems: 1
-          items:
-            $ref: "#/components/schemas/RawFetchLogInsert"

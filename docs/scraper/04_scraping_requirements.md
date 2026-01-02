@@ -1,7 +1,7 @@
 # 04 スクレイピング要件（取得対象・スケジュール・例外・負荷）
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2026-01-01（Asia/Tokyo）
+更新日: 2026-01-02（Asia/Tokyo）
 
 更新履歴
 - 2025-12-27: 初版作成。
@@ -17,6 +17,8 @@
 - 2025-12-31: 同期方向を api→scraper に変更し、差分評価のトリガを更新。
 - 2026-01-01: 定期実行の設定更新APIを追記。
 - 2026-01-01: TodayRaceInfoTop を差分同期対象外とし、fingerprint のフォールバックを明記。
+- 2026-01-01: raw_fetch_logs を仕様から削除し、即時転送モードを明記。
+- 2026-01-02: 同期定義を Pi 最新/PC pull に更新し、即時転送モードを廃止。
 ---
 
 ## 1. 実行モードとタスク
@@ -28,7 +30,7 @@
 - race_date はトリガごとに決定する（未指定は当日JST）
 - **起動時に race_date を固定した plan を作成し、無限ループする方式は採用しない**
 - スクレイピング情報（raw_html/ログ/正規化データ）は Pi 側で保存する
-- PC/Pi 間は **api-service が差分評価の判定主体**となり、**api → scraper** 方向に定期同期する（既定: 1日おき）
+- PC/Pi 間は **api-service が差分評価の判定主体**となり、**Pi → PC** 方向に pull 同期する（既定: 1日おき）
 - 定期実行のオン/オフ状態は frontend から参照できる
 - 定期同期は PC 側の cron コンテナが `/scrape/sync/scheduled` を呼び出し、api-service が JST 日付境界と interval_days に基づいて実行可否を判断する
 
@@ -36,22 +38,22 @@
 
 - 差分評価対象: `/scrape/*` に相当する正規化データ
 - 同期頻度（既定）: 1日おき（JST）
-- 同期方向: api → scraper（api-service 起点）
+- 同期方向: Pi → PC（api-service が pull して取り込む）
 - 差分判定（最小構成、判定主体は api-service）:
   - 差分キー: `scope_key + page_type + snapshot_kind + odds_flg`
   - scope_key:
     - RaceList / RefundMoneyList: `race_date + baba_code`
     - DebaTable / RaceMarkTable / Odds*: `race_date + baba_code + race_no`
-  - fingerprint: raw_fetch_logs の `sha256` を優先し、ログがない場合は正規化データの `sha256`（payload 由来）で継続する
+  - fingerprint: 正規化データの `sha256`（payload 由来）
 - 差分同期対象外: `TodayRaceInfoTop`（開催場導線ページは取得対象だが差分同期の判定対象に含めない）
-- 同期ルール: fingerprint が前回と同一なら同期をスキップし、差分のみを api → scraper 方向で反映する
+- 同期ルール: fingerprint が前回と同一なら同期をスキップし、差分のみを Pi → PC 方向で取り込む
 - 正規化データの差分キー（参考）:
   - races: `race_key`
   - race_entries: `race_key + horse_number`
   - odds_snapshots: `race_key + bet_type + snapshot_kind + odds_flg`
   - race_results: `race_key + finish_position`（併用で `horse_number` も許容）
   - payouts: `race_key + bet_type + legs + is_ordered`
-  - race_changes: `race_key + change_type + captured_at`
+  - race_changes: `race_key + change_type + captured_at`（※本リリースではスコープ外）
 
 ### 1.2 Control API（frontend からの操作/参照）
 
@@ -64,7 +66,7 @@
   - `enabled`: boolean
   - `baba_codes`: int[]（複数指定可）
 - 手動同期のトリガ: `POST /scrape/sync`
-  - api-service が scraper への同期要求を発行し、差分評価を開始する
+  - api-service が scraper からの pull 同期を開始し、差分評価を行う
 - 定期同期の設定: `POST /scrape/sync/schedule`
   - `enabled`: boolean
   - `interval_days`: int（JST日付境界基準）
@@ -75,9 +77,9 @@
 
 - 受信元: api-service のみ（PC→Pi）
 - 認証: 不要（PC 経由の内部通信を想定）
-- 同期受け口: `POST /control/ingest/*`
-  - ペイロードは api-service の `/scrape/*` と同一スキーマ
-  - 受信後は Pi 側に保存（JSONL など、実装に委ねる）
+- 同期データ提供: `POST /control/export/*`
+  - レスポンスは `items` に `/scrape/*` と同一スキーマの payload を含める
+  - api-service が pull した payload を PC 側に反映する
 - 定期実行の制御: `POST /control/schedule`
   - `enabled`: boolean
   - `baba_codes`: int[]（複数指定可）
@@ -189,7 +191,6 @@
 - 取得頻度は **最小**（代表時点のみ）に絞る
 - 並列数を抑える（1〜数スレッド程度から開始）
 - 失敗時のリトライは **少回数**（指数バックオフ）
-- Raw層ログ（url/http_status/sha256/captured_at）を残し、原因調査を可能にする
 
 ---
 
@@ -238,10 +239,9 @@
 
 ### 8.2 取得ログ（任意）
 
-- すべての取得について `raw_fetch_logs` を **記録してもよい**（成功/失敗を問わない）
 - HTMLを保存する場合:
   - `sha256` を採番に使いファイル保存（例: `raw_html/YYYY/MM/DD/{page_type}/{sha256}.html`）
-  - DBには `storage_path` のみ保存する
+  - 保存先パスは取得結果ログ（manifest_log.csv など）に記録する
 
 ### 8.3 監視指標（最低限）
 

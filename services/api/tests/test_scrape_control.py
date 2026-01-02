@@ -27,12 +27,14 @@ class DummyControlClient:
         return {"job_id": self.job_id}
 
 
-class DummyIngestClient:
-    def __init__(self) -> None:
-        self.posts: list[tuple[str, dict]] = []
+class DummyExportClient:
+    def __init__(self, responses: dict[str, list[dict]] | None = None) -> None:
+        self.responses = responses or {}
+        self.calls: list[tuple[str, dict]] = []
 
-    def post(self, path: str, payload: dict) -> None:
-        self.posts.append((path, payload))
+    def post_json(self, path: str, payload: dict) -> dict:
+        self.calls.append((path, payload))
+        return {"items": self.responses.get(path, [])}
 
 
 def _patch_control_client(monkeypatch, dummy: DummyControlClient) -> None:
@@ -43,9 +45,9 @@ def _patch_control_client(monkeypatch, dummy: DummyControlClient) -> None:
     )
 
 
-def _patch_sync_client(monkeypatch, dummy: DummyIngestClient) -> None:
+def _patch_sync_client(monkeypatch, dummy: DummyExportClient) -> None:
     monkeypatch.setattr(
-        sync_service.ScraperIngestClient,
+        sync_service.ScraperControlClient,
         "from_settings",
         classmethod(lambda cls: dummy),
     )
@@ -124,12 +126,12 @@ def test_scrape_sync_creates_state(
 ) -> None:
     state_path = tmp_path / "sync_state.json"
     monkeypatch.setattr(settings, "scrape_sync_state_path", state_path)
-    dummy = DummyIngestClient()
+    dummy = DummyExportClient()
     _patch_sync_client(monkeypatch, dummy)
 
     r = client.post(
         "/scrape/sync",
-        json={"event_id": str(uuid.uuid4()), "reason": "test"},
+        json={"reason": "test"},
     )
     assert r.status_code == 202, r.text
     assert state_path.exists()
@@ -168,44 +170,55 @@ def test_scrape_sync_status_reads_state(
     assert body["last_trigger"] == "manual"
 
 
-def test_scrape_sync_sends_payloads(
+def test_scrape_sync_pulls_payloads(
     client, monkeypatch, tmp_path: Path
 ) -> None:
     state_path = tmp_path / "sync_state.json"
     monkeypatch.setattr(settings, "scrape_sync_state_path", state_path)
-    dummy = DummyIngestClient()
+    race_key = {"race_date": "2025-12-28", "baba_code": 5, "race_no": 7}
+    dummy = DummyExportClient(
+        responses={
+            "/control/export/races": [
+                {"race_key": race_key, "race_name": "Sample Race"}
+            ],
+            "/control/export/odds-snapshots": [
+                {
+                    "race_key": race_key,
+                    "bet_type": "tansho",
+                    "snapshot_kind": "t_minus_5m",
+                    "captured_at": "2025-12-28T00:00:00+00:00",
+                    "source_url": "https://example.invalid/odds",
+                    "items": [
+                        {"legs": [1], "is_ordered": False, "odds_min": 2.3}
+                    ],
+                }
+            ],
+        }
+    )
     _patch_sync_client(monkeypatch, dummy)
 
-    race_key = {"race_date": "2025-12-28", "baba_code": 5, "race_no": 7}
-    r1 = client.post(
-        "/scrape/races",
-        json={
-            "event_id": str(uuid.uuid4()),
-            "items": [{"race_key": race_key, "race_name": "Sample Race"}],
-        },
-    )
-    assert r1.status_code == 201, r1.text
-
-    r2 = client.post(
-        "/scrape/odds-snapshots",
-        json={
-            "event_id": str(uuid.uuid4()),
-            "race_key": race_key,
-            "bet_type": "tansho",
-            "snapshot_kind": "t_minus_5m",
-            "captured_at": "2025-12-28T00:00:00+00:00",
-            "source_url": "https://example.invalid/odds",
-            "items": [{"legs": [1], "is_ordered": False, "odds_min": 2.3}],
-        },
-    )
-    assert r2.status_code == 201, r2.text
-
-    r3 = client.post("/scrape/sync", json={"event_id": str(uuid.uuid4())})
+    r3 = client.post("/scrape/sync", json={})
     assert r3.status_code == 202, r3.text
 
-    paths = [path for path, _ in dummy.posts]
-    assert "/control/ingest/races" in paths
-    assert "/control/ingest/odds-snapshots" in paths
+    from datetime import date
+
+    from app.db.models.race import Race as RaceModel
+    from app.db.session import SessionLocal
+
+    db = SessionLocal()
+    try:
+        race = (
+            db.query(RaceModel)
+            .filter(
+                RaceModel.race_date == date(2025, 12, 28),
+                RaceModel.baba_code == 5,
+                RaceModel.race_no == 7,
+            )
+            .one_or_none()
+        )
+        assert race is not None
+    finally:
+        db.close()
 
 
 def test_scrape_sync_schedule_update(
