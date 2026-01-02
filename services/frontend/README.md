@@ -1,7 +1,11 @@
 # 競馬AI Dashboard (React + TypeScript + Vite)
 
-作成日: 2025-12-27（Asia/Tokyo）
-更新日: 2025-12-27（Asia/Tokyo）
+作成日: 2025-12-27（Asia/Tokyo）  
+更新日: 2025-12-28（Asia/Tokyo）
+
+更新履歴
+- 2025-12-27: 初版作成。
+- 2025-12-28: Scrape Console の手動実行と状態確認を追記。
 
 
 `21_openapi.yaml` に定義されたエンドポイント（認証: Bearer JWT / Refresh: HttpOnly Cookie）を操作するためのダッシュボードです。
@@ -39,7 +43,18 @@ npm run dev -- --host 0.0.0.0 --port 5173
 2. `/login` で `POST /auth/login` を実行して user token を取得します。
 3. 401 の場合、user token 使用中のみ `POST /auth/refresh` を自動実行してリトライします。
 4. `OAuth Clients` で client_credentials 用のクライアントを作成し、`/auth/token` で service token を発行できます。
-5. `Scrape Console` で `/scrape/*` 系のバッチ投入を手動で呼び出せます。
+5. `Scrape Console` で `/scrape/*` の投入や手動実行タスクの依頼、状態確認を行えます。
+
+## Scrape Console（手動実行/状態確認）
+
+- 画面: `Scrape Console`（`/scrape`）
+- token: `Settings` で Service token を設定し、`Service token` モードで実行する
+- 手動実行タスク: `POST /scrape/manual-tasks`
+- 差分同期トリガ: `POST /scrape/sync`
+- 定期実行状態: `GET /scrape/schedule`
+- 同期状態: `GET /scrape/sync/status`
+- 直接投入: `POST /scrape/races` ほか `/scrape/*`
+- 送信ボディ: 画面のテンプレートJSONをベースに編集して送信する
 
 ## フォルダ構成（保守運用向け）
 
