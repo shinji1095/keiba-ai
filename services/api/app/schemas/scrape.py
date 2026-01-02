@@ -33,6 +33,8 @@ class ManualScrapeTaskResponse(BaseModel):
 class ScrapeScheduleStatus(BaseModel):
     enabled: bool
     baba_codes: Optional[list[int]] = None
+    snapshot_kinds: Optional[list[str]] = None
+    prefetch_days: Optional[int] = Field(default=None, ge=0, le=31)
     mode: Optional[str] = None
     updated_at: dt.datetime
     note: Optional[str] = None
@@ -41,6 +43,8 @@ class ScrapeScheduleStatus(BaseModel):
 class ScrapeScheduleUpdateRequest(BaseModel):
     enabled: bool
     baba_codes: Optional[list[int]] = None
+    snapshot_kinds: Optional[list[str]] = None
+    prefetch_days: Optional[int] = Field(default=None, ge=0, le=31)
 
 
 class ScrapeSyncRequest(BaseModel):

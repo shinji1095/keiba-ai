@@ -20,6 +20,7 @@ import {
   Race,
   RaceChangeInsertBatchRequest,
   RaceEntryListResponse,
+  RaceEntryWithRaceListResponse,
   RaceEntryUpsertBatchRequest,
   RaceListResponse,
   RaceResultListResponse,
@@ -111,6 +112,11 @@ export const api = {
 
   listRaceEntries: (ctx: ApiCtx, raceId: number) =>
     apiFetch<RaceEntryListResponse>({ ...ctx, path: `/races/${raceId}/entries`, method: "GET" }),
+
+  listRaceEntriesByDate: (
+    ctx: ApiCtx,
+    query: { race_date: string; baba_code?: number; page?: number; page_size?: number },
+  ) => apiFetch<RaceEntryWithRaceListResponse>({ ...ctx, path: "/race-entries", method: "GET", query }),
 
   getRaceOdds: (
     ctx: ApiCtx,

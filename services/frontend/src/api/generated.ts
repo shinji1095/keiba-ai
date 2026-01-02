@@ -66,6 +66,8 @@ export type SnapshotKind = string;
 export interface ScrapeScheduleStatus {
   "enabled": boolean;
   "baba_codes"?: number[] | null;
+  "snapshot_kinds"?: string[] | null;
+  "prefetch_days"?: number | null;
   "mode"?: string | null;
   "updated_at": string;
   "note"?: string | null;
@@ -74,6 +76,8 @@ export interface ScrapeScheduleStatus {
 export interface ScrapeScheduleUpdateRequest {
   "enabled": boolean;
   "baba_codes"?: number[] | null;
+  "snapshot_kinds"?: string[] | null;
+  "prefetch_days"?: number | null;
 }
 
 export interface ManualScrapeTaskRequest {
@@ -212,6 +216,30 @@ export interface RaceEntry {
 
 export interface RaceEntryListResponse {
   "items": RaceEntry[];
+}
+
+export interface RaceEntryWithRace {
+  "race_entry_id": number;
+  "race_id": number;
+  "race_key": RaceKey;
+  "start_time"?: string | null;
+  "race_name"?: string | null;
+  "status"?: string | null;
+  "horse_id"?: number | null;
+  "post_position"?: number | null;
+  "horse_number": number;
+  "horse_name": string;
+  "jockey_name"?: string | null;
+  "trainer_name"?: string | null;
+  "handicap_kg"?: number | null;
+  "body_weight"?: number | null;
+  "body_weight_diff"?: number | null;
+}
+
+export interface RaceEntryWithRaceListResponse {
+  "items": RaceEntryWithRace[];
+  "page": number;
+  "page_size": number;
 }
 
 export interface RaceChange {

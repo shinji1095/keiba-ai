@@ -26,6 +26,8 @@ from app.schemas.race import (
     Race,
     RaceEntry,
     RaceEntryListResponse,
+    RaceEntryWithRace,
+    RaceEntryWithRaceListResponse,
     RaceKey,
     RaceListResponse,
     RaceResult,
@@ -140,6 +142,55 @@ class RaceService:
                 for e in rows
             ]
         )
+
+    def list_race_entries(
+        self,
+        *,
+        race_date: dt.date,
+        baba_code: Optional[int],
+        page: int,
+        page_size: int,
+    ) -> RaceEntryWithRaceListResponse:
+        q = (
+            self.db.query(RaceEntryModel, RaceModel)
+            .join(RaceModel, RaceEntryModel.race_id == RaceModel.race_id)
+            .filter(RaceModel.race_date == race_date)
+        )
+        if baba_code is not None:
+            q = q.filter(RaceModel.baba_code == baba_code)
+
+        q = q.order_by(
+            RaceModel.baba_code.asc(),
+            RaceModel.race_no.asc(),
+            RaceEntryModel.horse_number.asc(),
+        )
+        rows = q.offset((page - 1) * page_size).limit(page_size).all()
+
+        items: list[RaceEntryWithRace] = []
+        for e, r in rows:
+            rk = RaceKey(
+                race_date=r.race_date, baba_code=r.baba_code, race_no=r.race_no
+            )
+            items.append(
+                RaceEntryWithRace(
+                    race_entry_id=e.race_entry_id,
+                    race_id=e.race_id,
+                    race_key=rk,
+                    start_time=r.start_time,
+                    race_name=r.race_name,
+                    status=r.status,
+                    horse_id=e.horse_id,
+                    post_position=e.post_position,
+                    horse_number=e.horse_number,
+                    horse_name=e.horse_name,
+                    jockey_name=e.jockey_name,
+                    trainer_name=e.trainer_name,
+                    handicap_kg=e.handicap_kg,
+                    body_weight=e.body_weight,
+                    body_weight_diff=e.body_weight_diff,
+                )
+            )
+        return RaceEntryWithRaceListResponse(items=items, page=page, page_size=page_size)
 
     def get_odds(
         self,

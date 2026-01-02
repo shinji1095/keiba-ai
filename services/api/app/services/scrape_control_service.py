@@ -61,9 +61,34 @@ class ScrapeControlService:
                 details={"field": "updated_at"},
             ) from exc
 
+        raw_kinds = payload.get("snapshot_kinds")
+        if raw_kinds is None:
+            snapshot_kinds = None
+        elif not isinstance(raw_kinds, list):
+            raise AppError.bad_gateway(
+                "invalid schedule response",
+                details={"field": "snapshot_kinds"},
+            )
+        else:
+            snapshot_kinds = [str(x) for x in raw_kinds if str(x).strip()]
+
+        raw_prefetch_days = payload.get("prefetch_days")
+        if raw_prefetch_days is None:
+            prefetch_days = None
+        else:
+            try:
+                prefetch_days = int(raw_prefetch_days)
+            except (TypeError, ValueError) as exc:
+                raise AppError.bad_gateway(
+                    "invalid schedule response",
+                    details={"field": "prefetch_days"},
+                ) from exc
+
         return ScrapeScheduleStatus(
             enabled=enabled,
             baba_codes=baba_codes,
+            snapshot_kinds=snapshot_kinds,
+            prefetch_days=prefetch_days,
             mode=None,
             updated_at=updated_at,
             note=None,
@@ -81,6 +106,10 @@ class ScrapeControlService:
         request_payload: dict[str, object] = {"enabled": payload.enabled}
         if payload.baba_codes is not None:
             request_payload["baba_codes"] = payload.baba_codes
+        if payload.snapshot_kinds is not None:
+            request_payload["snapshot_kinds"] = payload.snapshot_kinds
+        if payload.prefetch_days is not None:
+            request_payload["prefetch_days"] = payload.prefetch_days
         response = client.post_json("/control/schedule", request_payload)
         return self._parse_schedule_payload(response)
 

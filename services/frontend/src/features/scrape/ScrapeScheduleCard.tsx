@@ -4,6 +4,16 @@ import { ScrapeScheduleStatus, ScrapeScheduleUpdateRequest } from "@/api/generat
 import { ErrorBox } from "@/shared/ui/ErrorBox";
 import { Loading } from "@/shared/ui/Loading";
 
+const SNAPSHOT_KIND_OPTIONS = [
+  { value: "final", label: "final (発走直前)" },
+  { value: "t_minus_1m", label: "t_minus_1m (発走1分前)" },
+  { value: "t_minus_5m", label: "t_minus_5m (発走5分前)" },
+  { value: "t_minus_10m", label: "t_minus_10m (発走10分前)" },
+  { value: "t_minus_20m", label: "t_minus_20m (発走20分前)" },
+  { value: "t_minus_30m", label: "t_minus_30m (発走30分前)" },
+  { value: "t_minus_60m", label: "t_minus_60m (発走60分前)" },
+] as const;
+
 type Props = {
   status?: ScrapeScheduleStatus;
   isLoading: boolean;
@@ -34,6 +44,13 @@ function formatDate(value?: string | null): string {
   return value || "-";
 }
 
+function normalizeSnapshotKinds(input?: string[] | null): string[] {
+  const allowed = new Set(SNAPSHOT_KIND_OPTIONS.map((o) => o.value));
+  const selected = new Set((input ?? []).filter((k) => allowed.has(k)));
+  if (selected.size === 0) selected.add("final");
+  return SNAPSHOT_KIND_OPTIONS.map((o) => o.value).filter((k) => selected.has(k));
+}
+
 export function ScrapeScheduleCard({
   status,
   isLoading,
@@ -46,15 +63,24 @@ export function ScrapeScheduleCard({
   const [enabled, setEnabled] = React.useState(false);
   const [babaCodesText, setBabaCodesText] = React.useState("");
   const [inputError, setInputError] = React.useState<string | null>(null);
+  const [snapshotKinds, setSnapshotKinds] = React.useState<string[]>(["final"]);
 
   const codesValue = status?.baba_codes?.join(",") ?? "";
   React.useEffect(() => {
     if (status) {
       setEnabled(status.enabled);
       setBabaCodesText(formatCodes(status.baba_codes));
+      setSnapshotKinds(normalizeSnapshotKinds(status.snapshot_kinds));
       setInputError(null);
     }
-  }, [status?.enabled, codesValue]);
+  }, [status?.enabled, codesValue, status?.snapshot_kinds?.join(",")]);
+
+  const toggleSnapshotKind = (kind: string, checked: boolean) => {
+    const next = new Set(snapshotKinds);
+    if (checked) next.add(kind);
+    else next.delete(kind);
+    setSnapshotKinds(normalizeSnapshotKinds([...next]));
+  };
 
   const handleSave = () => {
     const { codes, error } = parseCodes(babaCodesText);
@@ -63,7 +89,7 @@ export function ScrapeScheduleCard({
       return;
     }
     setInputError(null);
-    onSave({ enabled, baba_codes: codes });
+    onSave({ enabled, baba_codes: codes, snapshot_kinds: snapshotKinds });
   };
 
   return (
@@ -98,6 +124,24 @@ export function ScrapeScheduleCard({
             onChange={(e) => setBabaCodesText(e.target.value)}
           />
         </label>
+
+        <div>
+          <div className="small" style={{ marginBottom: 6 }}>
+            snapshot_kinds（複数選択可）
+          </div>
+          <div className="small" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {SNAPSHOT_KIND_OPTIONS.map((opt) => (
+              <label key={opt.value} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={snapshotKinds.includes(opt.value)}
+                  onChange={(e) => toggleSnapshotKind(opt.value, e.target.checked)}
+                />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+        </div>
 
         <button className="btn" onClick={onRefresh}>
           Refresh

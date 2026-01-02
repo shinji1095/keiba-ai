@@ -10,6 +10,7 @@ from app.schemas.payout import PayoutListResponse
 from app.schemas.race import (
     Race,
     RaceEntryListResponse,
+    RaceEntryWithRaceListResponse,
     RaceListResponse,
     RaceResultListResponse,
 )
@@ -52,6 +53,24 @@ def get_entries(
 ) -> RaceEntryListResponse:
     svc = RaceService(db)
     return svc.get_entries(race_id)
+
+
+@router.get("/race-entries", response_model=RaceEntryWithRaceListResponse)
+def list_race_entries(
+    race_date: dt.date = Query(...),
+    baba_code: int | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=200, ge=1, le=500),
+    db=Depends(get_db),
+    _=Depends(get_current_user),
+) -> RaceEntryWithRaceListResponse:
+    svc = RaceService(db)
+    return svc.list_race_entries(
+        race_date=race_date,
+        baba_code=baba_code,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get("/races/{race_id}/odds", response_model=OddsSnapshotQueryResponse)

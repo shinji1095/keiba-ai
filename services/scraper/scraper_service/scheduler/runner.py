@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime, timedelta
 import time
 from pathlib import Path
 from typing import Optional
+import json
 
 from scraper_service.config import Settings
 from scraper_service.http.client import HttpClient
@@ -41,6 +42,148 @@ MANUAL_ODDS_TARGETS = [
     ("t_minus_5m", 5),
     ("t_minus_1m", 1),
 ]
+
+DEFAULT_SCHEDULED_SNAPSHOT_KINDS = ["final"]
+SCHEDULED_SNAPSHOT_KIND_TO_OFFSET_MIN: dict[str, int] = {
+    "t_minus_60m": 60,
+    "t_minus_30m": 30,
+    "t_minus_20m": 20,
+    "t_minus_10m": 10,
+    "t_minus_5m": 5,
+    "t_minus_1m": 1,
+    "final": 0,
+}
+SCHEDULED_SNAPSHOT_KIND_WINDOWS_MIN: dict[str, int] = {
+    "t_minus_60m": 2,
+    "t_minus_30m": 2,
+    "t_minus_20m": 2,
+    "t_minus_10m": 1,
+    "t_minus_5m": 1,
+    # t_minus_1m / final are handled with a seconds window to avoid overlap.
+}
+
+
+def _normalize_snapshot_kinds(kinds: Optional[list[str]]) -> list[str]:
+    if not kinds:
+        return DEFAULT_SCHEDULED_SNAPSHOT_KINDS.copy()
+    out: list[str] = []
+    seen: set[str] = set()
+    for k in kinds:
+        kk = str(k).strip()
+        if not kk or kk in seen:
+            continue
+        if kk not in SCHEDULED_SNAPSHOT_KIND_TO_OFFSET_MIN:
+            continue
+        out.append(kk)
+        seen.add(kk)
+    return out or DEFAULT_SCHEDULED_SNAPSHOT_KINDS.copy()
+
+
+def _scheduled_due_kinds(
+    *,
+    start_dt: Optional[datetime],
+    now: datetime,
+    snapshot_kinds: list[str],
+) -> list[tuple[str, bool]]:
+    """Return due snapshot kinds for scheduled mode.
+
+    The scheduler is typically invoked periodically (e.g. cron). We treat a kind
+    as due if current time is within a small window around (start_time - offset).
+    """
+    if start_dt is None:
+        return []
+    delta_sec = (start_dt - now).total_seconds()
+    if delta_sec < 0:
+        return []
+
+    due: list[tuple[str, bool]] = []
+    for kind in snapshot_kinds:
+        if kind == "final":
+            if 0 <= delta_sec <= 60:
+                due.append(("final", True))
+            continue
+        if kind == "t_minus_1m":
+            # Avoid overlap with "final".
+            if 60 <= delta_sec <= 120:
+                due.append(("t_minus_1m", False))
+            continue
+
+        offset_min = SCHEDULED_SNAPSHOT_KIND_TO_OFFSET_MIN.get(kind)
+        if offset_min is None:
+            continue
+        window_min = SCHEDULED_SNAPSHOT_KIND_WINDOWS_MIN.get(kind, 1)
+        delta_min = delta_sec / 60.0
+        if abs(delta_min - offset_min) <= window_min:
+            due.append((kind, False))
+
+    return due
+
+
+def _prefetch_state_path(settings: Settings) -> Path:
+    return settings.control_dir / "prefetch_state.json"
+
+
+def _load_last_prefetch_date(path: Path) -> Optional[str]:
+    try:
+        if not path.exists():
+            return None
+        data = json.loads(path.read_text(encoding="utf-8"))
+        v = data.get("last_prefetch_race_date")
+        return str(v) if v else None
+    except Exception:
+        return None
+
+
+def _save_last_prefetch_date(path: Path, race_date: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"last_prefetch_race_date": race_date, "updated_at": iso_now_jst()}
+    path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+
+
+def _iter_future_dates(base: str, days: int) -> list[str]:
+    y, m, d = [int(x) for x in base.split("-")]
+    start = date(y, m, d)
+    return [(start + timedelta(days=i)).isoformat() for i in range(1, days + 1)]
+
+
+def _build_daily_odds_plan(
+    *,
+    race_date: str,
+    races: list[object],
+    snapshot_kinds: list[str],
+) -> list[dict[str, object]]:
+    """Build a simple odds plan from RaceList results.
+
+    This plan is primarily for observability/debugging (what should be scraped when).
+    """
+
+    tasks: list[dict[str, object]] = []
+    for r in races:
+        # RaceUpsert has: race_key + start_time
+        rk = getattr(r, "race_key", None)
+        start_time = getattr(r, "start_time", None)
+        start_dt = _race_start_dt(race_date, start_time)
+        if rk is None or start_dt is None:
+            continue
+        for kind in snapshot_kinds:
+            offset_min = SCHEDULED_SNAPSHOT_KIND_TO_OFFSET_MIN.get(kind)
+            if offset_min is None:
+                continue
+            scheduled_at = start_dt - timedelta(minutes=offset_min)
+            tasks.append(
+                {
+                    "race_key": {
+                        "race_date": rk.race_date,
+                        "baba_code": rk.baba_code,
+                        "race_no": rk.race_no,
+                    },
+                    "start_time": start_time,
+                    "snapshot_kind": kind,
+                    "scheduled_at": scheduled_at.isoformat(timespec="seconds"),
+                }
+            )
+    tasks.sort(key=lambda x: (x["scheduled_at"], x["race_key"]["baba_code"], x["race_key"]["race_no"]))  # type: ignore[index]
+    return tasks
 
 
 def _save_dir_for(
@@ -323,8 +466,11 @@ class ScrapeRunner:
         race_date: str,
         baba_codes: Optional[list[int]] = None,
         race_no: Optional[int] = None,
+        snapshot_kinds: Optional[list[str]] = None,
+        prefetch_days: int = 7,
     ) -> None:
         now = datetime.now(JST)
+        scheduled_kinds = _normalize_snapshot_kinds(snapshot_kinds)
         if race_no is not None and not baba_codes:
             raise RuntimeError("race_no requires baba_code")
 
@@ -342,6 +488,29 @@ class ScrapeRunner:
         if race_no is not None and len(baba_codes) != 1:
             raise RuntimeError("race_no requires a single baba_code")
 
+        # Prefetch future RaceList once per day (best-effort).
+        if prefetch_days > 0 and race_no is None:
+            state_path = _prefetch_state_path(self.settings)
+            last_prefetched = _load_last_prefetch_date(state_path)
+            if last_prefetched != race_date:
+                for d in _iter_future_dates(race_date, prefetch_days):
+                    for baba_code in baba_codes:
+                        html, _, _ = self._fetch(
+                            C.PAGE_RACE_LIST,
+                            race_date=d,
+                            baba_code=baba_code,
+                            race_no=None,
+                            odds_flg=None,
+                        )
+                        races_f = parse_race_list(
+                            html, race_date=d, baba_code=baba_code
+                        )
+                        self._append_sync(
+                            "races", [r.model_dump(mode="json") for r in races_f]
+                        )
+                _save_last_prefetch_date(state_path, race_date)
+
+        daily_races_for_plan: list[object] = []
         for baba_code in baba_codes:
             html, _, _ = self._fetch(
                 C.PAGE_RACE_LIST,
@@ -354,6 +523,7 @@ class ScrapeRunner:
             self._append_sync(
                 "races", [r.model_dump(mode="json") for r in races]
             )
+            daily_races_for_plan.extend(races)
 
             if race_no is not None:
                 races = [r for r in races if r.race_key.race_no == race_no]
@@ -386,9 +556,9 @@ class ScrapeRunner:
                         [e.model_dump(mode="json") for e in entries],
                     )
 
-                snapshot = _scheduled_snapshot_kind(start_dt=start_dt, now=now)
-                if snapshot is not None:
-                    snapshot_kind, is_final = snapshot
+                for snapshot_kind, is_final in _scheduled_due_kinds(
+                    start_dt=start_dt, now=now, snapshot_kinds=scheduled_kinds
+                ):
                     self._scrape_odds_for_race(
                         race_date=race_date,
                         baba_code=baba_code,
@@ -434,6 +604,24 @@ class ScrapeRunner:
                         "payouts",
                         [p.model_dump(mode="json") for p in payouts],
                     )
+
+        # Save daily plan (for observability/debugging).
+        if race_no is None:
+            plan_path = self.settings.control_dir / f"odds_plan_{race_date}.json"
+            plan_path.parent.mkdir(parents=True, exist_ok=True)
+            plan = {
+                "race_date": race_date,
+                "snapshot_kinds": scheduled_kinds,
+                "generated_at": iso_now_jst(),
+                "items": _build_daily_odds_plan(
+                    race_date=race_date,
+                    races=daily_races_for_plan,
+                    snapshot_kinds=scheduled_kinds,
+                ),
+            }
+            plan_path.write_text(
+                json.dumps(plan, ensure_ascii=True, indent=2), encoding="utf-8"
+            )
 
     def _scrape_odds_for_race(
         self,

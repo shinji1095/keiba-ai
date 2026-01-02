@@ -7,6 +7,8 @@ import { ScrapeScheduleCard } from "./ScrapeScheduleCard";
 const baseStatus = {
   enabled: false,
   baba_codes: [1],
+  snapshot_kinds: ["final"],
+  prefetch_days: 7,
   mode: null,
   updated_at: "2025-01-01T00:00:00Z",
   note: null,
@@ -25,13 +27,16 @@ describe("ScrapeScheduleCard", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("checkbox"));
+    await userEvent.click(screen.getByLabelText("enabled"));
 
     const input = screen.getByLabelText("baba_codes");
     await userEvent.clear(input);
     await userEvent.type(input, "3, 4");
 
+    // add one more snapshot kind (multi-select)
+    await userEvent.click(screen.getByLabelText("t_minus_5m (発走5分前)"));
+
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledWith({ enabled: true, baba_codes: [3, 4] });
+    expect(onSave).toHaveBeenCalledWith({ enabled: true, baba_codes: [3, 4], snapshot_kinds: ["final", "t_minus_5m"] });
   });
 });

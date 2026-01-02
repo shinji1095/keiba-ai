@@ -21,10 +21,20 @@ def _fetch_schedule(base_url: str) -> dict:
     return json.loads(body)
 
 
-def _build_cmd(baba_codes: list[int]) -> list[str]:
+def _build_cmd(
+    baba_codes: list[int],
+    *,
+    snapshot_kinds: list[str] | None,
+    prefetch_days: int | None,
+) -> list[str]:
     cmd = ["python", "-m", "scraper_service.cli", "scrape", "scheduled"]
     for code in baba_codes:
         cmd += ["--baba-code", str(code)]
+    if snapshot_kinds:
+        for k in snapshot_kinds:
+            cmd += ["--snapshot-kind", k]
+    if prefetch_days is not None:
+        cmd += ["--prefetch-days", str(prefetch_days)]
     return cmd
 
 
@@ -48,7 +58,23 @@ def main() -> int:
     if not isinstance(baba_codes, list):
         baba_codes = []
 
-    cmd = _build_cmd([int(x) for x in baba_codes])
+    snapshot_kinds = schedule.get("snapshot_kinds")
+    if not isinstance(snapshot_kinds, list):
+        snapshot_kinds = None
+    else:
+        snapshot_kinds = [str(x) for x in snapshot_kinds if str(x).strip()]
+
+    prefetch_days = schedule.get("prefetch_days")
+    try:
+        prefetch_days = int(prefetch_days) if prefetch_days is not None else None
+    except (TypeError, ValueError):
+        prefetch_days = None
+
+    cmd = _build_cmd(
+        [int(x) for x in baba_codes],
+        snapshot_kinds=snapshot_kinds,
+        prefetch_days=prefetch_days,
+    )
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as exc:

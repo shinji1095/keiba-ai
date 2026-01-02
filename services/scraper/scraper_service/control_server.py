@@ -22,12 +22,16 @@ from scraper_service.utils.time import iso_now_jst, today_jst_str
 class ScheduleState:
     enabled: bool
     baba_codes: list[int]
+    snapshot_kinds: list[str]
+    prefetch_days: int
     updated_at: str
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "enabled": self.enabled,
             "baba_codes": self.baba_codes,
+            "snapshot_kinds": self.snapshot_kinds,
+            "prefetch_days": self.prefetch_days,
             "updated_at": self.updated_at,
         }
 
@@ -40,11 +44,21 @@ class ScheduleStore:
     def load(self) -> ScheduleState:
         with self._lock:
             if not self._path.exists():
-                return ScheduleState(enabled=False, baba_codes=[], updated_at=iso_now_jst())
+                return ScheduleState(
+                    enabled=False,
+                    baba_codes=[],
+                    snapshot_kinds=["final"],
+                    prefetch_days=7,
+                    updated_at=iso_now_jst(),
+                )
             data = json.loads(self._path.read_text(encoding="utf-8"))
             return ScheduleState(
                 enabled=bool(data.get("enabled", False)),
                 baba_codes=[int(x) for x in data.get("baba_codes", [])],
+                snapshot_kinds=[
+                    str(x) for x in (data.get("snapshot_kinds") or ["final"])
+                ],
+                prefetch_days=int(data.get("prefetch_days") or 7),
                 updated_at=str(data.get("updated_at", "")) or iso_now_jst(),
             )
 
@@ -124,8 +138,22 @@ class ControlApp:
     def get_schedule(self) -> ScheduleState:
         return self._store.load()
 
-    def update_schedule(self, *, enabled: bool, baba_codes: list[int]) -> ScheduleState:
-        state = ScheduleState(enabled=enabled, baba_codes=sorted(set(baba_codes)), updated_at=iso_now_jst())
+    def update_schedule(
+        self,
+        *,
+        enabled: bool,
+        baba_codes: list[int],
+        snapshot_kinds: list[str] | None = None,
+        prefetch_days: int | None = None,
+    ) -> ScheduleState:
+        prev = self._store.load()
+        state = ScheduleState(
+            enabled=enabled,
+            baba_codes=sorted(set(baba_codes)),
+            snapshot_kinds=snapshot_kinds if snapshot_kinds is not None else prev.snapshot_kinds,
+            prefetch_days=prefetch_days if prefetch_days is not None else prev.prefetch_days,
+            updated_at=iso_now_jst(),
+        )
         self._store.save(state)
         return state
 
@@ -240,7 +268,57 @@ class ControlHandler(BaseHTTPRequestHandler):
                 except (TypeError, ValueError):
                     self._send_json(400, {"error": "baba_codes must contain integers"})
                     return
-            state = self._app.update_schedule(enabled=enabled, baba_codes=baba_codes)
+            # Optional scheduled odds snapshot kinds (default: ["final"])
+            snapshot_kinds: list[str] | None = None
+            if "snapshot_kinds" in payload:
+                raw_kinds = payload.get("snapshot_kinds")
+                if not isinstance(raw_kinds, list):
+                    self._send_json(400, {"error": "snapshot_kinds must be a list"})
+                    return
+                snapshot_kinds = []
+                for it in raw_kinds:
+                    if not isinstance(it, str) or not it.strip():
+                        self._send_json(
+                            400, {"error": "snapshot_kinds must contain strings"}
+                        )
+                        return
+                    snapshot_kinds.append(it.strip())
+
+                allowed = {
+                    "t_minus_60m",
+                    "t_minus_30m",
+                    "t_minus_20m",
+                    "t_minus_10m",
+                    "t_minus_5m",
+                    "t_minus_1m",
+                    "final",
+                }
+                unknown = [k for k in snapshot_kinds if k not in allowed]
+                if unknown:
+                    self._send_json(
+                        400,
+                        {"error": f"unknown snapshot_kinds: {', '.join(unknown)}"},
+                    )
+                    return
+
+            # Optional prefetch days (default: 7)
+            prefetch_days: int | None = None
+            if "prefetch_days" in payload:
+                try:
+                    prefetch_days = int(payload.get("prefetch_days"))
+                except (TypeError, ValueError):
+                    self._send_json(400, {"error": "prefetch_days must be an integer"})
+                    return
+                if prefetch_days < 0 or prefetch_days > 31:
+                    self._send_json(400, {"error": "prefetch_days must be 0..31"})
+                    return
+
+            state = self._app.update_schedule(
+                enabled=enabled,
+                baba_codes=baba_codes,
+                snapshot_kinds=snapshot_kinds,
+                prefetch_days=prefetch_days,
+            )
             self._send_json(200, state.to_dict())
             return
 

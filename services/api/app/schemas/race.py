@@ -57,6 +57,31 @@ class RaceEntryListResponse(BaseModel):
     items: list[RaceEntry]
 
 
+class RaceEntryWithRace(BaseModel):
+    race_entry_id: int
+    race_id: int
+    race_key: RaceKey
+    start_time: Optional[dt.time] = None
+    race_name: Optional[str] = None
+    status: Optional[str] = None
+
+    horse_id: Optional[int] = None
+    post_position: Optional[int] = None
+    horse_number: int
+    horse_name: str
+    jockey_name: Optional[str] = None
+    trainer_name: Optional[str] = None
+    handicap_kg: Optional[float] = None
+    body_weight: Optional[int] = None
+    body_weight_diff: Optional[int] = None
+
+
+class RaceEntryWithRaceListResponse(BaseModel):
+    items: list[RaceEntryWithRace]
+    page: int
+    page_size: int
+
+
 class RaceResult(BaseModel):
     race_result_id: int
     race_id: int

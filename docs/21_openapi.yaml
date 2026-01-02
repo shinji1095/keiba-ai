@@ -424,6 +424,53 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /race-entries:
+    get:
+      tags: [races]
+      summary: List race entries by race_date/baba_code
+      description: |
+        指定日の出走表（race_entries）を一覧する。
+        当日/過去レースページ向けに、race 情報（race_key/start_time等）も含めて返す。
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: race_date
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: baba_code
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: page_size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RaceEntryWithRaceListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /races/{race_id}/odds:
     get:
       tags: [races]
@@ -546,7 +593,7 @@ paths:
       tags: [scrape]
       summary: Get scrape schedule status
       description: |
-        定期実行のオン/オフ状態と対象競馬場を返す。
+        定期実行のオン/オフ状態と対象競馬場、odds の snapshot_kinds を返す。
         cron コンテナは本状態に従って実行する。
         認証不要（PC 経由の内部通信を想定）
       responses:
@@ -560,7 +607,7 @@ paths:
       tags: [scrape]
       summary: Update scrape schedule
       description: |
-        定期実行のオン/オフと対象競馬場を更新する。
+        定期実行のオン/オフと対象競馬場、odds の snapshot_kinds を更新する。
         api-service が scraper-service の control API へ反映する。
       requestBody:
         required: true
@@ -1012,6 +1059,18 @@ components:
             format: int32
           description: 定期実行の対象競馬場コード（複数指定）
           nullable: true
+        snapshot_kinds:
+          type: array
+          items:
+            type: string
+          description: odds の取得タイミング（複数指定可）。未設定時は final のみ。
+          nullable: true
+        prefetch_days:
+          type: integer
+          minimum: 0
+          maximum: 31
+          description: 日次で先読みする RaceList の日数（0で無効）
+          nullable: true
         mode:
           type: string
           nullable: true
@@ -1034,6 +1093,18 @@ components:
             type: integer
             format: int32
           description: 定期実行の対象競馬場コード（複数指定）
+          nullable: true
+        snapshot_kinds:
+          type: array
+          items:
+            type: string
+          description: odds の取得タイミング（複数指定可）。未設定時は final のみ。
+          nullable: true
+        prefetch_days:
+          type: integer
+          minimum: 0
+          maximum: 31
+          description: 日次で先読みする RaceList の日数（0で無効）
           nullable: true
 
     ScrapeSyncRequest:
@@ -1344,6 +1415,73 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RaceEntry"
+
+    RaceEntryWithRace:
+      type: object
+      required: [race_entry_id, race_id, race_key, horse_number, horse_name]
+      properties:
+        race_entry_id:
+          type: integer
+          format: int64
+        race_id:
+          type: integer
+          format: int64
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+        start_time:
+          type: string
+          format: time
+          nullable: true
+        race_name:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        horse_id:
+          type: integer
+          format: int64
+          nullable: true
+        post_position:
+          type: integer
+          format: int32
+          nullable: true
+        horse_number:
+          type: integer
+          format: int32
+        horse_name:
+          type: string
+        jockey_name:
+          type: string
+          nullable: true
+        trainer_name:
+          type: string
+          nullable: true
+        handicap_kg:
+          type: number
+          format: float
+          nullable: true
+        body_weight:
+          type: integer
+          format: int32
+          nullable: true
+        body_weight_diff:
+          type: integer
+          format: int32
+          nullable: true
+
+    RaceEntryWithRaceListResponse:
+      type: object
+      required: [items, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RaceEntryWithRace"
+        page:
+          type: integer
+        page_size:
+          type: integer
 
     RaceChange:
       type: object

@@ -433,3 +433,14 @@
 - テスト分類: システムテスト
 - 対象機能・モジュール: frontend scrape console, reverse-proxy, api-service scrape control, scraper-service control API
 - 実装状況: 追加テストあり（services/frontend/tests/system/front_api_scraper.spec.ts）
+
+### TR-108: scraper live scrape（babaCode=32, 2025/12/28）
+- 要件ID: TR-108
+- 要件名: 既知日のRaceList/DebaTableが取得できる
+- 要件の説明: `babaCode=32（佐賀）` / `2025/12/28` に対して live scrape を行い、RaceList と DebaTable（出馬表）を取得でき、斤量・騎手などの基本情報が抽出できること。
+- 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.3, `https://www.keiba.go.jp/KeibaWeb/TodayRaceInfo/RaceList?k_raceDate=2025%2f12%2f28&k_babaCode=32`
+- 関連リスクID: RISK-001
+- テスト観点: 正常系（取得・抽出できる）／異常系（外部サイト到達不可時は skip 可能）
+- テスト分類: 結合テスト（外部サイト依存）
+- 対象機能・モジュール: scraper-service HttpClient, RaceList/DebaTable parser
+- 実装状況: 追加テストあり（services/scraper/tests/test_live_scrape_baba32_20251228.py）

@@ -9,6 +9,8 @@ import { OverviewPage } from "./features/overview/OverviewPage";
 import { VenuesPage } from "./features/venues/VenuesPage";
 import { RacesPage } from "./features/races/RacesPage";
 import { RaceDetailPage } from "./features/races/RaceDetailPage";
+import { TodayRacesPage } from "./features/races/TodayRacesPage";
+import { PastRacesPage } from "./features/races/PastRacesPage";
 import { OAuthClientsPage } from "./features/admin/OAuthClientsPage";
 import { ScrapeConsolePage } from "./features/scrape/ScrapeConsolePage";
 import { SettingsPage } from "./features/settings/SettingsPage";
@@ -34,6 +36,8 @@ export const router = createBrowserRouter([
       { index: true, element: <OverviewPage /> },
       { path: "venues", element: <VenuesPage /> },
       { path: "races", element: <RacesPage /> },
+      { path: "races/today", element: <TodayRacesPage /> },
+      { path: "races/past", element: <PastRacesPage /> },
       { path: "races/:raceId", element: <RaceDetailPage /> },
       { path: "admin/oauth-clients", element: <OAuthClientsPage /> },
       { path: "scrape", element: <ScrapeConsolePage /> },

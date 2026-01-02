@@ -73,6 +73,8 @@ def scrape_scheduled(
     race_date: Optional[str] = typer.Option(None, "--race-date", help="YYYY-MM-DD (JST). default: today (JST)"),
     baba_code: list[int] = typer.Option([], "--baba-code", help="指定した開催場のみ（複数可）"),
     race_no: Optional[int] = typer.Option(None, "--race-no", help="指定したレース番号のみ"),
+    snapshot_kind: list[str] = typer.Option([], "--snapshot-kind", help="odds snapshot_kind（複数可）。未指定は final のみ"),
+    prefetch_days: int = typer.Option(7, "--prefetch-days", help="日次で先読みする RaceList の日数（0で無効）"),
     no_api: bool = typer.Option(True, "--no-api", help="(deprecated) no-op"),
 ) -> None:
     race_date = _resolve_race_date(race_date)
@@ -82,7 +84,11 @@ def scrape_scheduled(
         settings=cfg, http=http, sync_store=IngestStore(cfg.ingest_dir)
     )
     runner.run_scheduled(
-        race_date=race_date, baba_codes=baba_code or None, race_no=race_no
+        race_date=race_date,
+        baba_codes=baba_code or None,
+        race_no=race_no,
+        snapshot_kinds=snapshot_kind or None,
+        prefetch_days=prefetch_days,
     )
     typer.echo("ok")
 
