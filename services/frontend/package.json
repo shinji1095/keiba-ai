@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "format": "prettier -w .",
     "test:e2e": "playwright test",
+    "test:e2e:system": "playwright test -c playwright.system.config.ts",
     "test:unit": "vitest run"
   },
   "dependencies": {

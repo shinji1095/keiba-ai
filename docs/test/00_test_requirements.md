@@ -411,3 +411,25 @@
 - テスト分類: システムテスト
 - 対象機能・モジュール: frontend scrape console, api-service scrape routes
 - 実装状況: 既存テストあり（services/frontend/tests/e2e/ui_flows.spec.ts）
+
+### TR-106: PC(api) → Pi(scraper) Control API 疎通（結合）
+- 要件ID: TR-106
+- 要件名: scraper control API への到達性
+- 要件の説明: PC 側（api-service）が Pi 側（scraper-service）の control API に到達でき、`GET /health` と `GET /control/schedule` を取得できること。
+- 根拠となる仕様・要件ID: docs/10_architecture.md#3, docs/scraper/04_scraping_requirements.md#1.3
+- 関連リスクID: RISK-003
+- テスト観点: 正常系／異常系（到達不可時は skip ではなく原因が分かるログ）
+- テスト分類: 結合テスト
+- 対象機能・モジュール: api-service scraper control client, PC→Pi network path
+- 実装状況: 追加テストあり（services/api/tests/test_front_api_scraper_system.py）
+
+### TR-107: frontend → reverse-proxy → api → scraper（システム）
+- 要件ID: TR-107
+- 要件名: Scrape Console で schedule 参照ができる
+- 要件の説明: frontend（ブラウザ）が reverse-proxy 経由で `/scrape` を開き、api-service 経由で scraper-service の schedule（`GET /scrape/schedule`）を参照できること。
+- 根拠となる仕様・要件ID: docs/10_architecture.md#3, docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/schedule
+- 関連リスクID: RISK-003
+- テスト観点: 正常系（表示できる）／異常系（Pi 到達不可時にエラーが表示される）
+- テスト分類: システムテスト
+- 対象機能・モジュール: frontend scrape console, reverse-proxy, api-service scrape control, scraper-service control API
+- 実装状況: 追加テストあり（services/frontend/tests/system/front_api_scraper.spec.ts）

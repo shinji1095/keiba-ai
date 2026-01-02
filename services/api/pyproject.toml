@@ -11,3 +11,6 @@ quote-style = "double"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+  "system: cross-service/system level tests (may require external services such as Pi scraper)",
+]

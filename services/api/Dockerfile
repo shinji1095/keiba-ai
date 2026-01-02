@@ -20,6 +20,7 @@ COPY db /app/db
 COPY cron /app/cron
 RUN chmod +x /app/cron/entrypoint.sh
 COPY tests /app/tests
+COPY pytest.ini /app/pytest.ini
 COPY README.md /app/README.md
 COPY .env.example /app/.env.example
 

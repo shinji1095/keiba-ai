@@ -19,5 +19,8 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: true,
+    // reverse-proxy 経由で Host ヘッダが "reverse-proxy" / PC IP になることがあるため許可する
+    // （Playwright system テストで reverse-proxy を叩くケース）
+    allowedHosts: ["reverse-proxy", "100.103.236.14", "localhost", "127.0.0.1"],
   },
 });

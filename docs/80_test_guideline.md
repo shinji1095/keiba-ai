@@ -83,3 +83,18 @@ docker compose --env-file .env -f docker-compose.pc.yaml exec frontend npm run t
 docker compose --env-file .env -f docker-compose.pc.yaml exec -e PW_BASE_URL=http://127.0.0.1:5173 \
   frontend npm run test:e2e
 ```
+
+### 6.5 frontend→api→scraper（PC→Pi）システムテスト（実環境）
+Pi の scraper-service（control API）へ到達できる環境でのみ実行します。
+
+前提（例）:
+- PC IP: `100.103.236.14`
+- Pi IP: `100.124.136.103`
+- `.env` に `SCRAPER_CONTROL_BASE_URL` を設定（api-service が scraper control API に到達できる必要）
+  - 実ホストPi: `SCRAPER_CONTROL_BASE_URL=http://100.124.136.103:8080`
+  - 1台で全サービス（`docker-compose.pc.yaml` + `docker-compose.pi.yaml`）: `SCRAPER_CONTROL_BASE_URL=http://scraper:8080`
+
+```bash
+docker compose --env-file .env -f docker-compose.pc.yaml exec -e PW_BASE_URL=http://reverse-proxy \
+  frontend npm run test:e2e:system
+```
