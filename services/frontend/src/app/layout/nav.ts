@@ -9,6 +9,7 @@ export const navItems: NavItem[] = [
   { label: "Races", to: "/races" },
   { label: "Today Races", to: "/races/today" },
   { label: "Past Races", to: "/races/past" },
+  { label: "Race Results", to: "/results" },
   { label: "OAuth Clients", to: "/admin/oauth-clients" },
   { label: "Scrape Console", to: "/scrape" },
   { label: "Settings", to: "/settings" },

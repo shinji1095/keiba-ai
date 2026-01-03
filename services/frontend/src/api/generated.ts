@@ -242,6 +242,40 @@ export interface RaceEntryWithRaceListResponse {
   "page_size": number;
 }
 
+export interface RaceEntryResultWithRace {
+  "race_entry_id": number;
+  "race_id": number;
+  "race_key": RaceKey;
+  "start_time"?: string | null;
+  "race_name"?: string | null;
+  "status"?: string | null;
+  "horse_id"?: number | null;
+  "post_position"?: number | null;
+  "horse_number": number;
+  "horse_name": string;
+  "jockey_name"?: string | null;
+  "trainer_name"?: string | null;
+  "handicap_kg"?: number | null;
+  "body_weight"?: number | null;
+  "body_weight_diff"?: number | null;
+  "race_result_id"?: number | null;
+  "finish_position"?: number | null;
+  "time_str"?: string | null;
+  "margin"?: string | null;
+  "last3f"?: number | null;
+  "popularity"?: number | null;
+  "corner1"?: string | null;
+  "corner2"?: string | null;
+  "corner3"?: string | null;
+  "corner4"?: string | null;
+}
+
+export interface RaceEntryResultWithRaceListResponse {
+  "items": RaceEntryResultWithRace[];
+  "page": number;
+  "page_size": number;
+}
+
 export interface RaceChange {
   "race_change_id": number;
   "race_id": number;

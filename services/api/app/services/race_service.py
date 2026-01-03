@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Optional
 
-from sqlalchemy import desc
+from sqlalchemy import and_, desc
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
@@ -28,6 +28,8 @@ from app.schemas.race import (
     RaceEntryListResponse,
     RaceEntryWithRace,
     RaceEntryWithRaceListResponse,
+    RaceEntryResultWithRace,
+    RaceEntryResultWithRaceListResponse,
     RaceKey,
     RaceListResponse,
     RaceResult,
@@ -191,6 +193,72 @@ class RaceService:
                 )
             )
         return RaceEntryWithRaceListResponse(items=items, page=page, page_size=page_size)
+
+    def list_race_entry_results(
+        self,
+        *,
+        race_date: dt.date,
+        baba_code: Optional[int],
+        page: int,
+        page_size: int,
+    ) -> RaceEntryResultWithRaceListResponse:
+        q = (
+            self.db.query(RaceEntryModel, RaceModel, RaceResultModel)
+            .join(RaceModel, RaceEntryModel.race_id == RaceModel.race_id)
+            .outerjoin(
+                RaceResultModel,
+                and_(
+                    RaceResultModel.race_id == RaceEntryModel.race_id,
+                    RaceResultModel.horse_number == RaceEntryModel.horse_number,
+                ),
+            )
+            .filter(RaceModel.race_date == race_date)
+        )
+        if baba_code is not None:
+            q = q.filter(RaceModel.baba_code == baba_code)
+
+        q = q.order_by(
+            RaceModel.baba_code.asc(),
+            RaceModel.race_no.asc(),
+            RaceEntryModel.horse_number.asc(),
+        )
+        rows = q.offset((page - 1) * page_size).limit(page_size).all()
+
+        items: list[RaceEntryResultWithRace] = []
+        for e, r, res in rows:
+            rk = RaceKey(
+                race_date=r.race_date, baba_code=r.baba_code, race_no=r.race_no
+            )
+            items.append(
+                RaceEntryResultWithRace(
+                    race_entry_id=e.race_entry_id,
+                    race_id=e.race_id,
+                    race_key=rk,
+                    start_time=r.start_time,
+                    race_name=r.race_name,
+                    status=r.status,
+                    horse_id=e.horse_id,
+                    post_position=e.post_position,
+                    horse_number=e.horse_number,
+                    horse_name=e.horse_name,
+                    jockey_name=e.jockey_name,
+                    trainer_name=e.trainer_name,
+                    handicap_kg=e.handicap_kg,
+                    body_weight=e.body_weight,
+                    body_weight_diff=e.body_weight_diff,
+                    race_result_id=res.race_result_id if res else None,
+                    finish_position=res.finish_position if res else None,
+                    time_str=res.time_str if res else None,
+                    margin=res.margin if res else None,
+                    last3f=res.last3f if res else None,
+                    popularity=res.popularity if res else None,
+                    corner1=res.corner1 if res else None,
+                    corner2=res.corner2 if res else None,
+                    corner3=res.corner3 if res else None,
+                    corner4=res.corner4 if res else None,
+                )
+            )
+        return RaceEntryResultWithRaceListResponse(items=items, page=page, page_size=page_size)
 
     def get_odds(
         self,

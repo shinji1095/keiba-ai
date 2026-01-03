@@ -471,6 +471,53 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /race-entry-results:
+    get:
+      tags: [races]
+      summary: List race entries with results by race_date/baba_code
+      description: |
+        指定日の出走表（race_entries）を一覧し、可能であれば確定成績（race_results）も結合して返す。
+        過去レースの一覧（馬体重/騎手/成績を1画面で確認）向け。
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: race_date
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: baba_code
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: page_size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RaceEntryResultWithRaceListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /races/{race_id}/odds:
     get:
       tags: [races]
@@ -1478,6 +1525,108 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RaceEntryWithRace"
+        page:
+          type: integer
+        page_size:
+          type: integer
+
+    RaceEntryResultWithRace:
+      type: object
+      required: [race_entry_id, race_id, race_key, horse_number, horse_name]
+      properties:
+        race_entry_id:
+          type: integer
+          format: int64
+        race_id:
+          type: integer
+          format: int64
+        race_key:
+          $ref: "#/components/schemas/RaceKey"
+        start_time:
+          type: string
+          format: time
+          nullable: true
+        race_name:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        horse_id:
+          type: integer
+          format: int64
+          nullable: true
+        post_position:
+          type: integer
+          format: int32
+          nullable: true
+        horse_number:
+          type: integer
+          format: int32
+        horse_name:
+          type: string
+        jockey_name:
+          type: string
+          nullable: true
+        trainer_name:
+          type: string
+          nullable: true
+        handicap_kg:
+          type: number
+          format: float
+          nullable: true
+        body_weight:
+          type: integer
+          format: int32
+          nullable: true
+        body_weight_diff:
+          type: integer
+          format: int32
+          nullable: true
+
+        # result (may be null if not scraped/ingested)
+        race_result_id:
+          type: integer
+          format: int64
+          nullable: true
+        finish_position:
+          type: integer
+          format: int32
+          nullable: true
+        time_str:
+          type: string
+          nullable: true
+        margin:
+          type: string
+          nullable: true
+        last3f:
+          type: number
+          format: float
+          nullable: true
+        popularity:
+          type: integer
+          nullable: true
+        corner1:
+          type: string
+          nullable: true
+        corner2:
+          type: string
+          nullable: true
+        corner3:
+          type: string
+          nullable: true
+        corner4:
+          type: string
+          nullable: true
+
+    RaceEntryResultWithRaceListResponse:
+      type: object
+      required: [items, page, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RaceEntryResultWithRace"
         page:
           type: integer
         page_size:

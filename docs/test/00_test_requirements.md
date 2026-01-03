@@ -434,6 +434,17 @@
 - 対象機能・モジュール: frontend scrape console, reverse-proxy, api-service scrape control, scraper-service control API
 - 実装状況: 追加テストあり（services/frontend/tests/system/front_api_scraper.spec.ts）
 
+### TR-109: frontend → reverse-proxy → api → scraper（手動スクレイプ投入のシステム）
+- 要件ID: TR-109
+- 要件名: Manual Scrape Task が受理され task_id が表示される
+- 要件の説明: frontend（ブラウザ）が reverse-proxy 経由で `/scrape` を開き、`POST /scrape/manual-tasks` を実行して `task_id` を表示できること（baba_code=32, race_date=2025/12/28, race_no=1）。
+- 根拠となる仕様・要件ID: docs/21_openapi.yaml:/scrape/manual-tasks, `https://www.keiba.go.jp/KeibaWeb/TodayRaceInfo/RaceList?k_raceDate=2025%2f12%2f28&k_babaCode=32`
+- 関連リスクID: RISK-003
+- テスト観点: 正常系（受理される）／異常系（Pi busy=409 は環境都合として skip 可能）
+- テスト分類: システムテスト
+- 対象機能・モジュール: frontend manual task UI, reverse-proxy, api-service scrape routes, scraper-service control API
+- 実装状況: 追加テストあり（services/frontend/tests/system/front_api_scraper.spec.ts）
+
 ### TR-108: scraper live scrape（babaCode=32, 2025/12/28）
 - 要件ID: TR-108
 - 要件名: 既知日のRaceList/DebaTableが取得できる

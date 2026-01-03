@@ -220,7 +220,7 @@ export function RaceDetailPage(): React.JSX.Element {
             </div>
 
             <div className="small" style={{ marginTop: 10 }}>
-              /races/{{race_id}}/odds?snapshot_kind=...&bet_type=...
+              /races/{"{race_id}"}/odds?snapshot_kind=...&bet_type=...
             </div>
           </div>
 
@@ -289,11 +289,14 @@ export function RaceDetailPage(): React.JSX.Element {
                   <tr>
                     <th>finish_position</th>
                     <th>horse_no</th>
-                    <th>frame_no</th>
                     <th>time</th>
                     <th>margin</th>
-                    <th>pop</th>
-                    <th>odds</th>
+                    <th>last3f</th>
+                    <th>popularity</th>
+                    <th>corner1</th>
+                    <th>corner2</th>
+                    <th>corner3</th>
+                    <th>corner4</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -301,11 +304,14 @@ export function RaceDetailPage(): React.JSX.Element {
                     <tr key={r.race_result_id}>
                       <td>{r.finish_position ?? ""}</td>
                       <td>{r.horse_number ?? ""}</td>
-                      <td>{r.frame_number ?? ""}</td>
                       <td>{r.time_str ?? ""}</td>
-                      <td>{r.margin_str ?? ""}</td>
+                      <td>{r.margin ?? ""}</td>
+                      <td>{r.last3f ?? ""}</td>
                       <td>{r.popularity ?? ""}</td>
-                      <td>{r.odds ?? ""}</td>
+                      <td>{r.corner1 ?? ""}</td>
+                      <td>{r.corner2 ?? ""}</td>
+                      <td>{r.corner3 ?? ""}</td>
+                      <td>{r.corner4 ?? ""}</td>
                     </tr>
                   ))}
                 </tbody>

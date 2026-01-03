@@ -11,6 +11,7 @@ from app.schemas.race import (
     Race,
     RaceEntryListResponse,
     RaceEntryWithRaceListResponse,
+    RaceEntryResultWithRaceListResponse,
     RaceListResponse,
     RaceResultListResponse,
 )
@@ -66,6 +67,24 @@ def list_race_entries(
 ) -> RaceEntryWithRaceListResponse:
     svc = RaceService(db)
     return svc.list_race_entries(
+        race_date=race_date,
+        baba_code=baba_code,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/race-entry-results", response_model=RaceEntryResultWithRaceListResponse)
+def list_race_entry_results(
+    race_date: dt.date = Query(...),
+    baba_code: int | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=200, ge=1, le=500),
+    db=Depends(get_db),
+    _=Depends(get_current_user),
+) -> RaceEntryResultWithRaceListResponse:
+    svc = RaceService(db)
+    return svc.list_race_entry_results(
         race_date=race_date,
         baba_code=baba_code,
         page=page,

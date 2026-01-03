@@ -45,7 +45,7 @@ function formatDate(value?: string | null): string {
 }
 
 function normalizeSnapshotKinds(input?: string[] | null): string[] {
-  const allowed = new Set(SNAPSHOT_KIND_OPTIONS.map((o) => o.value));
+  const allowed = new Set<string>(SNAPSHOT_KIND_OPTIONS.map((o) => o.value));
   const selected = new Set((input ?? []).filter((k) => allowed.has(k)));
   if (selected.size === 0) selected.add("final");
   return SNAPSHOT_KIND_OPTIONS.map((o) => o.value).filter((k) => selected.has(k));

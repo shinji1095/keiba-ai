@@ -82,6 +82,43 @@ class RaceEntryWithRaceListResponse(BaseModel):
     page_size: int
 
 
+class RaceEntryResultWithRace(BaseModel):
+    race_entry_id: int
+    race_id: int
+    race_key: RaceKey
+    start_time: Optional[dt.time] = None
+    race_name: Optional[str] = None
+    status: Optional[str] = None
+
+    horse_id: Optional[int] = None
+    post_position: Optional[int] = None
+    horse_number: int
+    horse_name: str
+    jockey_name: Optional[str] = None
+    trainer_name: Optional[str] = None
+    handicap_kg: Optional[float] = None
+    body_weight: Optional[int] = None
+    body_weight_diff: Optional[int] = None
+
+    # Result (may be missing if not scraped/ingested yet)
+    race_result_id: Optional[int] = None
+    finish_position: Optional[int] = None
+    time_str: Optional[str] = None
+    margin: Optional[str] = None
+    last3f: Optional[float] = None
+    popularity: Optional[int] = None
+    corner1: Optional[str] = None
+    corner2: Optional[str] = None
+    corner3: Optional[str] = None
+    corner4: Optional[str] = None
+
+
+class RaceEntryResultWithRaceListResponse(BaseModel):
+    items: list[RaceEntryResultWithRace]
+    page: int
+    page_size: int
+
+
 class RaceResult(BaseModel):
     race_result_id: int
     race_id: int

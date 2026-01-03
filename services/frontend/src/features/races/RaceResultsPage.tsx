@@ -13,7 +13,7 @@ function yesterdayIsoDate(): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function PastRacesPage(): React.JSX.Element {
+export function RaceResultsPage(): React.JSX.Element {
   const ctx = useApiCtx();
   const [raceDate, setRaceDate] = React.useState(yesterdayIsoDate());
   const [babaCode, setBabaCode] = React.useState<string>("");
@@ -41,8 +41,8 @@ export function PastRacesPage(): React.JSX.Element {
 
   return (
     <div>
-      <h1 className="pageTitle">Past Races</h1>
-      <p className="pageDesc">過去日のレース（出走表＋成績）を一覧します（ページング対応）。</p>
+      <h1 className="pageTitle">Race Results</h1>
+      <p className="pageDesc">競走成績（出走表＋結果）を一覧します（ページング対応）。</p>
 
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="row">
@@ -104,7 +104,7 @@ export function PastRacesPage(): React.JSX.Element {
       {qVenues.isLoading ? <div className="small">Loading venues...</div> : null}
       {qVenues.error ? <ErrorBox error={qVenues.error} /> : null}
 
-      {qEntryResults.isLoading ? <Loading label="Loading race entry results..." /> : null}
+      {qEntryResults.isLoading ? <Loading label="Loading results..." /> : null}
       {qEntryResults.error ? <ErrorBox error={qEntryResults.error} /> : null}
 
       {qEntryResults.data ? (
@@ -126,9 +126,9 @@ export function PastRacesPage(): React.JSX.Element {
           <table className="table">
             <thead>
               <tr>
-                <th>baba_code</th>
-                <th>race_no</th>
-                <th>start_time</th>
+                <th>baba</th>
+                <th>race</th>
+                <th>start</th>
                 <th>race_id</th>
                 <th>finish</th>
                 <th>horse_no</th>
@@ -137,6 +137,8 @@ export function PastRacesPage(): React.JSX.Element {
                 <th>handicap_kg</th>
                 <th>body_weight</th>
                 <th>time</th>
+                <th>margin</th>
+                <th>last3f</th>
                 <th>pop</th>
               </tr>
             </thead>
@@ -159,6 +161,8 @@ export function PastRacesPage(): React.JSX.Element {
                     {e.body_weight_diff != null ? ` (${e.body_weight_diff >= 0 ? "+" : ""}${e.body_weight_diff})` : ""}
                   </td>
                   <td>{e.time_str ?? ""}</td>
+                  <td>{e.margin ?? ""}</td>
+                  <td>{e.last3f ?? ""}</td>
                   <td>{e.popularity ?? ""}</td>
                 </tr>
               ))}

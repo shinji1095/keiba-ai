@@ -132,6 +132,10 @@ def test_races_and_related_endpoints(client) -> None:
                     "horse_number": 1,
                     "horse_name": "Sample Horse",
                     "post_position": 1,
+                    "jockey_name": "Sample Jockey",
+                    "handicap_kg": 54.0,
+                    "body_weight": 480,
+                    "body_weight_diff": 2,
                 }
             ]
         },
@@ -201,6 +205,24 @@ def test_races_and_related_endpoints(client) -> None:
     results = client.get(f"/races/{race_id}/results", headers=user_headers)
     assert results.status_code == 200, results.text
     assert len(results.json()["items"]) == 1
+
+    entry_results = client.get(
+        "/race-entry-results",
+        headers=user_headers,
+        params={"race_date": "2025-12-28", "baba_code": 5, "page": 1, "page_size": 50},
+    )
+    assert entry_results.status_code == 200, entry_results.text
+    entry_results_payload = entry_results.json()
+    assert entry_results_payload["page"] == 1
+    assert entry_results_payload["page_size"] == 50
+    assert len(entry_results_payload["items"]) == 1
+    item = entry_results_payload["items"][0]
+    assert item["race_key"]["race_no"] == 7
+    assert item["horse_number"] == 1
+    assert item["horse_name"] == "Sample Horse"
+    assert item["jockey_name"] == "Sample Jockey"
+    assert item["body_weight"] == 480
+    assert item["finish_position"] == 1
 
     payouts = client.get(f"/races/{race_id}/payouts", headers=user_headers)
     assert payouts.status_code == 200, payouts.text

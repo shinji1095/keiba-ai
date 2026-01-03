@@ -1,6 +1,9 @@
 import os
+import datetime as dt
 import pytest
 
+from app.core.errors import AppError
+from app.schemas.scrape import ManualScrapeTaskRequest
 from app.services.scrape_control_service import ScrapeControlService
 from app.services.scraper_control_client import ScraperControlClient
 
@@ -19,6 +22,13 @@ def _skip_or_fail_on_connection_error(exc: Exception) -> None:
     if require:
         raise AssertionError("failed to reach Pi scraper control API") from exc
     pytest.skip(f"Pi scraper control API is not reachable: {exc}")
+
+
+def _skip_or_fail_on_busy(exc: Exception) -> None:
+    require = os.getenv("REQUIRE_PI_SCRAPER", "").strip() in ("1", "true", "yes")
+    if require:
+        raise AssertionError("Pi scraper is busy but required to accept manual tasks") from exc
+    pytest.skip(f"Pi scraper is busy (skipping): {exc}")
 
 
 @pytest.mark.system
@@ -46,4 +56,31 @@ def test_pi_scraper_control_schedule_can_be_fetched() -> None:
     # ScrapeScheduleStatus.baba_codes may be None depending on response
     assert status.updated_at is not None
 
+
+@pytest.mark.system
+def test_pi_scraper_control_manual_task_can_be_requested() -> None:
+    _require_scraper_base_url()
+    svc = ScrapeControlService()
+    try:
+        resp = svc.request_manual_task(
+            ManualScrapeTaskRequest(
+                baba_code=32,
+                race_date=dt.date(2025, 12, 28),
+                race_no=1,
+                reason="system-test",
+            )
+        )
+    except AppError as exc:
+        if exc.status_code == 409:
+            _skip_or_fail_on_busy(exc)
+            return
+        _skip_or_fail_on_connection_error(exc)
+        return
+    except Exception as exc:  # noqa: BLE001 - explicit skip/fail decision
+        _skip_or_fail_on_connection_error(exc)
+        return
+
+    assert isinstance(resp.task_id, str)
+    assert resp.task_id
+    assert resp.status == "accepted"
 
