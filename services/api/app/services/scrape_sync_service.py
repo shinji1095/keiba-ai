@@ -29,6 +29,7 @@ from app.services.scraper_control_client import ScraperControlClient
 
 PAGE_RACE_LIST = "RaceList"
 PAGE_DEBA_TABLE = "DebaTable"
+PAGE_RACE_CARDS = "RaceCards"
 PAGE_RACE_MARK_TABLE = "RaceMarkTable"
 PAGE_REFUND_MONEY_LIST = "RefundMoneyList"
 
@@ -69,6 +70,7 @@ def _build_scope_key(
 
     if (
         page_type == PAGE_DEBA_TABLE
+        or page_type == PAGE_RACE_CARDS
         or page_type == PAGE_RACE_MARK_TABLE
         or page_type in set(ODDS_PAGE_BY_BET_TYPE.values())
     ):
@@ -130,6 +132,23 @@ def _export_items(client: ScraperControlClient, path: str) -> list[dict]:
     return [item for item in items if isinstance(item, dict)]
 
 
+def _export_items_optional_404(
+    client: ScraperControlClient, path: str
+) -> list[dict]:
+    """Backward-compatible export helper.
+
+    Older scraper versions may not implement newly added export endpoints.
+    We treat 404 as 'no data' and continue syncing other resources.
+    """
+    try:
+        return _export_items(client, path)
+    except AppError as exc:
+        status = (exc.details or {}).get("status")
+        if exc.code == "bad_gateway" and status == 404:
+            return []
+        raise
+
+
 def _should_sync(state: SyncState, key: str, fingerprint: str, diff_enabled: bool) -> bool:
     if not diff_enabled:
         return True
@@ -165,6 +184,10 @@ class ScrapeSyncService:
             races_items = _export_items(client, "/control/export/races")
             changes_items = _export_items(client, "/control/export/race-changes")
             entries_items = _export_items(client, "/control/export/race-entries")
+            # Optional for backward compatibility (older scraper may not export race-cards).
+            race_cards_items = _export_items_optional_404(
+                client, "/control/export/race-cards"
+            )
             results_items = _export_items(client, "/control/export/race-results")
             payouts_items = _export_items(client, "/control/export/payouts")
             odds_items = _export_items(client, "/control/export/odds-snapshots")
@@ -252,6 +275,34 @@ class ScrapeSyncService:
                         ],
                     )
                     scrape_service.upsert_entries(req)
+                    state.items[diff_key] = SyncEntry(
+                        fingerprint=fingerprint, updated_at=now
+                    )
+                    last_fingerprint = fingerprint
+
+            # race_cards -> spec-aligned schema
+            from app.services.spec_race_card_ingest_service import SpecRaceCardIngestService
+
+            cards_by_race: dict[tuple[str, int, int], list[dict]] = {}
+            for item in race_cards_items:
+                key = _race_key_tuple(item)
+                if key is None:
+                    continue
+                cards_by_race.setdefault(key, []).append(item)
+
+            spec_ingest = SpecRaceCardIngestService(self.db)
+            for (race_date, baba_code, race_no), items in cards_by_race.items():
+                # One card per capture; keep deterministic order by captured_at then ingest.
+                items.sort(key=lambda x: x.get("captured_at") or "")
+                diff_key = _diff_key(
+                    page_type=PAGE_RACE_CARDS,
+                    race_date=race_date,
+                    baba_code=baba_code,
+                    race_no=race_no,
+                )
+                fingerprint = _fingerprint_payload(items)
+                if _should_sync(state, diff_key, fingerprint, self.diff_enabled):
+                    spec_ingest.upsert_race_cards(items)
                     state.items[diff_key] = SyncEntry(
                         fingerprint=fingerprint, updated_at=now
                     )

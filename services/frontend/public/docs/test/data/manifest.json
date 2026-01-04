@@ -1,0 +1,103 @@
+{
+  "races": [
+    {
+      "race_id": "27_2026-01-02_01R",
+      "race_date": "2026-01-02",
+      "baba_code": 27,
+      "race_no": 1,
+      "venue_name": "園田",
+      "files": [
+        {
+          "name": "01_debatable_normalized.md",
+          "title": "出馬表（正規化）",
+          "description": "DebaTable から抽出した正規化データ（race/persons/horses/perf/best_time/last5）"
+        },
+        {
+          "name": "02_odds_tanfuku.md",
+          "title": "単勝・複勝オッズ（最終）",
+          "description": "OddsTanFuku の正規化結果"
+        },
+        {
+          "name": "03_odds_wakuren.md",
+          "title": "枠連オッズ（最終）",
+          "description": "枠連オッズの抽出結果"
+        },
+        {
+          "name": "04_odds_umaren_fuku.md",
+          "title": "馬連・馬単オッズ（最終）",
+          "description": "馬連・馬単オッズの抽出結果"
+        },
+        {
+          "name": "05_odds_umatan.md",
+          "title": "馬単オッズ（最終）",
+          "description": "馬単オッズの抽出結果"
+        },
+        {
+          "name": "06_odds_wide.md",
+          "title": "ワイドオッズ（最終）",
+          "description": "ワイドオッズの抽出結果"
+        },
+        {
+          "name": "07_race_results.md",
+          "title": "競走成績（RaceMarkTable）",
+          "description": "RaceMarkTable の成績表（着順/タイム/上り3F/通過順など）"
+        },
+        {
+          "name": "08_payouts.md",
+          "title": "払戻金（RaceMarkTable）",
+          "description": "RaceMarkTable の払戻金（単勝/複勝/枠連複/馬連複/馬連単/ワイド/三連複/三連単）"
+        },
+        {
+          "name": "99_validation.md",
+          "title": "検証レポート",
+          "description": "フィクスチャ入力と抽出結果のサマリ"
+        }
+      ]
+    },
+    {
+      "race_id": "27_2026-01-02_02R",
+      "race_date": "2026-01-02",
+      "baba_code": 27,
+      "race_no": 2,
+      "venue_name": "園田",
+      "files": [
+        {
+          "name": "01_debatable_normalized.md",
+          "title": "出馬表（正規化）",
+          "description": "DebaTable から抽出した正規化データ"
+        },
+        {
+          "name": "02_odds_tanfuku.md",
+          "title": "単勝・複勝オッズ（最終）",
+          "description": "OddsTanFuku の正規化結果"
+        },
+        {
+          "name": "03_odds_wakuren.md",
+          "title": "枠連オッズ（最終）",
+          "description": "枠連オッズの抽出結果"
+        },
+        {
+          "name": "04_odds_umaren_fuku.md",
+          "title": "馬連・馬単オッズ（最終）",
+          "description": "馬連・馬単オッズの抽出結果"
+        },
+        {
+          "name": "05_odds_umatan.md",
+          "title": "馬単オッズ（最終）",
+          "description": "馬単オッズの抽出結果"
+        },
+        {
+          "name": "06_odds_wide.md",
+          "title": "ワイドオッズ（最終）",
+          "description": "ワイドオッズの抽出結果"
+        },
+        {
+          "name": "99_validation.md",
+          "title": "検証レポート",
+          "description": "フィクスチャ入力と抽出結果のサマリ"
+        }
+      ]
+    }
+  ]
+}
+

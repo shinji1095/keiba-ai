@@ -15,6 +15,7 @@ FE-SCREEN-008,"フロント: Race詳細（払戻）","/races/:raceId で GET /ra
 FE-SCREEN-009,"フロント: Today Races（出走表一覧）","/races/today で当日 race_entries をページング表示（斤量/馬体重/ジョッキー等）","実装済み"
 FE-SCREEN-010,"フロント: Past Races（出走表＋成績一覧）","/races/past で任意日 race_entries + race_results をページング表示（斤量/馬体重/ジョッキー/着順等）","実装済み"
 FE-SCREEN-011,"フロント: Race Results（成績一覧）","/results で任意日の競走成績（出走表＋結果）をページング表示する","実装済み"
+FE-SCREEN-012,"フロント: Docs Test Data Viewer","/test-data で docs/test/data（正規化結果Markdown/検証レポート）を一覧/詳細表示する","未"
 FE-ADMIN-001,"フロント: OAuth client管理画面","/admin/oauth-clients で client 作成/ローテーション/revoke を実行できる","実装済み"
 FE-ADMIN-002,"フロント: service token発行（client_credentials）","POST /auth/token を grant_type=client_credentials + client_id/client_secret で呼び出し token を取得する","実装済み"
 FE-SCRAPE-001,"フロント: Scrape Console（/scrape/* 投入）","/scrape で /scrape/* 系のリクエストボディを手動編集して投入し、結果表示する","実装済み"

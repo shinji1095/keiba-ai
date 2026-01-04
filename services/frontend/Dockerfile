@@ -6,6 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
 COPY . .
+# docs/test/data を public/ 配下にコピー済み（ビルド時に含まれる）
 
 EXPOSE 5173
 

@@ -432,7 +432,17 @@ class ScrapeRunner:
                     is_final=is_final,
                 )
 
-                if _should_fetch_race_mark(start_dt=start_dt, now=now):
+                # NOTE (manual scrape):
+                # - The scheduler window (10..60 min after post time) is useful for live operation,
+                #   but for manual scrapes of past races it causes permanent "results missing".
+                # - For run_once, fetch RaceMarkTable whenever it's plausibly available:
+                #   10 minutes after post time with NO upper bound.
+                should_fetch_race_mark_manual = False
+                if start_dt is not None:
+                    delta_min = (now - start_dt).total_seconds() / 60.0
+                    should_fetch_race_mark_manual = delta_min >= 10
+
+                if should_fetch_race_mark_manual:
                     html_result, _, _ = self._fetch(
                         C.PAGE_RACE_MARK_TABLE,
                         race_date=race_date,
@@ -451,25 +461,27 @@ class ScrapeRunner:
                         [r.model_dump(mode="json") for r in results],
                     )
 
-            if race_no is None:
-                if _should_fetch_refund(last_start_dt=last_start_dt, now=now):
-                    # payouts (for venues with completed races)
-                    html_refund, _, _ = self._fetch(
-                        C.PAGE_REFUND_MONEY_LIST,
-                        race_date=race_date,
-                        baba_code=baba_code,
-                        race_no=None,
-                        odds_flg=None,
-                    )
-                    payouts = parse_refund_money_list(
-                        html_refund,
-                        race_date=race_date,
-                        baba_code=baba_code,
-                    )
-                    self._append_sync(
-                        "payouts",
-                        [p.model_dump(mode="json") for p in payouts],
-                    )
+            # payouts (RefundMoneyList)
+            # NOTE:
+            # - Previously, run_once with race_no specified never fetched payouts.
+            # - For manual scrapes, fetching payouts for the venue/day is cheap and makes the UI complete.
+            if _should_fetch_refund(last_start_dt=last_start_dt, now=now):
+                html_refund, _, _ = self._fetch(
+                    C.PAGE_REFUND_MONEY_LIST,
+                    race_date=race_date,
+                    baba_code=baba_code,
+                    race_no=None,
+                    odds_flg=None,
+                )
+                payouts = parse_refund_money_list(
+                    html_refund,
+                    race_date=race_date,
+                    baba_code=baba_code,
+                )
+                self._append_sync(
+                    "payouts",
+                    [p.model_dump(mode="json") for p in payouts],
+                )
 
     def run_scheduled(
         self,

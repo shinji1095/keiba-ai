@@ -401,6 +401,31 @@
 - 対象機能・モジュール: frontend races
 - 実装状況: 既存テストあり（services/frontend/tests/e2e/ui_flows.spec.ts）
 
+### TR-112: Race Detail 画面の全タブ表示（UI/E2E）
+- 要件ID: TR-112
+- 要件名: Race Detail の summary/entries/odds/results/payouts が表示できる
+- 要件の説明: `/races/:raceId` で summary/entries/odds/results/payouts の各タブを切替でき、odds は bet_type（単勝/複勝/枠連/枠単/馬連/馬単/ワイド）を切替して表示できること。results/payouts は RaceMarkTable 由来のデータ（成績・払戻）を表示できること。
+- 根拠となる仕様・要件ID: spec/02_url_patterns.md, spec/03_url_to_data_mapping.md, services/frontend/src/features/races/RaceDetailPage.tsx
+- 関連リスクID: RISK-001
+- テスト観点: 正常系（全タブ表示・件数表示）／異常系（該当データなし時に NotFound/エラー表示）
+- テスト分類: システムテスト（Playwright E2E）
+- 対象機能・モジュール: frontend Race Detail UI, api-service races/odds/results/payouts
+- 実装状況: 未対応（追加予定）
+
+### TR-113: docs/test/data と UI 表示の一致（園田 2026-01-02 1R）
+- 要件ID: TR-113
+- 要件名: 単勝/複勝/results/payouts の表示が基準データと一致する
+- 要件の説明: 園田 2026-01-02 1R の基準データ（`docs/test/data/27_2026-01-02_01R`）と比較し、Race Detail の以下が一致すること。
+  - odds: 単勝（win_odds）と複勝（place_odds_min/place_odds_max）
+  - results: 競走成績（RaceMarkTable 由来）
+  - payouts: 払戻金（RaceMarkTable 由来）
+- 根拠となる仕様・要件ID: spec/02_url_patterns.md, spec/03_url_to_data_mapping.md
+- 関連リスクID: RISK-001
+- テスト観点: 正常系（基準データ一致）
+- テスト分類: システムテスト（Playwright E2E / モック）
+- 対象機能・モジュール: frontend Race Detail UI, docs/test/data fixtures
+- 実装状況: 追加テストあり（services/frontend/tests/e2e/race_detail_matches_docs_data.spec.ts）
+
 ### TR-104: Admin OAuth Clients 画面（UI/E2E）
 - 要件ID: TR-104
 - 要件名: OAuth client 管理
@@ -455,6 +480,28 @@
 - テスト分類: システムテスト
 - 対象機能・モジュール: frontend manual task UI, reverse-proxy, api-service scrape routes, scraper-service control API
 - 実装状況: 追加テストあり（services/frontend/tests/system/front_api_scraper.spec.ts）
+
+### TR-111: 手動スクレイプ → 同期 → 件数検証 → UI表示（システム）
+- 要件ID: TR-111
+- 要件名: 1レース分の出馬表＋主要オッズが欠損なく取得・反映される
+- 要件の説明: system 環境で frontend から手動スクレイプ（baba_code/race_date/race_no 指定）を実行し、その後 api-service の同期（Pi→PC pull）を実行して、API で件数（entries/odds）が期待値どおりであることを検証し、最後に UI（Race Detail）で表示できること。
+- 根拠となる仕様・要件ID: spec/02_url_patterns.md, spec/03_url_to_data_mapping.md, docs/10_architecture.md#4
+- 関連リスクID: RISK-001, RISK-003
+- テスト観点: 正常系（欠損なく反映される）／異常系（外部サイト到達不可・Pi busy は環境都合として skip 可能）
+- テスト分類: システムテスト（Playwright）
+- 対象機能・モジュール: frontend scrape console + races UI, api-service sync runner, scraper-service control scrape + export
+- 実装状況: 未対応（追加予定）
+
+### TR-110: Docs Test Data Viewer（UI/E2E）
+- 要件ID: TR-110
+- 要件名: docs/test/data の閲覧（一覧→詳細）
+- 要件の説明: frontend が `/test-data` で `docs/test/data` の Markdown（正規化結果・検証レポート）を **一覧表示**し、項目クリックで **詳細（Markdownレンダリング）** を表示できること。
+- 根拠となる仕様・要件ID: docs/11_frontend_screen_list.md, docs/12_frontend_screen_transitions.md, docs/02_feature_list.csv:FE-SCREEN-012
+- 関連リスクID: RISK-001（データ整合性の目視検証・デバッグ用途）
+- テスト観点: 正常系（表示できる）／異常系（manifest 不在/読み込み失敗時にエラー表示）
+- テスト分類: システムテスト（UI/E2E） + 単体テスト
+- 対象機能・モジュール: frontend test data viewer, static assets（manifest + md）
+- 実装状況: 未対応（追加予定）
 
 ### TR-108: scraper live scrape（babaCode=32, 2025/12/28）
 - 要件ID: TR-108

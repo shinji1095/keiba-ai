@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import admin, auth, health, races, scrape, venues
+from app.api.routes import spec_race_cards
 from app.core.config import settings
 from app.core.errors import register_exception_handlers
 from app.db.session import init_db
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
     app.include_router(venues.router, tags=["venues"])
     app.include_router(races.router, tags=["races"])
     app.include_router(scrape.router, tags=["scrape"])
+    app.include_router(spec_race_cards.router, tags=["spec"])
 
     @app.on_event("startup")
     def _startup() -> None:

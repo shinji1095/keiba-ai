@@ -34,4 +34,6 @@ export default defineConfig({
         }
       : undefined,
   },
+  // public/ 配下を静的ファイルとして扱う（docs/test/data をコピー）
+  publicDir: "public",
 });
