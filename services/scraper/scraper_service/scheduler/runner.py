@@ -14,6 +14,7 @@ from scraper_service.keiba.models import RaceKey
 from scraper_service.keiba.soft_errors import SOFT_NO_ODDS_PATTERNS, SOFT_TEMP_UNAVAILABLE_PATTERNS
 from scraper_service.keiba.urls import ODDS_FLG_FIXED, build_url
 from scraper_service.parsers.deba_table import parse_deba_table
+from scraper_service.parsers.deba_table_normalized import parse_deba_table_normalized
 from scraper_service.parsers.odds import (
     parse_generic_odds_table,
     parse_odds_tanfuku,
@@ -392,7 +393,7 @@ class ScrapeRunner:
                 start_dt = _race_start_dt(race_date, r.start_time)
                 if start_dt and (last_start_dt is None or start_dt > last_start_dt):
                     last_start_dt = start_dt
-                html_deba, _, _ = self._fetch(
+                html_deba, final_url, _ = self._fetch(
                     C.PAGE_DEBA_TABLE,
                     race_date=race_date,
                     baba_code=baba_code,
@@ -409,6 +410,16 @@ class ScrapeRunner:
                     "race_entries",
                     [e.model_dump(mode="json") for e in entries],
                 )
+                card = parse_deba_table_normalized(
+                    html_deba,
+                    race_date=race_date,
+                    baba_code=baba_code,
+                    race_no=rn,
+                )
+                card_payload = card.model_dump(mode="json")
+                card_payload["captured_at"] = iso_now_jst()
+                card_payload["source_url"] = final_url
+                self._append_sync("race_cards", [card_payload])
 
                 snapshot_kind, is_final = _select_manual_snapshot_kind(
                     start_dt=start_dt, now=now
@@ -538,7 +549,7 @@ class ScrapeRunner:
                     last_start_dt = start_dt
 
                 if _should_fetch_deba(start_dt=start_dt, now=now):
-                    html_deba, _, _ = self._fetch(
+                    html_deba, final_url, _ = self._fetch(
                         C.PAGE_DEBA_TABLE,
                         race_date=race_date,
                         baba_code=baba_code,
@@ -555,6 +566,16 @@ class ScrapeRunner:
                         "race_entries",
                         [e.model_dump(mode="json") for e in entries],
                     )
+                    card = parse_deba_table_normalized(
+                        html_deba,
+                        race_date=race_date,
+                        baba_code=baba_code,
+                        race_no=rn,
+                    )
+                    card_payload = card.model_dump(mode="json")
+                    card_payload["captured_at"] = iso_now_jst()
+                    card_payload["source_url"] = final_url
+                    self._append_sync("race_cards", [card_payload])
 
                 for snapshot_kind, is_final in _scheduled_due_kinds(
                     start_dt=start_dt, now=now, snapshot_kinds=scheduled_kinds

@@ -142,6 +142,7 @@ api-service は **差分評価の判定主体**として、Pi から pull した
 - api-service ⇔ scraper-service 間は **認証不要**（将来のアップデートで対応予定）
 - 同期ペイロードは `/scrape/*` の schema を共通利用する（scraper が提供し api が取り込む）
 - 取得元: scraper-service の control API `/control/export/*`（`items` に `/scrape/*` 相当の payload を含める）
+  - 追加: `race_cards`（`POST /control/export/race-cards`）は DebaTable の詳細正規化を返す（本リリースの api-service 取り込み対象外）
 - `odds-snapshots`（`/scrape/odds-snapshots` スキーマ）  
   - 目的: 代表時点のオッズ集合を同期（`odds_snapshots` + `odds_items` を Upsert）
   - 入力の最小要件:

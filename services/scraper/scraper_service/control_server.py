@@ -119,6 +119,7 @@ def _parse_export_filter(
 EXPORT_ROUTES: dict[str, str] = {
     "/control/export/races": "races",
     "/control/export/race-entries": "race_entries",
+    "/control/export/race-cards": "race_cards",
     "/control/export/odds-snapshots": "odds_snapshots",
     "/control/export/race-results": "race_results",
     "/control/export/payouts": "payouts",

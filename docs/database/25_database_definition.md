@@ -1,4 +1,19 @@
-# scraper-service データベース定義
+# PostgreSQL データベース定義
+
+## 0. Spec 準拠（正）
+
+本リポジトリの正（推奨）は `spec/04_postgresql_schema.md` のスキーマ提案です。  
+PostgreSQL への適用は `services/api/db/migrations/sql/0002_add_spec_schema.sql` に同等の DDL を追加しています（既存テーブルは変更せず **追加のみ**）。
+
+主なテーブル（spec 側）
+- `racecourse`, `race_day`, `race`
+- `person`, `horse`
+- `perf_total`, `perf_dirt_left`, `perf_dirt_right`, `perf_track`, `perf_distance`, `best_time`
+- `race_entry`, `entry_last5_race`
+- `odds_tanfuku_snapshot`, `odds_wakuren_snapshot`, `odds_umaren_snapshot`, `odds_umatan_snapshot`, `odds_wide_snapshot`
+- `weight_allowance_symbol`
+
+> 以降の内容（venues/races/race_entries/odds_snapshots...）は、旧スキーマ（移行中の legacy）として残しています。
 
 ## 1. 設計方針
 

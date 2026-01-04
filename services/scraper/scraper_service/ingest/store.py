@@ -42,6 +42,8 @@ def _payload_key(kind: str, payload: dict) -> Optional[str]:
     key = f"{race_key[0]}:{race_key[1]}:{race_key[2]}"
     if kind == "races":
         return key
+    if kind == "race_cards":
+        return key
     if kind == "race_entries":
         horse_number = payload.get("horse_number")
         try:

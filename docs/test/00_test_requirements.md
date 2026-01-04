@@ -357,6 +357,17 @@
 - 対象機能・モジュール: scraper-service sync export
 - 実装状況: 追加テストあり（services/scraper/tests/test_ingest_store.py）
 
+### TR-030: DebaTable 正規化データ（race_cards）
+- 要件ID: TR-030
+- 要件名: 出馬表（DebaTable）の詳細正規化を保存できる
+- 要件の説明: scraper-service が DebaTable HTML から `race_cards`（race/persons/horses/perf/best_time/last5 を含む）を生成し、Pi 側に永続化できること。
+- 根拠となる仕様・要件ID: spec/04_postgresql_schema.md, docs/scraper/04_scraping_requirements.md#1.1
+- 関連リスクID: RISK-001
+- テスト観点: 正常系
+- テスト分類: 単体テスト
+- 対象機能・モジュール: scraper-service DebaTable parser, ingest store
+- 実装状況: 追加テストあり（services/scraper/tests/test_fixtures_sonoda_20260102.py）
+
 ### TR-101: ログイン画面（UI/E2E）
 - 要件ID: TR-101
 - 要件名: ログイン画面の基本フロー

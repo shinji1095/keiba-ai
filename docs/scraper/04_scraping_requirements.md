@@ -30,6 +30,7 @@
 - race_date はトリガごとに決定する（未指定は当日JST）
 - **起動時に race_date を固定した plan を作成し、無限ループする方式は採用しない**
 - スクレイピング情報（raw_html/ログ/正規化データ）は Pi 側で保存する
+  - 追加: DebaTable の詳細正規化（`race_cards`: race/persons/horses/perf/best_time/last5）を保存する
 - PC/Pi 間は **api-service が差分評価の判定主体**となり、**Pi → PC** 方向に pull 同期する（既定: 1日おき）
 - 定期実行のオン/オフ状態は frontend から参照できる
 - 定期同期は PC 側の cron コンテナが `/scrape/sync/scheduled` を呼び出し、api-service が JST 日付境界と interval_days に基づいて実行可否を判断する
@@ -37,6 +38,7 @@
 ### 1.1 同期と差分管理
 
 - 差分評価対象: `/scrape/*` に相当する正規化データ
+  - 追加で `race_cards`（DebaTable 詳細正規化）も Pi 側へ保存する（PC 取り込みは将来検討）
 - 同期頻度（既定）: 1日おき（JST）
 - 同期方向: Pi → PC（api-service が pull して取り込む）
 - 差分判定（最小構成、判定主体は api-service）:
@@ -50,6 +52,7 @@
 - 正規化データの差分キー（参考）:
   - races: `race_key`
   - race_entries: `race_key + horse_number`
+  - race_cards: `race_key`
   - odds_snapshots: `race_key + bet_type + snapshot_kind + odds_flg`
   - race_results: `race_key + finish_position`（併用で `horse_number` も許容）
   - payouts: `race_key + bet_type + legs + is_ordered`
@@ -80,6 +83,7 @@
 - 同期データ提供: `POST /control/export/*`
   - レスポンスは `items` に `/scrape/*` と同一スキーマの payload を含める
   - api-service が pull した payload を PC 側に反映する
+  - 追加: `POST /control/export/race-cards` は `race_cards` を返す
 - 定期実行の制御: `POST /control/schedule`
   - `enabled`: boolean
   - `baba_codes`: int[]（複数指定可）

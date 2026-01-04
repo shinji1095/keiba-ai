@@ -2,7 +2,8 @@
 -- Initial schema for api-service (PostgreSQL).
 --
 -- NOTE:
--- - docs/database/25_database_definition.md を正とするが、本リリースでは物理型の完全一致は必須としない。
+-- - docs/database/25_database_definition.md を参照（spec 準拠スキーマは 0002 で追加）。
+-- - 本ファイルは legacy スキーマ（api v0.2）として維持する。
 -- - 重要な契約（UNIQUE / FK / キー）は一致させる。
 
 -- -----------------------------
@@ -160,5 +161,4 @@ CREATE TABLE IF NOT EXISTS race_changes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_changes_race ON race_changes(race_id);
-
 

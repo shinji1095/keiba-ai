@@ -30,6 +30,16 @@ def _parse_popularity(text: str) -> Optional[int]:
     return ints[-1]
 
 
+def _parse_float(text: str) -> Optional[float]:
+    m = re.search(r"(\d+(?:\.\d+)?)", normalize_space(text))
+    if not m:
+        return None
+    try:
+        return float(m.group(1))
+    except ValueError:
+        return None
+
+
 _ROW_ODDS_PAT = re.compile(
     r"(?P<legs>(?:\d+\s*[-－]\s*)+\d+|\d+)\s+(?P<odds>\d+(?:\.\d+)?(?:\s*[-–〜～]\s*\d+(?:\.\d+)?)?)"
 )
@@ -79,10 +89,63 @@ def parse_odds_tanfuku(html: bytes) -> dict[BetType, list[OddsItemUpsert]]:
     """Parse OddsTanFuku page which contains both tansho and fukusho.
 
     Implementation:
-    - if the page has sections containing '単勝'/'複勝', try to split by nearest table after the heading
-    - otherwise fall back to generic parsing with bet_type=tansho and bet_type=fukusho on the same HTML
+    - Prefer the well-structured table (table.odd_popular_table_02) and parse by column positions.
+    - Fallback: split by nearest table after headings, then generic scan.
     """
     soup = BeautifulSoup(html, "lxml")
+
+    # Preferred structure (PC HTML fixtures follow this).
+    table = soup.find("table", class_="odd_popular_table_02")
+    if table is not None:
+        tbody = table.find("tbody")
+        if tbody is not None:
+            tansho: dict[int, OddsItemUpsert] = {}
+            fukusho: dict[int, OddsItemUpsert] = {}
+
+            for tr in tbody.find_all("tr"):
+                tds = tr.find_all("td")
+                # expected layout:
+                # 0:枠 1:馬番 2:馬名 3:単勝 4:複勝min 5:複勝max ...
+                if len(tds) < 6:
+                    continue
+
+                horse_ints = extract_ints(tds[1].get_text(" ", strip=True))
+                if not horse_ints:
+                    continue
+                horse_no = horse_ints[0]
+                if horse_no < 1 or horse_no > 18:
+                    continue
+
+                win_odds = _parse_float(tds[3].get_text(" ", strip=True))
+                place_min = _parse_float(tds[4].get_text(" ", strip=True))
+                place_max = _parse_float(tds[5].get_text(" ", strip=True))
+                if place_min is not None and place_max is None:
+                    place_max = place_min
+                if place_max is not None and place_min is None:
+                    place_min = place_max
+
+                if win_odds is not None:
+                    tansho[horse_no] = OddsItemUpsert(
+                        legs=[horse_no],
+                        is_ordered=False,
+                        odds_min=win_odds,
+                        odds_max=win_odds,
+                        popularity=None,
+                    )
+                # allow NULL odds for place odds (発売なし等)
+                fukusho[horse_no] = OddsItemUpsert(
+                    legs=[horse_no],
+                    is_ordered=False,
+                    odds_min=place_min,
+                    odds_max=place_max,
+                    popularity=None,
+                )
+
+            if tansho and fukusho:
+                return {
+                    "tansho": [tansho[k] for k in sorted(tansho.keys())],
+                    "fukusho": [fukusho[k] for k in sorted(fukusho.keys())],
+                }
 
     def find_table_after(keyword: str):
         el = soup.find(string=lambda s: s and keyword in s)
@@ -138,6 +201,62 @@ def parse_odds_multi_page(html: bytes, *, primary: BetType, secondary: BetType, 
 
 
 def parse_odds_waku(html: bytes) -> dict[BetType, list[OddsItemUpsert]]:
+    """Parse OddsWakuLenFukuTan page.
+
+    Notes:
+    - In practice, some pages only include "枠連複" (wakuren) blocks.
+    - When wakutan block is absent, return empty list for wakutan.
+    """
+    soup = BeautifulSoup(html, "lxml")
+    tables = soup.select("ul.odd_horse_number_list table")
+    if tables:
+        items: dict[tuple[int, int], OddsItemUpsert] = {}
+        for t in tables:
+            head = t.find("th")
+            if head is None:
+                continue
+            base_ints = extract_ints(head.get_text(" ", strip=True))
+            if not base_ints:
+                continue
+            waku_1 = base_ints[0]
+
+            for tr in t.find_all("tr"):
+                tds = tr.find_all("td")
+                if len(tds) < 2:
+                    continue
+                opp_ints = extract_ints(tds[0].get_text(" ", strip=True))
+                if not opp_ints:
+                    continue
+                waku_2 = opp_ints[0]
+                odds = _parse_float(tds[1].get_text(" ", strip=True))
+                if odds is None:
+                    continue
+
+                # The page is typically waku_2 >= waku_1 (matrix upper triangle).
+                k = (min(waku_1, waku_2), max(waku_1, waku_2))
+                items[k] = OddsItemUpsert(
+                    legs=[k[0], k[1]],
+                    is_ordered=False,
+                    odds_min=odds,
+                    odds_max=odds,
+                    popularity=None,
+                )
+
+        wakuren = list(items.values())
+        # The page often lacks an explicit popularity column; derive ranking by odds asc.
+        ranked = sorted(
+            [it for it in wakuren if it.odds_min is not None],
+            key=lambda it: (it.odds_min, it.legs),
+        )
+        last_odds: float | None = None
+        rank = 0
+        for i, it in enumerate(ranked):
+            if last_odds is None or it.odds_min != last_odds:
+                rank = i + 1  # competition ranking (ties share rank; next rank skips)
+                last_odds = it.odds_min
+            it.popularity = rank
+        return {"wakuren": wakuren, "wakutan": []}
+
     return parse_odds_multi_page(html, primary="wakuren", secondary="wakutan", primary_label="枠連複", secondary_label="枠連単")
 
 

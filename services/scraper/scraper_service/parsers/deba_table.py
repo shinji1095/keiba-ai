@@ -66,6 +66,104 @@ def parse_deba_table(html: bytes, *, race_date: str, baba_code: int, race_no: in
     rk = RaceKey(race_date=race_date, baba_code=baba_code, race_no=race_no)
     entries: list[RaceEntryUpsert] = []
 
+    # Preferred structure: PC DebaTable uses 1 horse = 5 <tr> block within section.cardTable.
+    card_table = soup.select_one("section.cardTable table")
+    if card_table is not None:
+        for tr in card_table.find_all("tr", class_="tBorder"):
+            td_horse = tr.find("td", class_="horseNum")
+            td_waku = tr.find("td", class_="courseNum")
+            a_horse = tr.find("a", class_="horseName")
+            a_jockey = tr.find("a", class_="jockeyName")
+
+            if td_horse is None or a_horse is None:
+                continue
+
+            horse_ints = extract_ints(td_horse.get_text(" ", strip=True))
+            if not horse_ints:
+                continue
+            horse_number = horse_ints[0]
+            if horse_number < 1 or horse_number > 18:
+                continue
+
+            post_position = None
+            if td_waku is not None:
+                w = extract_ints(td_waku.get_text(" ", strip=True))
+                if w:
+                    post_position = w[0]
+
+            horse_name = normalize_space(a_horse.get_text(" ", strip=True))
+            if not horse_name:
+                continue
+
+            jockey_name = None
+            if a_jockey is not None:
+                jt = normalize_space(a_jockey.get_text(" ", strip=True))
+                jockey_name = (jt.split("（", 1)[0] or None) if jt else None
+
+            # Group the 5-row block (tr + next siblings until next tBorder).
+            group_rows = [tr]
+            sib = tr
+            while True:
+                sib = sib.find_next_sibling("tr")
+                if sib is None:
+                    break
+                if "tBorder" in (sib.get("class") or []):
+                    break
+                group_rows.append(sib)
+                if len(group_rows) >= 5:
+                    break
+
+            handicap = None
+            trainer_name = None
+            body_weight = None
+            body_weight_diff = None
+
+            for gtr in group_rows:
+                for td in gtr.find_all("td"):
+                    text = normalize_space(td.get_text(" ", strip=True))
+                    if not text:
+                        continue
+
+                    if handicap is None:
+                        m = re.search(r"(\d+(?:\.\d+)?)\s*[　 ]+\d+\s*[-－]\s*\d+\s*[-－]\s*\d+\s*[-－]\s*\d+", text)
+                        if m:
+                            handicap = _parse_float(m.group(1))
+
+                    if trainer_name is None:
+                        a_trainer = td.find("a", href=lambda h: isinstance(h, str) and "TrainerMark" in h)
+                        if a_trainer is not None:
+                            tt = normalize_space(a_trainer.get_text(" ", strip=True))
+                            trainer_name = (tt.split("（", 1)[0] or None) if tt else None
+
+                    if body_weight is None and body_weight_diff is None:
+                        # Body weight cell uses "(増減)" format or "計不".
+                        if "計不" in text or re.search(r"\(\s*[+\-−±]?\d+\s*\)", text):
+                            bw, diff = _parse_body_weight(text)
+                            body_weight = bw
+                            body_weight_diff = diff
+
+                if handicap is not None and trainer_name is not None and (body_weight is not None or body_weight_diff is not None):
+                    break
+
+            entries.append(
+                RaceEntryUpsert(
+                    race_key=rk,
+                    horse_id=None,
+                    post_position=post_position,
+                    horse_number=horse_number,
+                    horse_name=horse_name,
+                    jockey_name=jockey_name,
+                    trainer_name=trainer_name,
+                    handicap_kg=handicap,
+                    body_weight=body_weight,
+                    body_weight_diff=body_weight_diff,
+                )
+            )
+
+        if entries:
+            entries.sort(key=lambda e: e.horse_number)
+            return entries
+
     found = _find_table_with_headers(soup, required=["馬番", "馬名"])
     if found is not None:
         headers, table = found
