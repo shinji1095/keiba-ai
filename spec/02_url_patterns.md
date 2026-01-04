@@ -3,6 +3,7 @@
 更新履歴
 - 2026-01-03: 初版作成。
 - 2026-01-03: 添付HTML（keiba.go.jp PC向けページ）から、オッズページのHTML構造・必要パラメータを追記（`odds_flg` 等はページ内リンクから確認）。
+- 2026-01-04: RaceMarkTable（成績/払戻）を追記。OddsTanFuku の複勝が min/max で提供される点を明記。
 
 ## 前提
 - 取得キーは `babaCode` + `raceDate` + `raceNo`（レース一覧のみ `babaCode` + `raceDate`）とする。
@@ -23,6 +24,7 @@
 - HTML構造（添付HTMLより）:
   - `#odd_content table.odd_popular_table_02` に1頭1行の表
   - `複勝オッズ` は **2列（最小・最大）** に分割される（`colspan`）
+  - spec テーブル対応: 単勝= `win_odds`、複勝= `place_odds_min`/`place_odds_max`
 
 ### オッズ（枠連）
 - `https://www.keiba.go.jp/KeibaWeb/TodayRaceInfo/OddsWakuLenFukuTan?k_raceDate=...&k_raceNo=...&k_babaCode=...`
@@ -47,6 +49,12 @@
 - HTML構造（添付HTMLより）:
   - `#odd_content table.odd_ranking_table` が複数存在し、**全組（12頭なら66組）** を分割表示する
   - 各行は `組合せ / オッズ（範囲） / 人気`
+
+### 競走成績・払戻（RaceMarkTable）
+- `https://www.keiba.go.jp/KeibaWeb/TodayRaceInfo/RaceMarkTable?k_raceDate=...&k_raceNo=...&k_babaCode=...`
+- 同一ページ内に以下が含まれる:
+  - **競走成績（着順/タイム/上り3F/通過順など）**
+  - **払戻金（単勝/複勝/枠連複/馬連複/馬連単/ワイド/三連複/三連単など）**
 
 ## SP向け（参考・未検証）
 - `https://sp.keiba.go.jp/KeibaWebSP/TodayRaceInfo/...`

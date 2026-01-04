@@ -10,7 +10,7 @@ import json
 from scraper_service.config import Settings
 from scraper_service.http.client import HttpClient
 from scraper_service.keiba import constants as C
-from scraper_service.keiba.models import RaceKey
+from scraper_service.keiba.models import RaceKey, RaceUpsert
 from scraper_service.keiba.soft_errors import SOFT_NO_ODDS_PATTERNS, SOFT_TEMP_UNAVAILABLE_PATTERNS
 from scraper_service.keiba.urls import ODDS_FLG_FIXED, build_url
 from scraper_service.parsers.deba_table import parse_deba_table
@@ -421,6 +421,31 @@ class ScrapeRunner:
                 card_payload["source_url"] = final_url
                 self._append_sync("race_cards", [card_payload])
 
+                # Also emit a richer RaceUpsert from DebaTable header to fill legacy race fields.
+                # RaceList parsing is intentionally minimal and may not provide distance/weather/etc.
+                start_time = None
+                post_time = getattr(card.race, "post_time", None)
+                if isinstance(post_time, str) and post_time:
+                    start_time = post_time if len(post_time) != 5 else f"{post_time}:00"
+                self._append_sync(
+                    "races",
+                    [
+                        RaceUpsert(
+                            race_key=RaceKey(
+                                race_date=race_date, baba_code=baba_code, race_no=rn
+                            ),
+                            start_time=start_time,
+                            distance_m=getattr(card.race, "distance_m", None),
+                            course=getattr(card.race, "direction", None),
+                            weather=getattr(card.race, "weather", None),
+                            track_condition=getattr(card.race, "track_condition", None),
+                            race_name=getattr(card.race, "race_name", None),
+                            field_size=len(entries) if entries else None,
+                            status=None,
+                        ).model_dump(mode="json")
+                    ],
+                )
+
                 snapshot_kind, is_final = _select_manual_snapshot_kind(
                     start_dt=start_dt, now=now
                 )
@@ -437,7 +462,8 @@ class ScrapeRunner:
                 #   but for manual scrapes of past races it causes permanent "results missing".
                 # - For run_once, fetch RaceMarkTable whenever it's plausibly available:
                 #   10 minutes after post time with NO upper bound.
-                should_fetch_race_mark_manual = False
+                # If start time is unknown, still attempt (best-effort) so past races don't get stuck missing results.
+                should_fetch_race_mark_manual = True
                 if start_dt is not None:
                     delta_min = (now - start_dt).total_seconds() / 60.0
                     should_fetch_race_mark_manual = delta_min >= 10
@@ -465,7 +491,9 @@ class ScrapeRunner:
             # NOTE:
             # - Previously, run_once with race_no specified never fetched payouts.
             # - For manual scrapes, fetching payouts for the venue/day is cheap and makes the UI complete.
-            if _should_fetch_refund(last_start_dt=last_start_dt, now=now):
+            # For manual scrapes with race_no specified, fetch payouts unconditionally (best-effort).
+            # RefundMoneyList is venue/day scope and is required to populate legacy payouts table.
+            if race_no is not None or _should_fetch_refund(last_start_dt=last_start_dt, now=now):
                 html_refund, _, _ = self._fetch(
                     C.PAGE_REFUND_MONEY_LIST,
                     race_date=race_date,
@@ -588,6 +616,30 @@ class ScrapeRunner:
                     card_payload["captured_at"] = iso_now_jst()
                     card_payload["source_url"] = final_url
                     self._append_sync("race_cards", [card_payload])
+
+                    # Also emit a richer RaceUpsert from DebaTable header to fill legacy race fields.
+                    start_time = None
+                    post_time = getattr(card.race, "post_time", None)
+                    if isinstance(post_time, str) and post_time:
+                        start_time = post_time if len(post_time) != 5 else f"{post_time}:00"
+                    self._append_sync(
+                        "races",
+                        [
+                            RaceUpsert(
+                                race_key=RaceKey(
+                                    race_date=race_date, baba_code=baba_code, race_no=rn
+                                ),
+                                start_time=start_time,
+                                distance_m=getattr(card.race, "distance_m", None),
+                                course=getattr(card.race, "direction", None),
+                                weather=getattr(card.race, "weather", None),
+                                track_condition=getattr(card.race, "track_condition", None),
+                                race_name=getattr(card.race, "race_name", None),
+                                field_size=len(entries) if entries else None,
+                                status=None,
+                            ).model_dump(mode="json")
+                        ],
+                    )
 
                 for snapshot_kind, is_final in _scheduled_due_kinds(
                     start_dt=start_dt, now=now, snapshot_kinds=scheduled_kinds

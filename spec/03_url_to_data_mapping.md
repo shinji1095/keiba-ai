@@ -2,6 +2,7 @@
 
 更新履歴
 - 2026-01-03: `sp.keiba.go.jp`（SP向け）URL パターンとページング（推測）を追記。`www.keiba.go.jp` が取得できない場合の代替経路を明記。
+- 2026-01-04: RaceMarkTable（成績/払戻）を追記。OddsTanFuku の単勝/複勝と spec カラム（win_odds / place_odds_min/max）の対応を明記。
 
 ## 対象ドメイン
 - PC向け: `www.keiba.go.jp`（取得できる場合の正）
@@ -26,6 +27,12 @@
 | 馬連複 | `/KeibaWeb/TodayRaceInfo/OddsUmLenFuku?...` | `/KeibaWebSP/TodayRaceInfo/S_OddsUmLenFuku?...` | odds_umaren_fuku | `data/{race_id}/04_odds_umaren_fuku.md` |
 | 馬連単 | `/KeibaWeb/TodayRaceInfo/OddsUmLenTan?...` | `/KeibaWebSP/TodayRaceInfo/S_OddsUmLenTan?...` | odds_umaren_tan | `data/{race_id}/05_odds_umaren_tan.md` |
 | ワイド | `/KeibaWeb/TodayRaceInfo/OddsWide?...` | `/KeibaWebSP/TodayRaceInfo/S_OddsWide?...` | odds_wide | `data/{race_id}/06_odds_wide.md` |
+| 成績・払戻 | `/KeibaWeb/TodayRaceInfo/RaceMarkTable?k_raceDate={YYYY}%2F{MM}%2F{DD}&k_raceNo={race_no}&k_babaCode={baba_code}` | （未調査） | race_results / payouts（同一ページ内で確認可能） | `extracted/07_race_mark_table_...md`（将来予約） |
+
+## OddsTanFuku と spec カラムの対応
+- 単勝オッズ: `win_odds`
+- 複勝オッズ: `place_odds_min` と `place_odds_max`
+  - 複勝は **最小値〜最大値**（レンジ）で提供されるため、2カラムに対応付ける
 
 ## SP向けオッズページの補助パラメータ（推測）
 検索結果の表記から、以下のパラメータが存在します（全件取得のために必要になる見込み）。

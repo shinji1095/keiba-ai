@@ -8,6 +8,7 @@ import pytest
 from scraper_service.parsers.deba_table import parse_deba_table
 from scraper_service.parsers.deba_table_normalized import parse_deba_table_normalized
 from scraper_service.parsers.odds import parse_generic_odds_table, parse_odds_tanfuku, parse_odds_waku
+from scraper_service.parsers.race_mark_table import parse_race_mark_table
 
 
 FIXTURES_ROOT = Path(__file__).resolve().parent / "fixtures"
@@ -35,6 +36,11 @@ def _sha256(b: bytes) -> str:
 def test_debatable_fixtures_sha256(race_no: int, filename: str, expected_sha256: str) -> None:
     html = _read_fixture(f"27_2026-01-02_{race_no:02d}R/{filename}")
     assert _sha256(html) == expected_sha256
+
+
+def test_race_mark_table_fixture_sha256() -> None:
+    html = _read_fixture("27_2026-01-02_02R/R02_race_mark_table.html")
+    assert _sha256(html) == "a36dd7be083aa6252bdcbb234d2901bed1a1a202cfe45eeb271634d3eae8b933"
 
 
 @pytest.mark.parametrize(
@@ -273,3 +279,26 @@ def test_parse_deba_table_normalized_fixtures_sonoda_20260102(
         assert last1.last3f == 40.9
         assert last1.time_diff == 0.8
         assert last1.winner_name == "イッシン"
+
+
+def test_parse_race_mark_table_fixtures_sonoda_20260102_02r() -> None:
+    html = _read_fixture("27_2026-01-02_02R/R02_race_mark_table.html")
+    results = parse_race_mark_table(
+        html, race_date="2026-01-02", baba_code=27, race_no=2
+    )
+    assert len(results) == 12
+
+    # finish positions 1..12
+    assert [r.finish_position for r in results] == list(range(1, 13))
+
+    # horse numbers should be unique and match the table (2R)
+    expected_horse_nos = [9, 12, 11, 6, 2, 10, 7, 5, 1, 8, 4, 3]
+    assert [r.horse_number for r in results] == expected_horse_nos
+    assert len({r.horse_number for r in results if r.horse_number is not None}) == 12
+
+    # spot check: 1st place time
+    assert results[0].time_str == "0:52.2"
+
+    # corner passing (race-level) should be present at least for 3/4 corners on this race
+    assert results[0].corner3 is not None
+    assert results[0].corner4 is not None

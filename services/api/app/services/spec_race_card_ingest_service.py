@@ -290,6 +290,9 @@ class SpecRaceCardIngestService:
         row = self.db.query(SpecRacecourse).filter(SpecRacecourse.baba_code == baba_code).first()
         if row is None:
             self.db.add(SpecRacecourse(baba_code=baba_code, name=name))
+            # Ensure FK parents exist before inserting dependent rows (race_day/race).
+            # Without relationships, SQLAlchemy may flush in an order that violates FK constraints.
+            self.db.flush()
             return
         if row.name != name:
             row.name = name
@@ -302,6 +305,8 @@ class SpecRaceCardIngestService:
         )
         if row is None:
             self.db.add(SpecRaceDay(race_date=race_date, baba_code=baba_code))
+            # Ensure parent exists before inserting spec race referencing (race_date,baba_code).
+            self.db.flush()
 
     def _upsert_race(
         self,

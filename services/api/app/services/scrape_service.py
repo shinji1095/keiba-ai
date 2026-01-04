@@ -224,47 +224,94 @@ class ScrapeService:
         upserted = 0
         warnings: list[str] = []
 
-        for item in payload.items:
-            r = self._get_or_create_race(item.race_key)
-            res = (
-                self.db.query(RaceResultModel)
-                .filter(
-                    RaceResultModel.race_id == r.race_id,
-                    RaceResultModel.finish_position == item.finish_position,
+        # NOTE:
+        # race_results has UNIQUE constraints on both:
+        # - (race_id, finish_position)
+        # - (race_id, horse_number)
+        #
+        # In real-world scraping, upstream may temporarily emit duplicates (e.g. parser heuristic mismatches).
+        # To keep sync idempotent and avoid hard failures, we:
+        # - deduplicate within the batch (prefer rows with richer fields)
+        # - then treat the batch as authoritative and replace all results for the race.
+        if payload.items:
+            r = self._get_or_create_race(payload.items[0].race_key)
+
+            def score(x: RaceResultUpsert) -> int:
+                return sum(
+                    1
+                    for v in [
+                        x.time_str,
+                        x.margin,
+                        x.last3f,
+                        x.popularity,
+                        x.corner1,
+                        x.corner2,
+                        x.corner3,
+                        x.corner4,
+                    ]
+                    if v is not None
                 )
-                .one_or_none()
-            )
-            if res is None:
-                res = RaceResultModel(
-                    race_id=r.race_id,
-                    finish_position=item.finish_position,
-                    horse_number=item.horse_number,
-                    time_str=item.time_str,
-                    margin=item.margin,
-                    last3f=item.last3f,
-                    popularity=item.popularity,
-                    corner1=item.corner1,
-                    corner2=item.corner2,
-                    corner3=item.corner3,
-                    corner4=item.corner4,
+
+            # best row per horse_number (ignore None)
+            best_by_horse: dict[int, RaceResultUpsert] = {}
+            for it in payload.items:
+                if it.horse_number is None:
+                    continue
+                cur = best_by_horse.get(it.horse_number)
+                if cur is None:
+                    best_by_horse[it.horse_number] = it
+                    continue
+                s_it = score(it)
+                s_cur = score(cur)
+                if s_it > s_cur or (s_it == s_cur and it.finish_position < cur.finish_position):
+                    best_by_horse[it.horse_number] = it
+
+            filtered: list[RaceResultUpsert] = []
+            seen_fp: set[int] = set()
+            seen_hn: set[int] = set()
+
+            for it in sorted(payload.items, key=lambda x: x.finish_position):
+                if it.horse_number is not None:
+                    best = best_by_horse.get(it.horse_number)
+                    if best is not it:
+                        warnings.append(
+                            f"duplicate horse_number in results: horse_no={it.horse_number} finish_position={it.finish_position} (dropped)"
+                        )
+                        continue
+                    if it.horse_number in seen_hn:
+                        warnings.append(
+                            f"duplicate horse_number in results after filtering: horse_no={it.horse_number} (dropped)"
+                        )
+                        continue
+                    seen_hn.add(it.horse_number)
+
+                if it.finish_position in seen_fp:
+                    warnings.append(
+                        f"duplicate finish_position in results: finish_position={it.finish_position} (dropped)"
+                    )
+                    continue
+                seen_fp.add(it.finish_position)
+                filtered.append(it)
+
+            # Replace all rows for this race_id, then insert fresh.
+            self.db.query(RaceResultModel).filter(RaceResultModel.race_id == r.race_id).delete()
+            for item in filtered:
+                self.db.add(
+                    RaceResultModel(
+                        race_id=r.race_id,
+                        finish_position=item.finish_position,
+                        horse_number=item.horse_number,
+                        time_str=item.time_str,
+                        margin=item.margin,
+                        last3f=item.last3f,
+                        popularity=item.popularity,
+                        corner1=item.corner1,
+                        corner2=item.corner2,
+                        corner3=item.corner3,
+                        corner4=item.corner4,
+                    )
                 )
-                self.db.add(res)
-            else:
-                for attr in [
-                    "horse_number",
-                    "time_str",
-                    "margin",
-                    "last3f",
-                    "popularity",
-                    "corner1",
-                    "corner2",
-                    "corner3",
-                    "corner4",
-                ]:
-                    val = getattr(item, attr)
-                    if val is not None:
-                        setattr(res, attr, val)
-            upserted += 1
+            upserted = len(filtered)
 
         self.db.commit()
         return BatchUpsertResponse(
