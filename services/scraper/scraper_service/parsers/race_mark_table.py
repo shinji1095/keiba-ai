@@ -50,13 +50,18 @@ def parse_race_mark_table(html: bytes, *, race_date: str, baba_code: int, race_n
         if not el:
             return {}
         td = el.parent
-        text = normalize_space(td.get_text("\n", strip=True))
+        # NOTE:
+        # - Some pages render 3/4-corner orders as separate <br> lines, others may collapse into one line.
+        # - Do NOT normalize whitespace before extracting each corner line; otherwise 3/4 corner can merge.
+        raw = td.get_text(" ", strip=True)
         # normalize full-width digits to ASCII
-        text = text.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
+        raw = raw.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
+        # Ensure each corner marker starts on its own line (even if the page collapses into one line).
+        text = re.sub(r"([1-4])コーナー", r"\n\1コーナー", raw)
         corners: dict[int, str] = {}
         for line in text.split("\n"):
             line = normalize_space(line)
-            m = re.search(r"([1-4])コーナー\s*(.+)$", line)
+            m = re.search(r"^([1-4])コーナー\s*(.+)$", line)
             if not m:
                 continue
             try:

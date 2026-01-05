@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from scraper_service.parsers.refund_money_list import parse_refund_money_list
 
 
@@ -30,3 +32,19 @@ def test_parse_refund_money_list_continuation_rows():
 
     wide = [p for p in payouts if p.bet_type == "wide"]
     assert {tuple(p.legs) for p in wide} == {(1, 5), (2, 5)}
+
+
+def test_parse_refund_money_list_fixture_sonoda_20260102() -> None:
+    fixtures_root = Path(__file__).resolve().parent / "fixtures"
+    html = (fixtures_root / "27_2026-01-02_refund_money_list.html").read_bytes()
+    payouts = parse_refund_money_list(html, race_date="2026-01-02", baba_code=27)
+
+    # 2R should be present (the production page uses <p class="roundNum">2R</p>).
+    r2 = [p for p in payouts if p.race_key.race_no == 2]
+    assert len(r2) == 12
+
+    tansho = next(p for p in r2 if p.bet_type == "tansho" and p.legs == [9])
+    assert tansho.payout_yen == 860
+
+    fukusho = [p for p in r2 if p.bet_type == "fukusho"]
+    assert {tuple(p.legs) for p in fukusho} == {(9,), (12,), (11,)}

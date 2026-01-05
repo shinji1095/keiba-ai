@@ -85,9 +85,14 @@ def parse_refund_money_list(html: bytes, *, race_date: str, baba_code: int, capt
     current_race_no: Optional[int] = None
     current_bet_type: Optional[str] = None
 
-    # iterate through elements in document order and detect race sections
-    for el in soup.find_all(["h1", "h2", "h3", "h4", "table", "tr"]):
-        if el.name in {"h1", "h2", "h3", "h4"}:
+    # Iterate through elements in document order and detect race sections.
+    #
+    # NOTE:
+    # - The production RefundMoneyList page uses `<p class="roundNum">2R</p>` (not h3/h4) as race headers.
+    # - Older/simple fixtures may use headings like `<h3>第1競走</h3>`.
+    # We therefore include both headings and paragraphs in the scan.
+    for el in soup.find_all(["h1", "h2", "h3", "h4", "p", "table", "tr"]):
+        if el.name in {"h1", "h2", "h3", "h4", "p"}:
             rn = _find_race_no(el.get_text(" ", strip=True))
             if rn is not None:
                 current_race_no = rn

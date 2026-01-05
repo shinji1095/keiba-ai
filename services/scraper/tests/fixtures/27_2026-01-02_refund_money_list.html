@@ -1,0 +1,2420 @@
+
+
+
+
+
+
+
+<!DOCTYPE HTML>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="当日払戻金｜地方競馬情報サイト" name="title">
+<meta content="KEIBA.GO.JP | 地方競馬情報サイトです。" name="description">
+<meta content="競馬,ケイバ,地方,ばんえい,ダート,レース,騎手,馬,シリーズ・重賞競走" name="keywords">
+<meta name="viewport" content="target-densitydpi=device-dpi, width=device-width, maximum-scale=1.0, user-scalable=yes">
+<meta name="format-detection" content="telephone=no">
+<title>当日払戻金｜地方競馬情報サイト</title>
+<link rel="stylesheet" href="../resources/css/reset.css?bld=20251121111641" type="text/css" media="all" />
+<link rel="stylesheet" href="../resources/css/common2.css?bld=20251121111641" type="text/css" media="all" />
+
+<link rel="stylesheet" href="../resources/css/raceinfo2.css?bld=20251121111641" type="text/css" media="all" />
+<script type="text/javascript" src="../resources/js/jquery-1.9.1.min.js?bld=20251121111641"></script>
+<script type="text/javascript" src="../resources/js/common2.js?bld=20251121111641"></script>
+
+<link rel="shortcut icon" href="/images/nar.ico" />
+</head>
+<body>
+
+
+<header>
+    <div class="headerInner">
+        <div class="titleArea">
+            <h1>
+                <span>地方競馬情報サイト</span>
+                <a href="/index.html">
+                    <img src="/KeibaWeb/resources/img/mainlogo.png?bld=20251121111641" alt="">
+                </a>
+            </h1>
+            <div class="vote">
+                <img id="headerbanner00" src="/KeibaWeb/resources/img/header_banner_00.png?bld=20251121111641" alt="">
+            </div>
+            <ul class="bannerArea clearfix">
+                <li>
+                    <a href="https://www.keiba.go.jp/jranet/" target="_blank">
+                        <img class="normal" src="/KeibaWeb/resources/img/header_banner_01.png?bld=20251121111641">
+                        <img class="min" src="/KeibaWeb/resources/img/header_banner_01_min.png?bld=20251121111641">
+                    </a>
+                </li>
+                <li>
+                    <a href="https://www.spat4.jp/keiba/pc" target="_blank">
+                        <img class="normal" src="/KeibaWeb/resources/img/header_banner_02.png?bld=20251121111641">
+                        <img class="min" src="/KeibaWeb/resources/img/header_banner_02_min.png?bld=20251121111641">
+                    </a>
+                </li>
+
+                <li>
+                    <a href="https://my.keiba.rakuten.co.jp/?scid=keiba_NAR_bet" target="_blank">
+                        <img class="normal" src="/KeibaWeb/resources/img/header_banner_03.png?bld=20251121111641">
+                        <img class="min" src="/KeibaWeb/resources/img/header_banner_03_min.png?bld=20251121111641">
+                    </a>
+                </li>
+
+                <li>
+                    <a href="https://www.oddspark.com/keiba/auth/VoteKeibaTop.do" target="_blank">
+                        <img class="normal" src="/KeibaWeb/resources/img/header_banner_04.png?bld=20251121111641">
+                        <img class="min" src="/KeibaWeb/resources/img/header_banner_04_min.png?bld=20251121111641">
+                    </a>
+                </li>
+            </ul>
+
+
+
+            <div class="topSearch clearfix">
+                <form id="cse-search-box" action="https://google.com/cse">
+                    <input type="hidden" name="cx" value="000374752549361390111:sr3uzpcoe-q" />
+                    <input type="hidden" name="ie" value="UTF-8" />
+                    <input type="text" name="q" size="31" class="searchBox"/ placeholder="サイト内検索">
+                    <input type="submit" name="sa" value="" class="searchBtn"/>
+                </form>
+                <script type="text/javascript"
+                                src="https://www.google.com/coop/cse/brand?form=cse-search-boxamp;lang=ja"></script>
+            </div>
+        </div>
+    </div>
+
+    <div class="globalNavi">
+        <ul class="gNavi clearfix">
+            <li class="gNaviitem1">
+                <a href="/KeibaWeb/TodayRaceInfo/TodayRaceInfoTop">
+                    <img src="/KeibaWeb/resources/img/icon_gnavi_08.png?bld=20251121111641" alt="">
+                    <p>レース情報</p>
+                </a>
+            </li>
+            <li class="gNaviitem2">
+                <a href="/KeibaWeb/MonthlyConveneInfo/MonthlyConveneInfoTop">
+                    <img src="/KeibaWeb/resources/img/icon_gnavi_01.png?bld=20251121111641" alt="">
+                    <p>開催日程</p>
+                </a>
+            </li>
+            <li class="gNaviitem3">
+                <a href="/live/" target="_blank">
+                    <img src="/KeibaWeb/resources/img/icon_gnavi_02.png?bld=20251121111641" alt="">
+                    <p>ライブ中継</p>
+                </a>
+            </li>
+            <li class="gNaviitem4">
+                <a href="/dirtgraderace/">
+                    <img class="dart" src="/KeibaWeb/resources/img/icon_gnavi_12.png?bld=20251121111641" alt="">
+                    <p>ダートグレード競走</p>
+                </a>
+            </li>
+            <li class="gNaviitem5">
+                <a href="/gradedrace/">
+                    <img src="/KeibaWeb/resources/img/icon_gnavi_04.png?bld=20251121111641" alt="">
+                    <p>シリーズ･重賞競走</p>
+                </a>
+            </li>
+            <li class="gNaviitem6">
+                <a href="/KeibaWeb/DataRoom/DataRoomTop">
+                    <img src="/KeibaWeb/resources/img/icon_gnavi_05.png?bld=20251121111641" alt="">
+                    <p>データ検索</p>
+                </a>
+            </li>
+            <li class="gNaviitem7">
+                <a href="/guide/index.html">
+                    <img src="/KeibaWeb/resources/img/icon_gnavi_06.png?bld=20251121111641" alt="">
+                    <p>競馬場ガイド</p>
+                </a>
+            </li>
+            <!--<li>
+                <a href="about/">
+                    <img src="/KeibaWeb/resources/img/icon_gnavi_07.png?bld=20251121111641" alt="">
+                    <p>もっと！地方競馬</p>
+                </a>
+            </li>-->
+        </ul>
+    </div>
+</header>
+
+
+<div class="breadCrumb">
+</div>
+<!--サブナビ-->
+<div class="subMenu">
+<ul class="clearfix">
+<li><a href="../TodayRaceInfo/TodayRaceInfoTop" id="TodayRaceInfoTop">本日のレース情報</a></li>
+<li><a href="../MonthlyConveneInfo/MonthlyConveneInfoTop" id="MonthlyConveneInfoTop">月別開催日程</a></li>
+<li><a href="../TodayRaceInfo/RaceList?k_raceDate=2026%2f01%2f02&k_babaCode=27" id="RaceList">当日メニュー</a></li>
+<li><a id="RefundMoneyList">当日払戻金</a></li>
+</ul>
+</div>
+
+<!--mainContents-->
+<div id="mainContainer">
+<!--開催場-->
+<article class="raceList">
+<div class="innerWrapper">
+
+<nav class="navWrapper">
+<div class="dateArea clearfix">
+<a class="yesterday" href="../TodayRaceInfo/RefundMoneyList?k_raceDate=2025%2f12%2f31&k_babaCode=27">前日</a>
+<p class="current">1/2</p>
+<a class="tomorrow"  href="../TodayRaceInfo/RefundMoneyList?k_raceDate=2026%2f01%2f03&k_babaCode=27">翌日</a>
+</div>
+<div class="courseArea clearfix">
+
+
+
+
+<a class="courseBtn" href="../TodayRaceInfo/RefundMoneyList?k_raceDate=2026%2f01%2f02&k_babaCode=3">帯広ば</a>
+
+
+
+
+
+<a class="courseBtn" href="../TodayRaceInfo/RefundMoneyList?k_raceDate=2026%2f01%2f02&k_babaCode=21">川崎</a>
+
+
+
+
+
+<a class="courseBtn" href="../TodayRaceInfo/RefundMoneyList?k_raceDate=2026%2f01%2f02&k_babaCode=24">名古屋</a>
+
+
+
+<a class="courseBtn active" >園田</a>
+
+
+
+
+</div>
+</nav>
+<section class="refundTable">
+
+<h3 class="refund">
+2026年1月2日（金） 園田競馬場　払戻金
+
+
+ <a class="btnjyushou single" onclick="ScrollWindow('lotoPos');">重勝式払戻金</a><a class="btnkyousou" target="_blank" href="../../seisekipdf/20260102/27/20260102_sonoda.pdf">競走成績表</a>
+
+
+
+</h3>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">1R</p>
+<p class="roundName">Ｃ３三４歳以上</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=1&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=1&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank06">6</td>
+<td>8</td>
+<td>トゥルーナイト</td>
+<td>笹田知</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank08">8</td>
+<td>11</td>
+<td>アークリオーソ</td>
+<td>山田雄</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank07">7</td>
+<td>9</td>
+<td>フォーウィンド</td>
+<td>廣瀬航</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">8</td>
+<td class="c">110円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">8</td>
+<td class="c">100円</td>
+<td class="d">1人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">11</td>
+<td class="c">350円</td>
+<td class="d">7人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">9</td>
+<td class="c">120円</td>
+<td class="d">2人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">6-8</td>
+<td class="c">1,520円</td>
+<td class="d">3人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">8-11</td>
+<td class="c">3,690円</td>
+<td class="d">9人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">8-11</td>
+<td class="g">4,350円</td>
+<td class="h">11人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">8-11</td>
+<td class="g">610円</td>
+<td class="h">8人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">8-9</td>
+<td class="g">130円</td>
+<td class="h">1人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">9-11</td>
+<td class="g">810円</td>
+<td class="h">12人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">8-9-11</td>
+<td class="g">990円</td>
+<td class="h">5人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">8-11-9</td>
+<td class="g">8,830円</td>
+<td class="h">24人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">2R</p>
+<p class="roundName">３歳未勝利二３歳二</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=2&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=2&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank07">7</td>
+<td>9</td>
+<td>チョゴリザ</td>
+<td>杉浦健</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank08">8</td>
+<td>12</td>
+<td>トランペシア</td>
+<td>塩津璃</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank08">8</td>
+<td>11</td>
+<td>フドウミョウオウ</td>
+<td>廣瀬航</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">9</td>
+<td class="c">860円</td>
+<td class="d">5人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">9</td>
+<td class="c">210円</td>
+<td class="d">4人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">12</td>
+<td class="c">210円</td>
+<td class="d">3人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">11</td>
+<td class="c">600円</td>
+<td class="d">8人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">7-8</td>
+<td class="c">1,580円</td>
+<td class="d">9人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">9-12</td>
+<td class="c">1,740円</td>
+<td class="d">7人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">9-12</td>
+<td class="g">4,830円</td>
+<td class="h">20人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">9-12</td>
+<td class="g">600円</td>
+<td class="h">7人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">9-11</td>
+<td class="g">2,410円</td>
+<td class="h">24人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">11-12</td>
+<td class="g">2,190円</td>
+<td class="h">23人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">9-11-12</td>
+<td class="g">18,730円</td>
+<td class="h">45人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">9-12-11</td>
+<td class="g">71,250円</td>
+<td class="h">206人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">3R</p>
+<p class="roundName">３歳未勝利一３歳一</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=3&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=3&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank08">8</td>
+<td>11</td>
+<td>ステップアイ</td>
+<td>廣瀬航</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank01">1</td>
+<td>1</td>
+<td>キングバブルズ</td>
+<td>笹田知</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank06">6</td>
+<td>8</td>
+<td>コパノモロッコ</td>
+<td>山本咲</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">11</td>
+<td class="c">1,170円</td>
+<td class="d">4人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">11</td>
+<td class="c">210円</td>
+<td class="d">5人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">1</td>
+<td class="c">110円</td>
+<td class="d">1人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">8</td>
+<td class="c">140円</td>
+<td class="d">2人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">1-8</td>
+<td class="c">840円</td>
+<td class="d">3人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">1-11</td>
+<td class="c">1,040円</td>
+<td class="d">3人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">11-1</td>
+<td class="g">2,820円</td>
+<td class="h">10人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">1-11</td>
+<td class="g">460円</td>
+<td class="h">6人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">8-11</td>
+<td class="g">850円</td>
+<td class="h">12人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">1-8</td>
+<td class="g">330円</td>
+<td class="h">2人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">1-8-11</td>
+<td class="g">1,780円</td>
+<td class="h">5人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">11-1-8</td>
+<td class="g">16,400円</td>
+<td class="h">56人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">4R</p>
+<p class="roundName">内藤哲也☆Ｂｉｅｎｖｅｎｉｄｏ　ａ　Ｓｏｎｏｄａ！Ｃ３二４歳以上</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=4&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=4&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank08">8</td>
+<td>11</td>
+<td>ヴィヴラガレット</td>
+<td>石堂響</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank05">5</td>
+<td>6</td>
+<td>ココリカレドニアン</td>
+<td>永井孝</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank07">7</td>
+<td>9</td>
+<td>キャバリエクエスト</td>
+<td>塩津璃</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">11</td>
+<td class="c">120円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">11</td>
+<td class="c">100円</td>
+<td class="d">1人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">6</td>
+<td class="c">140円</td>
+<td class="d">2人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">9</td>
+<td class="c">240円</td>
+<td class="d">6人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">5-8</td>
+<td class="c">360円</td>
+<td class="d">2人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">6-11</td>
+<td class="c">360円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">11-6</td>
+<td class="g">350円</td>
+<td class="h">1人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">6-11</td>
+<td class="g">170円</td>
+<td class="h">1人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">9-11</td>
+<td class="g">250円</td>
+<td class="h">3人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">6-9</td>
+<td class="g">830円</td>
+<td class="h">10人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">6-9-11</td>
+<td class="g">780円</td>
+<td class="h">1人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">11-6-9</td>
+<td class="g">2,070円</td>
+<td class="h">1人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">5R</p>
+<p class="roundName">ファンファーレと熱狂☆来場記念Ｃ３ ４歳以上</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=5&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=5&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank08">8</td>
+<td>11</td>
+<td>ヤマイチラブリー</td>
+<td>長尾翼</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank06">6</td>
+<td>7</td>
+<td>エレガントフルール</td>
+<td>高畑皓</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank02">2</td>
+<td>2</td>
+<td>コンダクト</td>
+<td>山本太</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">11</td>
+<td class="c">640円</td>
+<td class="d">2人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">11</td>
+<td class="c">210円</td>
+<td class="d">3人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">7</td>
+<td class="c">500円</td>
+<td class="d">6人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">2</td>
+<td class="c">650円</td>
+<td class="d">8人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">6-8</td>
+<td class="c">2,680円</td>
+<td class="d">8人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">7-11</td>
+<td class="c">6,490円</td>
+<td class="d">16人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">11-7</td>
+<td class="g">12,360円</td>
+<td class="h">22人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">7-11</td>
+<td class="g">1,130円</td>
+<td class="h">9人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">2-11</td>
+<td class="g">2,970円</td>
+<td class="h">27人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">2-7</td>
+<td class="g">6,330円</td>
+<td class="h">45人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">2-7-11</td>
+<td class="g">46,560円</td>
+<td class="h">86人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">11-7-2</td>
+<td class="g">294,970円</td>
+<td class="h">424人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">6R</p>
+<p class="roundName">Ｃ１ ４歳以上特別</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=6&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=6&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank05">5</td>
+<td>5</td>
+<td>ライトピラー</td>
+<td>田野豊</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank02">2</td>
+<td>2</td>
+<td>エイシンアニーモ</td>
+<td>小牧太</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank06">6</td>
+<td>6</td>
+<td>ムーンレイデオ</td>
+<td>永井孝</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">5</td>
+<td class="c">240円</td>
+<td class="d">2人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">5</td>
+<td class="c">100円</td>
+<td class="d">2人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">2</td>
+<td class="c">100円</td>
+<td class="d">1人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">6</td>
+<td class="c">250円</td>
+<td class="d">4人気</td>
+</tr>
+
+
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">2-5</td>
+<td class="c">230円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">5-2</td>
+<td class="g">400円</td>
+<td class="h">1人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">2-5</td>
+<td class="g">160円</td>
+<td class="h">2人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">5-6</td>
+<td class="g">450円</td>
+<td class="h">4人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">2-6</td>
+<td class="g">470円</td>
+<td class="h">5人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">2-5-6</td>
+<td class="g">1,030円</td>
+<td class="h">2人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">5-2-6</td>
+<td class="g">3,250円</td>
+<td class="h">9人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">7R</p>
+<p class="roundName">翠星チークダンス☆来場記念Ｃ３一４歳以上</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=7&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=7&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank06">6</td>
+<td>8</td>
+<td>ウルティモ</td>
+<td>土方颯</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank06">6</td>
+<td>7</td>
+<td>エギエネス</td>
+<td>下原理</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank08">8</td>
+<td>12</td>
+<td>パドメ</td>
+<td>吉村智</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">8</td>
+<td class="c">130円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">8</td>
+<td class="c">100円</td>
+<td class="d">1人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">7</td>
+<td class="c">510円</td>
+<td class="d">9人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">12</td>
+<td class="c">120円</td>
+<td class="d">2人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">6-6</td>
+<td class="c">3,640円</td>
+<td class="d">12人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">7-8</td>
+<td class="c">4,130円</td>
+<td class="d">12人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">8-7</td>
+<td class="g">5,290円</td>
+<td class="h">15人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">7-8</td>
+<td class="g">830円</td>
+<td class="h">11人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">8-12</td>
+<td class="g">130円</td>
+<td class="h">1人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">7-12</td>
+<td class="g">1,480円</td>
+<td class="h">18人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">7-8-12</td>
+<td class="g">3,430円</td>
+<td class="h">11人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">8-7-12</td>
+<td class="g">15,550円</td>
+<td class="h">48人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">8R</p>
+<p class="roundName">大木こだま　ひびき☆来場記念Ｃ２二４歳以上</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=8&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=8&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank08">8</td>
+<td>11</td>
+<td>メイショウアラジン</td>
+<td>鴨宮祥</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank03">3</td>
+<td>3</td>
+<td>クレスコユウシャ</td>
+<td>佐々世</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank02">2</td>
+<td>2</td>
+<td>タンタンドル</td>
+<td>小牧太</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">11</td>
+<td class="c">210円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">11</td>
+<td class="c">110円</td>
+<td class="d">1人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">3</td>
+<td class="c">110円</td>
+<td class="d">2人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">2</td>
+<td class="c">140円</td>
+<td class="d">3人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">3-8</td>
+<td class="c">230円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">3-11</td>
+<td class="c">250円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">11-3</td>
+<td class="g">530円</td>
+<td class="h">1人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">3-11</td>
+<td class="g">140円</td>
+<td class="h">1人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">2-11</td>
+<td class="g">170円</td>
+<td class="h">2人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">2-3</td>
+<td class="g">240円</td>
+<td class="h">3人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">2-3-11</td>
+<td class="g">330円</td>
+<td class="h">1人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">11-3-2</td>
+<td class="g">2,000円</td>
+<td class="h">2人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">9R</p>
+<p class="roundName">ＬＯＳ　ＴＲＡＮＱＵＩＬＯＳ　ｄｅ　ＪＡＰＯＮ　賞Ｃ２一４歳以上</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=9&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=9&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank05">5</td>
+<td>5</td>
+<td>ギャランドゥ</td>
+<td>下原理</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank07">7</td>
+<td>10</td>
+<td>ロードシャマール</td>
+<td>吉村智</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank07">7</td>
+<td>9</td>
+<td>キーブリーゼ</td>
+<td>大山真</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">5</td>
+<td class="c">160円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">5</td>
+<td class="c">110円</td>
+<td class="d">1人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">10</td>
+<td class="c">120円</td>
+<td class="d">3人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">9</td>
+<td class="c">120円</td>
+<td class="d">2人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">5-7</td>
+<td class="c">180円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">5-10</td>
+<td class="c">420円</td>
+<td class="d">2人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">5-10</td>
+<td class="g">520円</td>
+<td class="h">1人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">5-10</td>
+<td class="g">210円</td>
+<td class="h">2人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">5-9</td>
+<td class="g">200円</td>
+<td class="h">1人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">9-10</td>
+<td class="g">250円</td>
+<td class="h">3人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">5-9-10</td>
+<td class="g">490円</td>
+<td class="h">1人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">5-10-9</td>
+<td class="g">1,510円</td>
+<td class="h">2人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">10R</p>
+<p class="roundName">楽天競馬で初夢賞Ｂ２ ４歳以上特別</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=10&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=10&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank08">8</td>
+<td>12</td>
+<td>ワンダーブリング</td>
+<td>小牧太</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank01">1</td>
+<td>1</td>
+<td>ギユウ</td>
+<td>鴨宮祥</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank05">5</td>
+<td>5</td>
+<td>ウイングスオール</td>
+<td>笹田知</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">12</td>
+<td class="c">140円</td>
+<td class="d">1人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">12</td>
+<td class="c">110円</td>
+<td class="d">1人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">1</td>
+<td class="c">240円</td>
+<td class="d">4人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">5</td>
+<td class="c">210円</td>
+<td class="d">3人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">1-8</td>
+<td class="c">1,160円</td>
+<td class="d">4人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">1-12</td>
+<td class="c">1,340円</td>
+<td class="d">4人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">12-1</td>
+<td class="g">1,400円</td>
+<td class="h">5人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">1-12</td>
+<td class="g">420円</td>
+<td class="h">4人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">5-12</td>
+<td class="g">300円</td>
+<td class="h">2人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">1-5</td>
+<td class="g">1,600円</td>
+<td class="h">14人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">1-5-12</td>
+<td class="g">2,630円</td>
+<td class="h">7人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">12-1-5</td>
+<td class="g">7,700円</td>
+<td class="h">23人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">11R</p>
+<p class="roundName">２０２６初夢賞４歳以上登録馬特別</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=11&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=11&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank08">8</td>
+<td>11</td>
+<td>ルクスランページ</td>
+<td>土方颯</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank07">7</td>
+<td>10</td>
+<td>イントゥザフロー</td>
+<td>長谷駿</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank08">8</td>
+<td>12</td>
+<td>アグネスシュウ</td>
+<td>新庄海</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">11</td>
+<td class="c">1,190円</td>
+<td class="d">5人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">11</td>
+<td class="c">220円</td>
+<td class="d">5人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">10</td>
+<td class="c">120円</td>
+<td class="d">1人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">12</td>
+<td class="c">210円</td>
+<td class="d">4人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">7-8</td>
+<td class="c">350円</td>
+<td class="d">2人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">10-11</td>
+<td class="c">740円</td>
+<td class="d">3人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">11-10</td>
+<td class="g">3,050円</td>
+<td class="h">12人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">10-11</td>
+<td class="g">370円</td>
+<td class="h">4人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">11-12</td>
+<td class="g">720円</td>
+<td class="h">9人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">10-12</td>
+<td class="g">290円</td>
+<td class="h">2人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">10-11-12</td>
+<td class="g">1,240円</td>
+<td class="h">4人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">11-10-12</td>
+<td class="g">12,330円</td>
+<td class="h">40人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+
+<div class="roundWrapper clearfix">
+<h4 class="clearfix">
+<p class="roundNum">12R</p>
+<p class="roundName">Ｃ２ ４歳以上特別</p>
+</h4>
+<div class="resultArea">
+
+<nav class="resultNavi clearfix">
+
+<a class="resultBtn" href="../TodayRaceInfo/RaceMarkTable?k_raceDate=2026%2f01%2f02&k_raceNo=12&k_babaCode=27">競走成績</a>
+
+
+<a class="resultBtn" target="_blank" href="http://keiba-lv-st.jp/movie/player?date=20260102&race=12&track=sonoda">レース映像</a>
+
+</nav>
+
+<table class="raceResult">
+<tbody>
+<tr>
+<th class="a">着順</th>
+<th class="b">枠</th>
+<th class="c">馬番</th>
+<th class="d">馬名</th>
+<th class="e">騎手名</th>
+</tr>
+<tr>
+<td>1</td>
+<td class="rankNum rank05">5</td>
+<td>5</td>
+<td>スキャットメロディ</td>
+<td>下原理</td>
+</tr><tr>
+<td>2</td>
+<td class="rankNum rank05">5</td>
+<td>6</td>
+<td>ビクトリーブリッジ</td>
+<td>廣瀬航</td>
+</tr><tr>
+<td>3</td>
+<td class="rankNum rank03">3</td>
+<td>3</td>
+<td>スパークロス</td>
+<td>井上幹</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+
+<div class="priceArea clearfix">
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket a">単勝</th>
+<td class="b">5</td>
+<td class="c">2,340円</td>
+<td class="d">3人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket a">複勝</th>
+<td class="b">5</td>
+<td class="c">220円</td>
+<td class="d">3人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket a"></th>
+<td class="b">6</td>
+<td class="c">100円</td>
+<td class="d">1人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket a"></th>
+<td class="b">3</td>
+<td class="c">310円</td>
+<td class="d">6人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">枠連複</th>
+<td class="b">5-5</td>
+<td class="c">510円</td>
+<td class="d">3人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket a">馬連複</th>
+<td class="b">5-6</td>
+<td class="c">530円</td>
+<td class="d">3人気</td>
+</tr>
+
+
+
+</tbody>
+</table>
+<table class="refund">
+<tbody>
+
+
+<tr class="border">
+<th class="ticket e">馬連単</th>
+<td class="f">5-6</td>
+<td class="g">5,780円</td>
+<td class="h">12人気</td>
+</tr>
+
+
+
+<tr class="">
+<th class="ticket e">ワイド</th>
+<td class="f">5-6</td>
+<td class="g">270円</td>
+<td class="h">3人気</td>
+</tr>
+
+<tr class="">
+<th class="ticket e"></th>
+<td class="f">3-5</td>
+<td class="g">2,110円</td>
+<td class="h">20人気</td>
+</tr>
+
+<tr class="border">
+<th class="ticket e"></th>
+<td class="f">3-6</td>
+<td class="g">450円</td>
+<td class="h">5人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連複</th>
+<td class="f">3-5-6</td>
+<td class="g">2,400円</td>
+<td class="h">12人気</td>
+</tr>
+
+
+
+<tr class="border">
+<th class="ticket e">三連単</th>
+<td class="f">5-6-3</td>
+<td class="g">47,210円</td>
+<td class="h">90人気</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</div>
+
+
+<!--重勝式-->
+<a id="lotoPos"></a><div class="roundWrapper clearfix">
+
+
+
+
+<!--重勝式-->
+
+<h4 class="clearfix"><p class="roundName">オッズパークLOTO　5重勝単勝式</p></h4>
+<div class="roundWrapper clearfix">
+
+
+
+<div class="resultArea loto">
+<table class="loto select">
+<tr>
+<th class="a">競走</th>
+<th class="b">馬番</th>
+<th class="c">馬名</th>
+<th class="d">人気</th>
+<th class="e">取消・除外馬番</th>
+</tr>
+
+
+
+
+<tr class="dotted">
+
+<td  >8R</td>
+<td>11</td>
+<td class="name">メイショウアラジン</td>
+<td class="f">1人気</td>
+<td  >－</td>
+</tr>
+
+
+
+
+<tr class="dotted">
+
+<td  >9R</td>
+<td>5</td>
+<td class="name">ギャランドゥ</td>
+<td class="f">1人気</td>
+<td  >－</td>
+</tr>
+
+
+
+
+<tr class="dotted">
+
+<td  >10R</td>
+<td>12</td>
+<td class="name">ワンダーブリング</td>
+<td class="f">1人気</td>
+<td  >9</td>
+</tr>
+
+
+
+
+<tr class="dotted">
+
+<td  >11R</td>
+<td>11</td>
+<td class="name">ルクスランページ</td>
+<td class="f">5人気</td>
+<td  >－</td>
+</tr>
+
+
+
+
+<tr class="dotted">
+
+<td  >12R</td>
+<td>5</td>
+<td class="name">スキャットメロディ</td>
+<td class="f">3人気</td>
+<td  >－</td>
+</tr>
+
+
+</table>
+</div>
+
+
+<div class="priceArea loto clearfix">
+
+
+
+
+<tr><td>
+
+<table class="lotoPrice refundmon">
+<tr>
+<th class="a" colspan="2">組合せ：11, 5, 12, 11, 5</th>
+</tr>
+
+<tr>
+<td class="a">払戻金（1口100円あたり）</td>
+<td class="b">2,885,120円</td>
+</tr>
+<tr>
+<td class="a">的中口数</td>
+<td class="b">1口</td>
+</tr>
+</table>
+
+</td></tr>
+
+
+
+
+
+<table class="lotoPrice summary interval">
+<tr>
+<td class="a">前回からのキャリーオーバー</td>
+<td class="b">0円</td>
+</tr>
+<tr>
+<td class="a">発売金額（1口100円）</td>
+<td class="b">4,121,600円</td>
+</tr>
+<tr>
+<td class="a">返還金額（1口100円）</td>
+<td class="b">0円</td>
+</tr>
+<tr>
+<td class="a">次回へのキャリーオーバー</td>
+<td class="b">0円</td>
+</tr>
+</table>
+
+</div>
+</div>
+
+
+</div>
+</section>
+</div>
+</article>
+
+
+
+
+<article class="attention">
+  
+    <div class="innerWrapper">
+      
+        <p>※勝馬投票に的中者がいない場合、その式別投票者全員に100円につき70円または80円の特払いがあります。<br>　表中の70円または80円は特払いを表示しています。<br>※2023/4/1開催分より競走成績表PDFファイルを掲載しています。掲載は開催日翌日以降となります。</p>
+      
+    </div>
+  
+</article>
+
+</div>
+<!--/mainContainer-->
+<div class="innerWrapper2">
+
+<footer class="footer">
+  <ul class="footerMenu">
+    <li>
+      <a href="/index.html">
+        HOME
+      </a>
+    </li>
+    <li>
+      <a href="/association/">
+        地方競馬全国協会（NAR）
+      </a>
+    </li>
+    <li>
+      <a href="/sitemap.html">
+        サイトマップ
+      </a>
+    </li>
+    <li>
+      <a href="/link.html">
+        関連リンク
+      </a>
+    </li>
+    <li>
+      <a href="/terms.html">
+        利用規約
+      </a>
+    </li>
+    <li>
+      <a href="/qa.html">
+				ご意見・ご要望／FAQ
+	</a>
+    </li>
+  </ul>
+
+  <div class="copyright">
+    copyright 1998-NAR (The National Association of Racing) All Rights Reserved
+  </div>
+				<!-- 言語選択 -->
+				<div class="language cp_sl01">
+					<select onChange="location.href=value;">
+						<option value="#">Language</option>
+						<option value="https://www.goracing.jp/english/">English</option>
+						<option value="https://www.goracing.jp/french/">Francais</option>
+						<option value="https://www.goracing.jp/chinese/">中文</option>
+						<option value="https://www.goracing.jp/korea/">한글</option>
+					</select>
+				</div>
+  
+</footer>
+
+</div>
+</body>
+</html>
+
+
+

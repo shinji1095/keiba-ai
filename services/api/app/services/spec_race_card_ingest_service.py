@@ -64,6 +64,9 @@ class SpecRaceCardIngestService:
         )
         for payload in items_sorted:
             self.upsert_race_card(payload)
+        # Commit as a unit so the caller (sync) can safely advance diff state per race.
+        # This also prevents losing spec data when a later legacy-table ingest fails.
+        self.db.commit()
 
     def upsert_race_card(self, payload: dict[str, Any]) -> None:
         race = payload.get("race")
@@ -250,6 +253,11 @@ class SpecRaceCardIngestService:
                     perf_distance_id=(horse_id and perf_distance_id_by_horse.get(horse_id)) or None,
                     best_time_id=(horse_id and best_time_id_by_horse.get(horse_id)) or None,
                 )
+
+        # Ensure SpecRaceEntry rows are flushed before inserting entry_last5_race rows
+        # that reference (race_id, horse_no). Without relationships, SQLAlchemy may
+        # flush in an order that violates FK constraints on PostgreSQL.
+        self.db.flush()
 
         # last5
         last5 = payload.get("last5")
