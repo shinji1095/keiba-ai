@@ -34,9 +34,9 @@ describe("ScrapeScheduleCard", () => {
     await userEvent.type(input, "3, 4");
 
     // add one more snapshot kind (multi-select)
-    await userEvent.click(screen.getByLabelText("t_minus_5m (発走5分前)"));
+    await userEvent.click(screen.getByLabelText("t_minus_30m (発走30分前)"));
 
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledWith({ enabled: true, baba_codes: [3, 4], snapshot_kinds: ["final", "t_minus_5m"] });
+    expect(onSave).toHaveBeenCalledWith({ enabled: true, baba_codes: [3, 4], snapshot_kinds: ["final", "t_minus_30m"] });
   });
 });

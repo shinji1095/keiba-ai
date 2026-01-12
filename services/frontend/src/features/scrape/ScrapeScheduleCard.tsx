@@ -6,10 +6,6 @@ import { Loading } from "@/shared/ui/Loading";
 
 const SNAPSHOT_KIND_OPTIONS = [
   { value: "final", label: "final (発走直前)" },
-  { value: "t_minus_1m", label: "t_minus_1m (発走1分前)" },
-  { value: "t_minus_5m", label: "t_minus_5m (発走5分前)" },
-  { value: "t_minus_10m", label: "t_minus_10m (発走10分前)" },
-  { value: "t_minus_20m", label: "t_minus_20m (発走20分前)" },
   { value: "t_minus_30m", label: "t_minus_30m (発走30分前)" },
   { value: "t_minus_60m", label: "t_minus_60m (発走60分前)" },
 ] as const;

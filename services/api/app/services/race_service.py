@@ -39,6 +39,12 @@ from app.schemas.race import (
 from app.schemas.venue import Venue, VenueListResponse
 
 
+def _ensure_utc(value: dt.datetime) -> dt.datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=dt.timezone.utc)
+    return value.astimezone(dt.timezone.utc)
+
+
 class RaceService:
     def __init__(self, db: Session):
         self.db = db
@@ -301,7 +307,7 @@ class RaceService:
             race_id=snap.race_id,
             bet_type=BetType(snap.bet_type),
             snapshot_kind=snap.snapshot_kind,
-            captured_at=snap.captured_at,
+            captured_at=_ensure_utc(snap.captured_at),
             source_url=snap.source_url,
             odds_flg=snap.odds_flg,
             is_final=bool(snap.is_final),

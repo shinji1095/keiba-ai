@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import datetime as dt
+
 from fastapi import APIRouter, Depends, Response, status
 
 from app.api.deps import get_db
@@ -14,6 +16,7 @@ from app.schemas.scrape import (
     RaceEntryUpsertBatchRequest,
     RaceResultUpsertBatchRequest,
     RaceUpsertBatchRequest,
+    ScrapePlan,
     ScrapeScheduleStatus,
     ScrapeScheduleUpdateRequest,
     ScrapeSyncRequest,
@@ -51,6 +54,12 @@ def update_schedule(
 ) -> ScrapeScheduleStatus:
     svc = ScrapeControlService()
     return svc.update_schedule(payload)
+
+
+@router.get("/scrape/plan", response_model=ScrapePlan)
+def get_plan(race_date: dt.date | None = None) -> ScrapePlan:
+    svc = ScrapeControlService()
+    return svc.get_plan(race_date=race_date)
 
 
 @router.post(

@@ -4,8 +4,6 @@ import pytest
 
 from app.core.errors import AppError
 from app.schemas.scrape import ManualScrapeTaskRequest
-from app.services.scrape_control_service import ScrapeControlService
-from app.services.scraper_control_client import ScraperControlClient
 
 
 def _require_scraper_base_url() -> str:
@@ -32,7 +30,9 @@ def _skip_or_fail_on_busy(exc: Exception) -> None:
 
 
 @pytest.mark.system
-def test_pi_scraper_control_health() -> None:
+def test_pi_scraper_control_health(client) -> None:
+    from app.services.scraper_control_client import ScraperControlClient
+
     _require_scraper_base_url()
     client = ScraperControlClient.from_settings()
     try:
@@ -44,7 +44,9 @@ def test_pi_scraper_control_health() -> None:
 
 
 @pytest.mark.system
-def test_pi_scraper_control_schedule_can_be_fetched() -> None:
+def test_pi_scraper_control_schedule_can_be_fetched(client) -> None:
+    from app.services.scrape_control_service import ScrapeControlService
+
     _require_scraper_base_url()
     svc = ScrapeControlService()
     try:
@@ -58,7 +60,9 @@ def test_pi_scraper_control_schedule_can_be_fetched() -> None:
 
 
 @pytest.mark.system
-def test_pi_scraper_control_manual_task_can_be_requested() -> None:
+def test_pi_scraper_control_manual_task_can_be_requested(client) -> None:
+    from app.services.scrape_control_service import ScrapeControlService
+
     _require_scraper_base_url()
     svc = ScrapeControlService()
     try:
@@ -83,4 +87,3 @@ def test_pi_scraper_control_manual_task_can_be_requested() -> None:
     assert isinstance(resp.task_id, str)
     assert resp.task_id
     assert resp.status == "accepted"
-

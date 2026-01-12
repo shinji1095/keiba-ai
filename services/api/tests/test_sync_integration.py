@@ -6,12 +6,13 @@ import uuid
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-from app.core.config import settings
 
 
 def test_api_sync_posts_to_scraper_control(
     client, monkeypatch, tmp_path: Path
 ) -> None:
+    from app.core.config import settings
+
     captured: list[tuple[str, dict]] = []
 
     race_key = {"race_date": "2025-12-28", "baba_code": 5, "race_no": 7}

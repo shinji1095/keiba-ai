@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from app.db.session import SessionLocal
 from app.db.models.venue import Venue
 from app.services.spec_race_card_ingest_service import SpecRaceCardIngestService
 
@@ -10,6 +9,8 @@ def _auth_headers(token: str) -> dict[str, str]:
 
 
 def test_spec_race_card_ingest_and_get(client):
+    from app.db.session import SessionLocal
+
     # Login as bootstrap admin (created at startup)
     r = client.post("/auth/login", json={"username": "admin", "password": "adminpass"})
     assert r.status_code == 200
@@ -162,5 +163,4 @@ def test_spec_race_card_ingest_and_get(client):
     assert len(body["perf_total"]) == 1
     assert len(body["best_time"]) == 1
     assert len(body["last5"]) == 1
-
 

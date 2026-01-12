@@ -7,9 +7,10 @@ import uuid
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import datetime as dt
 from pathlib import Path
 from typing import Any, Optional
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from scraper_service.config import Settings, settings
 from scraper_service.ingest.store import IngestStore
@@ -47,7 +48,7 @@ class ScheduleStore:
                 return ScheduleState(
                     enabled=False,
                     baba_codes=[],
-                    snapshot_kinds=["final"],
+                    snapshot_kinds=["t_minus_60m", "t_minus_30m", "final"],
                     prefetch_days=7,
                     updated_at=iso_now_jst(),
                 )
@@ -204,6 +205,17 @@ class ControlHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _read_scrape_plan(self, race_date: str) -> dict[str, Any] | None:
+        try:
+            dt.date.fromisoformat(race_date)
+        except ValueError:
+            raise ValueError("race_date must be YYYY-MM-DD") from None
+
+        plan_path = self._app._cfg.control_dir / f"scrape_plan_{race_date}.json"
+        if not plan_path.exists():
+            return None
+        return json.loads(plan_path.read_text(encoding="utf-8"))
+
     def _read_json(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", "0"))
         if length <= 0:
@@ -219,13 +231,32 @@ class ControlHandler(BaseHTTPRequestHandler):
         return self.server.app  # type: ignore[attr-defined]
 
     def do_GET(self) -> None:
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path in ("/health", "/"):
             self._send_json(200, {"status": "ok"})
             return
         if path == "/control/schedule":
             state = self._app.get_schedule()
             self._send_json(200, state.to_dict())
+            return
+        if path == "/control/plan":
+            qs = parse_qs(parsed.query)
+            race_date = (qs.get("race_date") or [None])[0]
+            if race_date is None:
+                race_date = today_jst_str()
+            if not isinstance(race_date, str) or not race_date:
+                self._send_json(400, {"error": "race_date must be a non-empty string"})
+                return
+            try:
+                plan = self._read_scrape_plan(race_date)
+            except ValueError as exc:
+                self._send_json(400, {"error": str(exc)})
+                return
+            if plan is None:
+                self._send_json(404, {"error": "scrape plan not found"})
+                return
+            self._send_json(200, plan)
             return
         self.send_error(404)
 

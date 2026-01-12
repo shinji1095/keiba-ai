@@ -47,6 +47,35 @@ class ScrapeScheduleUpdateRequest(BaseModel):
     prefetch_days: Optional[int] = Field(default=None, ge=0, le=31)
 
 
+class ScrapePlanKey(BaseModel):
+    race_date: str
+    baba_code: int
+    race_no: Optional[int] = None
+
+
+class ScrapePlanItem(BaseModel):
+    task_kind: str
+    page_name: str
+    race_key: ScrapePlanKey
+    start_time: Optional[str] = None
+    snapshot_kind: str
+    odds_flg: Optional[int] = None
+    target_at: dt.datetime
+    scheduled_at: dt.datetime
+    priority: int
+    within_tolerance: bool
+    delay_sec: int
+
+
+class ScrapePlan(BaseModel):
+    race_date: str
+    snapshot_kinds: list[str]
+    generated_at: dt.datetime
+    interval_sec: int
+    tolerance_sec: int
+    items: list[ScrapePlanItem]
+
+
 class ScrapeSyncRequest(BaseModel):
     reason: Optional[str] = None
 

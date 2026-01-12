@@ -4,11 +4,14 @@ import datetime as dt
 import uuid
 from datetime import datetime, timezone
 
+from pydantic import ValidationError
+
 from app.core.errors import AppError
 from app.core.config import settings
 from app.schemas.scrape import (
     ManualScrapeTaskRequest,
     ManualScrapeTaskResponse,
+    ScrapePlan,
     ScrapeScheduleStatus,
     ScrapeScheduleUpdateRequest,
     ScrapeSyncRequest,
@@ -112,6 +115,25 @@ class ScrapeControlService:
             request_payload["prefetch_days"] = payload.prefetch_days
         response = client.post_json("/control/schedule", request_payload)
         return self._parse_schedule_payload(response)
+
+    def get_plan(self, *, race_date: dt.date | None) -> ScrapePlan:
+        client = ScraperControlClient.from_settings()
+        path = "/control/plan"
+        if race_date is not None:
+            path = f"{path}?race_date={race_date.isoformat()}"
+        payload = client.get_json_optional(path)
+        if payload is None:
+            raise AppError.not_found(
+                "scrape plan not found",
+                details={"race_date": race_date.isoformat() if race_date else None},
+            )
+        try:
+            return ScrapePlan.model_validate(payload)
+        except ValidationError as exc:
+            raise AppError.bad_gateway(
+                "invalid scrape plan response",
+                details={"errors": exc.errors()},
+            ) from exc
 
     def request_manual_task(
         self, payload: ManualScrapeTaskRequest

@@ -670,6 +670,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/ScrapeScheduleStatus"
 
+  /scrape/plan:
+    get:
+      tags: [scrape]
+      summary: Get scrape execution plan
+      description: |
+        scraper-service（Pi）が生成した当日プラン（scrape_plan_YYYY-MM-DD.json）を取得する。
+        `race_date` を省略した場合は当日（JST）を対象とする。
+      parameters:
+        - name: race_date
+          in: query
+          required: false
+          schema:
+            type: string
+            example: 2026-01-02
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapePlan"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /scrape/sync:
     post:
       tags: [scrape]
@@ -1153,6 +1177,79 @@ components:
           maximum: 31
           description: 日次で先読みする RaceList の日数（0で無効）
           nullable: true
+
+    ScrapePlanKey:
+      type: object
+      required: [race_date, baba_code]
+      properties:
+        race_date:
+          type: string
+          example: 2026-01-02
+        baba_code:
+          type: integer
+          format: int32
+        race_no:
+          type: integer
+          format: int32
+          nullable: true
+
+    ScrapePlanItem:
+      type: object
+      required: [task_kind, page_name, race_key, snapshot_kind, target_at, scheduled_at, priority, within_tolerance, delay_sec]
+      properties:
+        task_kind:
+          type: string
+          example: odds
+        page_name:
+          type: string
+          example: OddsTanFuku
+        race_key:
+          $ref: "#/components/schemas/ScrapePlanKey"
+        start_time:
+          type: string
+          description: HH:MM:SS
+          nullable: true
+        snapshot_kind:
+          type: string
+        odds_flg:
+          type: integer
+          format: int32
+          nullable: true
+        target_at:
+          type: string
+          format: date-time
+        scheduled_at:
+          type: string
+          format: date-time
+        priority:
+          type: integer
+        within_tolerance:
+          type: boolean
+        delay_sec:
+          type: integer
+
+    ScrapePlan:
+      type: object
+      required: [race_date, snapshot_kinds, generated_at, interval_sec, tolerance_sec, items]
+      properties:
+        race_date:
+          type: string
+          example: 2026-01-02
+        snapshot_kinds:
+          type: array
+          items:
+            type: string
+        generated_at:
+          type: string
+          format: date-time
+        interval_sec:
+          type: integer
+        tolerance_sec:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScrapePlanItem"
 
     ScrapeSyncRequest:
       type: object

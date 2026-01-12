@@ -5,9 +5,6 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.core.config import settings
-import app.services.scrape_control_service as control_service
-import app.services.scrape_sync_service as sync_service
 
 
 class DummyControlClient:
@@ -38,6 +35,8 @@ class DummyExportClient:
 
 
 def _patch_control_client(monkeypatch, dummy: DummyControlClient) -> None:
+    import app.services.scrape_control_service as control_service
+
     monkeypatch.setattr(
         control_service.ScraperControlClient,
         "from_settings",
@@ -46,6 +45,8 @@ def _patch_control_client(monkeypatch, dummy: DummyControlClient) -> None:
 
 
 def _patch_sync_client(monkeypatch, dummy: DummyExportClient) -> None:
+    import app.services.scrape_sync_service as sync_service
+
     monkeypatch.setattr(
         sync_service.ScraperControlClient,
         "from_settings",
@@ -121,9 +122,68 @@ def test_scrape_schedule_update(client, monkeypatch) -> None:
     assert payload == {"enabled": True, "baba_codes": [3, 4]}
 
 
+def test_scrape_plan_returns_plan(client, monkeypatch) -> None:
+    class DummyPlanClient:
+        def __init__(self, payload: dict) -> None:
+            self.payload = payload
+            self.calls: list[str] = []
+
+        def get_json_optional(self, path: str) -> dict | None:
+            self.calls.append(path)
+            return self.payload
+
+    dummy = DummyPlanClient(
+        payload={
+            "race_date": "2025-01-01",
+            "snapshot_kinds": ["t_minus_60m", "t_minus_30m", "final"],
+            "generated_at": "2025-01-01T10:00:00+09:00",
+            "interval_sec": 60,
+            "tolerance_sec": 300,
+            "items": [
+                {
+                    "task_kind": "odds",
+                    "page_name": "OddsTanFuku",
+                    "race_key": {"race_date": "2025-01-01", "baba_code": 1, "race_no": 1},
+                    "start_time": "12:00:00",
+                    "snapshot_kind": "t_minus_30m",
+                    "odds_flg": 4,
+                    "target_at": "2025-01-01T11:30:00+09:00",
+                    "scheduled_at": "2025-01-01T11:31:00+09:00",
+                    "priority": 3,
+                    "within_tolerance": True,
+                    "delay_sec": 60,
+                }
+            ],
+        }
+    )
+    _patch_control_client(monkeypatch, dummy)
+
+    r = client.get("/scrape/plan", params={"race_date": "2025-01-01"})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["race_date"] == "2025-01-01"
+    assert body["snapshot_kinds"] == ["t_minus_60m", "t_minus_30m", "final"]
+    assert body["items"]
+    assert dummy.calls == ["/control/plan?race_date=2025-01-01"]
+
+
+def test_scrape_plan_returns_404_when_missing(client, monkeypatch) -> None:
+    class DummyPlanClient:
+        def get_json_optional(self, path: str) -> dict | None:
+            _ = path
+            return None
+
+    _patch_control_client(monkeypatch, DummyPlanClient())
+
+    r = client.get("/scrape/plan", params={"race_date": "2025-01-01"})
+    assert r.status_code == 404, r.text
+
+
 def test_scrape_sync_creates_state(
     client, monkeypatch, tmp_path: Path
 ) -> None:
+    from app.core.config import settings
+
     state_path = tmp_path / "sync_state.json"
     monkeypatch.setattr(settings, "scrape_sync_state_path", state_path)
     dummy = DummyExportClient()
@@ -142,6 +202,8 @@ def test_scrape_sync_creates_state(
 def test_scrape_sync_status_reads_state(
     client, monkeypatch, tmp_path: Path
 ) -> None:
+    from app.core.config import settings
+
     state_path = tmp_path / "sync_state.json"
     payload = {
         "last_synced_at": "2025-01-01T00:00:00+00:00",
@@ -173,6 +235,8 @@ def test_scrape_sync_status_reads_state(
 def test_scrape_sync_pulls_payloads(
     client, monkeypatch, tmp_path: Path
 ) -> None:
+    from app.core.config import settings
+
     state_path = tmp_path / "sync_state.json"
     monkeypatch.setattr(settings, "scrape_sync_state_path", state_path)
     race_key = {"race_date": "2025-12-28", "baba_code": 5, "race_no": 7}
@@ -224,6 +288,8 @@ def test_scrape_sync_pulls_payloads(
 def test_scrape_sync_schedule_update(
     client, monkeypatch, tmp_path: Path
 ) -> None:
+    from app.core.config import settings
+
     state_path = tmp_path / "sync_state.json"
     monkeypatch.setattr(settings, "scrape_sync_state_path", state_path)
 
@@ -241,6 +307,8 @@ def test_scrape_sync_schedule_update(
 def test_scrape_sync_scheduled_skip_when_not_due(
     client, monkeypatch, tmp_path: Path
 ) -> None:
+    from app.core.config import settings
+
     state_path = tmp_path / "sync_state.json"
     payload = {
         "last_synced_at": datetime.now(timezone.utc).isoformat(),

@@ -41,6 +41,9 @@ class ScraperControlClient:
     def get_json(self, path: str) -> dict[str, Any]:
         return self._request_json("GET", path, None)
 
+    def get_json_optional(self, path: str) -> Optional[dict[str, Any]]:
+        return self._request_json_optional("GET", path, None)
+
     def post_json(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         return self._request_json("POST", path, payload)
 
@@ -66,6 +69,55 @@ class ScraperControlClient:
                         details={"url": url, "status": resp.status},
                     )
         except urllib.error.HTTPError as exc:
+            if exc.code == 409:
+                raise AppError.conflict(
+                    "scraper is busy",
+                    details={"url": url, "status": exc.code},
+                ) from exc
+            raise AppError.bad_gateway(
+                "scraper control request failed",
+                details={"url": url, "status": exc.code},
+            ) from exc
+        except (urllib.error.URLError, ssl.SSLError) as exc:
+            raise AppError.bad_gateway(
+                "scraper control connection error",
+                details={"url": url, "reason": str(getattr(exc, "reason", exc))},
+            ) from exc
+
+        if not body:
+            return {}
+        try:
+            return json.loads(body)
+        except json.JSONDecodeError as exc:
+            raise AppError.bad_gateway(
+                "scraper control returned invalid json",
+                details={"url": url},
+            ) from exc
+
+    def _request_json_optional(
+        self, method: str, path: str, payload: Optional[dict[str, Any]]
+    ) -> Optional[dict[str, Any]]:
+        url = f"{self.base_url}{path}"
+        data = (
+            json.dumps(payload, ensure_ascii=True).encode("utf-8")
+            if payload is not None
+            else None
+        )
+        headers = {"Content-Type": "application/json"} if data else {}
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(
+                req, timeout=self.timeout_sec, context=self.ssl_context
+            ) as resp:
+                body = resp.read().decode("utf-8")
+                if resp.status >= 400:
+                    raise AppError.bad_gateway(
+                        "scraper control request failed",
+                        details={"url": url, "status": resp.status},
+                    )
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                return None
             if exc.code == 409:
                 raise AppError.conflict(
                     "scraper is busy",

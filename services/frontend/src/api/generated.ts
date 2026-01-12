@@ -80,6 +80,38 @@ export interface ScrapeScheduleUpdateRequest {
   "prefetch_days"?: number | null;
 }
 
+export interface ScrapePlanKey {
+  "race_date": string;
+  "baba_code": number;
+  "race_no"?: number | null;
+}
+
+export interface ScrapePlanItem {
+  "task_kind": string;
+  "page_name": string;
+  "race_key": ScrapePlanKey;
+  /**
+   * HH:MM:SS
+   */
+  "start_time"?: string | null;
+  "snapshot_kind": string;
+  "odds_flg"?: number | null;
+  "target_at": string;
+  "scheduled_at": string;
+  "priority": number;
+  "within_tolerance": boolean;
+  "delay_sec": number;
+}
+
+export interface ScrapePlan {
+  "race_date": string;
+  "snapshot_kinds": string[];
+  "generated_at": string;
+  "interval_sec": number;
+  "tolerance_sec": number;
+  "items": ScrapePlanItem[];
+}
+
 export interface ManualScrapeTaskRequest {
   "race_date"?: string | null;
   /**

@@ -65,7 +65,7 @@ SCR-CTRL-005,"scraper: 同期データ提供（export）","POST /control/export/
 SCR-SCRAPE-001,"scraper: TodayRaceInfo 取得","TodayRaceInfoTop/RaceList/DebaTable/RaceMarkTable/RefundMoneyList/Odds* を取得・保存する（DebaTableは斤量/騎手/馬体重も抽出）","実装済み"
 SCR-SCHED-001,"scraper: 定期実行（snapshot_kinds）","RaceList の発走時刻から t_minus_* / final のタイミングで odds を取得する（snapshot_kindsは複数選択可・デフォルトfinalのみ）","実装済み"
 SCR-SCHED-002,"scraper: 日次で将来1週間のRaceListを取得","日付更新単位で、将来1週間分の RaceList を先読み取得し ingest に保存する（prefetch_days=7）","実装済み"
-SCR-PLAN-001,"scraper: 当日スクレイピング計画生成","当日 RaceList から odds のスクレイプ計画（odds_plan_YYYY-MM-DD.json）を生成して保存する","実装済み"
+SCR-PLAN-001,"scraper: 当日スクレイピング計画生成","当日 RaceList から当日プラン（scrape_plan_YYYY-MM-DD.json）を生成して保存する","実装済み"
 SCR-SCRAPE-002,"scraper: 低負荷ポリシー","per-host concurrency=1、最小間隔、指数バックオフ等の負荷抑制を行う","実装済み"
 SCR-SCRAPE-003,"scraper: fixtures 収集（manifest）","manifest.yml に基づく HTML 収集とログ出力（TDD向け）","実装済み"
 SCR-CRON-001,"scraper: cron 定期実行","cron が schedule 状態に従って定期実行する","実装済み"
@@ -77,4 +77,3 @@ WORK-002,"worker: Broker/Backend（本番）","Redis 等の broker/backend と�
 INF-NGINX-001,"infra: reverse-proxy ルーティング","NGINXで /→frontend、/api/→api をリバースプロキシする","実装済み"
 INF-DOCKER-001,"infra: PC compose","docker-compose.pc.yaml（reverse-proxy/api/postgres/worker/pipeline/mlflow/frontend）","実装済み"
 INF-DOCKER-002,"infra: Pi compose","docker-compose.pi.yaml（scraper/control/cron 等）","実装済み"
-

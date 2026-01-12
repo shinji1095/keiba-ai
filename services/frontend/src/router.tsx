@@ -14,6 +14,7 @@ import { PastRacesPage } from "./features/races/PastRacesPage";
 import { RaceResultsPage } from "./features/races/RaceResultsPage";
 import { OAuthClientsPage } from "./features/admin/OAuthClientsPage";
 import { ScrapeConsolePage } from "./features/scrape/ScrapeConsolePage";
+import { ScrapeSchedulePage } from "./features/scrape/ScrapeSchedulePage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { TestDataPage } from "./features/testdata/TestDataPage";
 import { NotFoundPage } from "./features/system/NotFoundPage";
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
       { path: "results", element: <RaceResultsPage /> },
       { path: "admin/oauth-clients", element: <OAuthClientsPage /> },
       { path: "scrape", element: <ScrapeConsolePage /> },
+      { path: "scrape-schedule", element: <ScrapeSchedulePage /> },
       { path: "test-data", element: <TestDataPage /> },
       { path: "settings", element: <SettingsPage /> },
     ],

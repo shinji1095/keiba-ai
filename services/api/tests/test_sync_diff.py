@@ -5,8 +5,18 @@ from pathlib import Path
 
 import pytest
 
-import app.services.scrape_sync_service as sync_service
 from app.services.scrape_sync_state import SyncEntry, SyncState, SyncStateStore
+
+
+@pytest.fixture(autouse=True)
+def _ensure_test_env(client) -> None:
+    _ = client
+
+
+def _sync_service():
+    import app.services.scrape_sync_service as sync_service
+
+    return sync_service
 
 
 class DummyExportClient:
@@ -18,6 +28,7 @@ class DummyExportClient:
 
 
 def _patch_sync_client(monkeypatch, dummy: DummyExportClient) -> None:
+    sync_service = _sync_service()
     monkeypatch.setattr(
         sync_service.ScraperControlClient,
         "from_settings",
@@ -52,6 +63,7 @@ class DummyScrapeService:
 
 
 def test_build_scope_key_by_page_type() -> None:
+    sync_service = _sync_service()
     scope = sync_service._build_scope_key(
         page_type=sync_service.PAGE_RACE_LIST,
         race_date="2025-12-28",
@@ -86,6 +98,7 @@ def test_build_scope_key_by_page_type() -> None:
 
 
 def test_diff_key_includes_snapshot_fields() -> None:
+    sync_service = _sync_service()
     page_type = sync_service.ODDS_PAGE_BY_BET_TYPE["tansho"]
     diff_key = sync_service._diff_key(
         page_type=page_type,
@@ -99,6 +112,7 @@ def test_diff_key_includes_snapshot_fields() -> None:
 
 
 def test_should_sync_checks_fingerprint_and_flag() -> None:
+    sync_service = _sync_service()
     now = datetime.now(timezone.utc)
     state = SyncState(items={"key": SyncEntry(fingerprint="abc", updated_at=now)})
 
@@ -109,6 +123,7 @@ def test_should_sync_checks_fingerprint_and_flag() -> None:
 
 
 def test_fingerprint_payload_is_deterministic() -> None:
+    sync_service = _sync_service()
     payload_a = {"b": 1, "a": 2}
     payload_b = {"a": 2, "b": 1}
     assert (
@@ -120,6 +135,7 @@ def test_fingerprint_payload_is_deterministic() -> None:
 def test_sync_skips_same_odds_payload(
     client, monkeypatch, tmp_path: Path
 ) -> None:
+    sync_service = _sync_service()
     dummy = DummyExportClient(
         responses={
             "/control/export/odds-snapshots": [

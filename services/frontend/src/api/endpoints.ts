@@ -27,6 +27,7 @@ import {
   RaceResultListResponse,
   RaceResultUpsertBatchRequest,
   RaceUpsertBatchRequest,
+  ScrapePlan,
   ScrapeScheduleStatus,
   ScrapeScheduleUpdateRequest,
   ScrapeSyncRequest,
@@ -159,6 +160,9 @@ export const api = {
 
   scrapeScheduleUpdate: (ctx: ApiCtx, req: ScrapeScheduleUpdateRequest) =>
     apiFetch<ScrapeScheduleStatus>({ ...ctx, path: "/scrape/schedule", method: "POST", body: req }),
+
+  scrapePlan: (ctx: ApiCtx, query?: { race_date?: string }) =>
+    apiFetch<ScrapePlan>({ ...ctx, path: "/scrape/plan", method: "GET", query }),
 
   scrapeManualTasksRequest: (ctx: ApiCtx, req: ManualScrapeTaskRequest) =>
     apiFetch<ManualScrapeTaskResponse>({ ...ctx, path: "/scrape/manual-tasks", method: "POST", body: req }),

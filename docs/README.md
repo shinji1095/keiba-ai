@@ -21,12 +21,13 @@ MLOps とマイクロサービスでは「動くコード」より「継続し�
 8. `20_data_contracts.md`（DB・API・イベントの契約）
 9. `30_scraping_policy.md`（負荷抑制・取得タイミング・障害検知）
 10. `31_scraping_flow.md`（スクレイピング→正規化→保存フロー）
-11. `40_mlops_pipeline.md`（学習・評価・登録・配布・再現性）
-12. `50_coding_standard.md`（規約・レビュー・TDDの約束）
-13. `60_ci_cd.md`（CI/CD、ゲート、デプロイ）
-14. `70_operations_runbook.md`（監視、バックアップ、復旧、SLO）
-15. `80_test_guideline.md`（テスト契約・設計方針・実行方法）
-16. `90_decisions.md`（決定ログ：いつ・誰が・なぜ決めたか）
+11. `32_http_request_data_mapping.md`（HTTPリクエスト対応表）
+12. `40_mlops_pipeline.md`（学習・評価・登録・配布・再現性）
+13. `50_coding_standard.md`（規約・レビュー・TDDの約束）
+14. `60_ci_cd.md`（CI/CD、ゲート、デプロイ）
+15. `70_operations_runbook.md`（監視、バックアップ、復旧、SLO）
+16. `80_test_guideline.md`（テスト契約・設計方針・実行方法）
+17. `90_decisions.md`（決定ログ：いつ・誰が・なぜ決めたか）
 
 ## オーナーシップ（推奨）
 - Architecture/Infra: PM + Backend Lead

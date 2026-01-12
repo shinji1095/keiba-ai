@@ -30,9 +30,6 @@ from scraper_service.utils.time import JST, combine_date_time_jst, iso_now_jst
 SCHEDULED_ODDS_WINDOWS = [
     ("t_minus_60m", 60, 2),
     ("t_minus_30m", 30, 2),
-    ("t_minus_20m", 20, 2),
-    ("t_minus_10m", 10, 1),
-    ("t_minus_5m", 5, 1),
 ]
 
 MANUAL_ODDS_TARGETS = [
@@ -44,7 +41,8 @@ MANUAL_ODDS_TARGETS = [
     ("t_minus_1m", 1),
 ]
 
-DEFAULT_SCHEDULED_SNAPSHOT_KINDS = ["final"]
+ALLOWED_SCHEDULED_SNAPSHOT_KINDS = {"t_minus_60m", "t_minus_30m", "final"}
+DEFAULT_SCHEDULED_SNAPSHOT_KINDS = ["t_minus_60m", "t_minus_30m", "final"]
 SCHEDULED_SNAPSHOT_KIND_TO_OFFSET_MIN: dict[str, int] = {
     "t_minus_60m": 60,
     "t_minus_30m": 30,
@@ -57,11 +55,12 @@ SCHEDULED_SNAPSHOT_KIND_TO_OFFSET_MIN: dict[str, int] = {
 SCHEDULED_SNAPSHOT_KIND_WINDOWS_MIN: dict[str, int] = {
     "t_minus_60m": 2,
     "t_minus_30m": 2,
-    "t_minus_20m": 2,
-    "t_minus_10m": 1,
-    "t_minus_5m": 1,
     # t_minus_1m / final are handled with a seconds window to avoid overlap.
 }
+
+PLAN_INTERVAL_SEC = 60
+PLAN_TOLERANCE_SEC = 300
+DEBA_TARGET_OFFSET_MIN = 75
 
 
 def _normalize_snapshot_kinds(kinds: Optional[list[str]]) -> list[str]:
@@ -74,6 +73,8 @@ def _normalize_snapshot_kinds(kinds: Optional[list[str]]) -> list[str]:
         if not kk or kk in seen:
             continue
         if kk not in SCHEDULED_SNAPSHOT_KIND_TO_OFFSET_MIN:
+            continue
+        if kk not in ALLOWED_SCHEDULED_SNAPSHOT_KINDS:
             continue
         out.append(kk)
         seen.add(kk)
@@ -147,44 +148,178 @@ def _iter_future_dates(base: str, days: int) -> list[str]:
     return [(start + timedelta(days=i)).isoformat() for i in range(1, days + 1)]
 
 
-def _build_daily_odds_plan(
+def _plan_priority(task_kind: str, snapshot_kind: str) -> int:
+    if task_kind == "odds" and snapshot_kind != "final":
+        return 3
+    if task_kind == "odds" and snapshot_kind == "final":
+        return 2
+    return 1
+
+
+def _schedule_plan_tasks(
+    tasks: list[dict[str, object]],
+    *,
+    interval_sec: int,
+    tolerance_sec: int,
+) -> list[dict[str, object]]:
+    tasks.sort(
+        key=lambda x: (
+            x["target_at"],
+            -int(x["priority"]),
+            x["page_name"],
+            x["race_key"]["baba_code"],  # type: ignore[index]
+            x["race_key"].get("race_no") or 0,  # type: ignore[index]
+        )
+    )
+    last_at: Optional[datetime] = None
+    for task in tasks:
+        target_at = task["target_at"]
+        earliest = target_at - timedelta(seconds=tolerance_sec)
+        latest = target_at + timedelta(seconds=tolerance_sec)
+
+        if last_at is None:
+            candidate = target_at
+        else:
+            candidate = max(last_at + timedelta(seconds=interval_sec), target_at)
+            if candidate > latest:
+                candidate = max(last_at + timedelta(seconds=interval_sec), earliest)
+
+        task["scheduled_at"] = candidate
+        task["within_tolerance"] = candidate <= latest
+        task["delay_sec"] = int((candidate - target_at).total_seconds())
+        last_at = candidate
+
+    for task in tasks:
+        task["target_at"] = task["target_at"].isoformat(timespec="seconds")
+        task["scheduled_at"] = task["scheduled_at"].isoformat(timespec="seconds")
+
+    tasks.sort(key=lambda x: (x["scheduled_at"], x["race_key"]["baba_code"], x["race_key"].get("race_no") or 0))  # type: ignore[index]
+    return tasks
+
+
+def _build_daily_scrape_plan(
     *,
     race_date: str,
     races: list[object],
     snapshot_kinds: list[str],
 ) -> list[dict[str, object]]:
-    """Build a simple odds plan from RaceList results.
+    """Build a daily scrape plan from RaceList results.
 
-    This plan is primarily for observability/debugging (what should be scraped when).
+    The plan is used for observability/scheduling (per-HTTP request).
     """
 
     tasks: list[dict[str, object]] = []
+    last_start_by_baba: dict[int, datetime] = {}
+
+    def _append_task(
+        *,
+        task_kind: str,
+        page_name: str,
+        baba_code: int,
+        race_no: int | None,
+        start_time: str | None,
+        snapshot_kind: str,
+        odds_flg: int | None,
+        target_at: datetime,
+    ) -> None:
+        tasks.append(
+            {
+                "task_kind": task_kind,
+                "page_name": page_name,
+                "race_key": {
+                    "race_date": race_date,
+                    "baba_code": baba_code,
+                    "race_no": race_no,
+                },
+                "start_time": start_time,
+                "snapshot_kind": snapshot_kind,
+                "odds_flg": odds_flg,
+                "target_at": target_at,
+                "priority": _plan_priority(task_kind, snapshot_kind),
+            }
+        )
+
     for r in races:
-        # RaceUpsert has: race_key + start_time
         rk = getattr(r, "race_key", None)
         start_time = getattr(r, "start_time", None)
         start_dt = _race_start_dt(race_date, start_time)
         if rk is None or start_dt is None:
             continue
+
+        prev = last_start_by_baba.get(rk.baba_code)
+        if prev is None or start_dt > prev:
+            last_start_by_baba[rk.baba_code] = start_dt
+
+        # DebaTable (early)
+        _append_task(
+            task_kind="deba_table",
+            page_name=C.PAGE_DEBA_TABLE,
+            baba_code=rk.baba_code,
+            race_no=rk.race_no,
+            start_time=start_time,
+            snapshot_kind="early",
+            odds_flg=None,
+            target_at=start_dt - timedelta(minutes=DEBA_TARGET_OFFSET_MIN),
+        )
+
+        # Odds snapshots
         for kind in snapshot_kinds:
             offset_min = SCHEDULED_SNAPSHOT_KIND_TO_OFFSET_MIN.get(kind)
             if offset_min is None:
                 continue
-            scheduled_at = start_dt - timedelta(minutes=offset_min)
-            tasks.append(
-                {
-                    "race_key": {
-                        "race_date": rk.race_date,
-                        "baba_code": rk.baba_code,
-                        "race_no": rk.race_no,
-                    },
-                    "start_time": start_time,
-                    "snapshot_kind": kind,
-                    "scheduled_at": scheduled_at.isoformat(timespec="seconds"),
-                }
-            )
-    tasks.sort(key=lambda x: (x["scheduled_at"], x["race_key"]["baba_code"], x["race_key"]["race_no"]))  # type: ignore[index]
-    return tasks
+            target_at = start_dt - timedelta(minutes=offset_min)
+            for page_name in (
+                C.PAGE_ODDS_TANFUKU,
+                C.PAGE_ODDS_WAKU,
+                C.PAGE_ODDS_UMAREN,
+                C.PAGE_ODDS_UMATAN,
+                C.PAGE_ODDS_WIDE,
+                C.PAGE_ODDS_3LENFUKU,
+                C.PAGE_ODDS_3LENTAN,
+            ):
+                flgs = ODDS_FLG_FIXED.get(page_name, [None])
+                for flg in flgs:
+                    _append_task(
+                        task_kind="odds",
+                        page_name=page_name,
+                        baba_code=rk.baba_code,
+                        race_no=rk.race_no,
+                        start_time=start_time,
+                        snapshot_kind=kind,
+                        odds_flg=flg,
+                        target_at=target_at,
+                    )
+
+        # RaceMarkTable (final only)
+        _append_task(
+            task_kind="race_mark",
+            page_name=C.PAGE_RACE_MARK_TABLE,
+            baba_code=rk.baba_code,
+            race_no=rk.race_no,
+            start_time=start_time,
+            snapshot_kind="final",
+            odds_flg=None,
+            target_at=start_dt,
+        )
+
+    # RefundMoneyList (once per venue, final timing)
+    for baba_code, last_start_dt in last_start_by_baba.items():
+        _append_task(
+            task_kind="refund",
+            page_name=C.PAGE_REFUND_MONEY_LIST,
+            baba_code=baba_code,
+            race_no=None,
+            start_time=last_start_dt.strftime("%H:%M:%S"),
+            snapshot_kind="final",
+            odds_flg=None,
+            target_at=last_start_dt,
+        )
+
+    return _schedule_plan_tasks(
+        tasks,
+        interval_sec=PLAN_INTERVAL_SEC,
+        tolerance_sec=PLAN_TOLERANCE_SEC,
+    )
 
 
 def _save_dir_for(
@@ -692,21 +827,24 @@ class ScrapeRunner:
 
         # Save daily plan (for observability/debugging).
         if race_no is None:
-            plan_path = self.settings.control_dir / f"odds_plan_{race_date}.json"
-            plan_path.parent.mkdir(parents=True, exist_ok=True)
-            plan = {
-                "race_date": race_date,
-                "snapshot_kinds": scheduled_kinds,
-                "generated_at": iso_now_jst(),
-                "items": _build_daily_odds_plan(
-                    race_date=race_date,
-                    races=daily_races_for_plan,
-                    snapshot_kinds=scheduled_kinds,
-                ),
-            }
-            plan_path.write_text(
-                json.dumps(plan, ensure_ascii=True, indent=2), encoding="utf-8"
-            )
+            plan_path = self.settings.control_dir / f"scrape_plan_{race_date}.json"
+            if not plan_path.exists():
+                plan_path.parent.mkdir(parents=True, exist_ok=True)
+                plan = {
+                    "race_date": race_date,
+                    "snapshot_kinds": scheduled_kinds,
+                    "generated_at": iso_now_jst(),
+                    "interval_sec": PLAN_INTERVAL_SEC,
+                    "tolerance_sec": PLAN_TOLERANCE_SEC,
+                    "items": _build_daily_scrape_plan(
+                        race_date=race_date,
+                        races=daily_races_for_plan,
+                        snapshot_kinds=scheduled_kinds,
+                    ),
+                }
+                plan_path.write_text(
+                    json.dumps(plan, ensure_ascii=True, indent=2), encoding="utf-8"
+                )
 
     def _scrape_odds_for_race(
         self,
