@@ -31,3 +31,5 @@
 - 本ファイルは UI 照合用の最小表現（bet_type/legs/payout/popularity）に正規化している。
 
 
+
+

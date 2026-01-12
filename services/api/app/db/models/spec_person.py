@@ -16,3 +16,5 @@ class SpecPerson(Base):
     affiliation: Mapped[str] = mapped_column(String, nullable=False, default="")
 
 
+
+

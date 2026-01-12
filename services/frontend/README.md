@@ -28,7 +28,7 @@ docker compose --env-file .env -f docker-compose.pc.yaml up --build frontend
 環境変数で API のベースURLを指定できます（例: reverse-proxy が `/api` を公開している場合）:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8000/api \
+VITE_API_BASE_URL=http://localhost:8001/api \
   docker compose --env-file .env -f docker-compose.pc.yaml up --build frontend
 ```
 

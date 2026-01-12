@@ -51,3 +51,5 @@ class SpecEntryLast5Race(Base):
     note: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
+
+

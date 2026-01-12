@@ -33,3 +33,5 @@ class SpecRace(Base):
     track_condition: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
+
+

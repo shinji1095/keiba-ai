@@ -40,7 +40,7 @@ services:
       context: ../../services/worker
     environment:
       TZ: ${TZ:-Asia/Tokyo}
-      API_BASE_URL: ${API_BASE_URL:-http://api:8000}
+      API_BASE_URL: ${API_BASE_URL:-http://api:8001}
       POSTGRES_DB: ${POSTGRES_DB:-keiba}
       POSTGRES_USER: ${POSTGRES_USER:-keiba}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keiba}
@@ -54,7 +54,7 @@ services:
       context: ../../services/pipeline
     environment:
       TZ: ${TZ:-Asia/Tokyo}
-      API_BASE_URL: ${API_BASE_URL:-http://api:8000}
+      API_BASE_URL: ${API_BASE_URL:-http://api:8001}
     depends_on:
       - api
 

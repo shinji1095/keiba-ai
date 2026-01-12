@@ -30,3 +30,5 @@ class SpecBestTime(Base):
     best_time_good_raw: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
+
+

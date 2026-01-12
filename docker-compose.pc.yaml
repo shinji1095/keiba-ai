@@ -44,7 +44,7 @@ services:
     environment:
       TZ: ${TZ}
       SCRAPE_SYNC_CRON: ${SCRAPE_SYNC_CRON:-5 0 * * *}
-      SCRAPE_SYNC_API_URL: ${SCRAPE_SYNC_API_URL:-http://api:8000}
+      SCRAPE_SYNC_API_URL: ${SCRAPE_SYNC_API_URL:-http://api:8001}
     command: ["/app/cron/entrypoint.sh"]
     depends_on:
       - api

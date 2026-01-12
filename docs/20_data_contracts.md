@@ -71,7 +71,8 @@
 
 ## 3. DB契約（主要テーブル・一意制約）
 
-> 物理DDLの正: `docs/database/25_database_definition.md`（本リポジトリ側）
+> 物理DDLの正: `docs/database/25_database_definition.md`（本リポジトリ側）  
+> DB参照コマンド集: `docs/database/26_database_commands.md`
 
 ### 3.1 races
 - UNIQUE: `(race_date, baba_code, race_no)`

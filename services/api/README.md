@@ -12,9 +12,9 @@ docker compose up --build
 
 起動後:
 
-- API: `http://localhost:8000`
-- Swagger UI: `http://localhost:8000/docs`
-- Health: `GET http://localhost:8000/health`
+- API: `http://localhost:8001`
+- Swagger UI: `http://localhost:8001/docs`
+- Health: `GET http://localhost:8001/health`
 
 ## 2. 認証
 
@@ -44,7 +44,7 @@ api-service ⇔ scraper-service は現時点では認証不要（将来 mTLS で
 - `SCRAPER_MTLS_CERT` / `SCRAPER_MTLS_KEY` / `SCRAPER_MTLS_CA_CERT`（mTLS 用、任意）
 - `SCRAPE_SYNC_STATE_PATH`（同期状態の保存先。既定: `./data/logs/sync_state.json`）
 - `SCRAPE_SYNC_CRON`（api-sync cron の実行間隔。例: `5 0 * * *`）
-- `SCRAPE_SYNC_API_URL`（api-sync cron の接続先。例: `http://api:8000`）
+- `SCRAPE_SYNC_API_URL`（api-sync cron の接続先。例: `http://api:8001`）
 
 ## 4. データ永続化
 

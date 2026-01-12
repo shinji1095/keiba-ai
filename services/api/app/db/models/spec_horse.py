@@ -27,3 +27,5 @@ class SpecHorse(Base):
     breeder: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
+
+
