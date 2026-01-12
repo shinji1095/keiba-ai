@@ -22,8 +22,12 @@ class Settings(BaseSettings):
     sync_interval_days: int = 2
 
     # Load control (C2 fixed)
-    min_interval_sec: float = 1.5
-    jitter_sec: float = 0.25
+    # Scheduled runs: 1-5 minutes between requests (60s + 0-240s jitter).
+    min_interval_sec: float = 60.0
+    jitter_sec: float = 240.0
+    # Manual runs: fixed 1 minute between requests.
+    manual_min_interval_sec: float = 60.0
+    manual_jitter_sec: float = 0.0
     max_retries: int = 3
     backoff_base_sec: float = 0.8
     backoff_max_sec: float = 8.0

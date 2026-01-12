@@ -22,12 +22,18 @@ app.add_typer(scrape_app, name="scrape")
 app.add_typer(sync_app, name="sync")
 
 
-def _build_http(cfg: Settings) -> HttpClient:
+def _build_http(cfg: Settings, *, manual: bool) -> HttpClient:
+    if manual:
+        min_interval_sec = cfg.manual_min_interval_sec
+        jitter_sec = cfg.manual_jitter_sec
+    else:
+        min_interval_sec = cfg.min_interval_sec
+        jitter_sec = cfg.jitter_sec
     return HttpClient(
         user_agent=cfg.user_agent,
         accept_language=cfg.accept_language,
-        min_interval_sec=cfg.min_interval_sec,
-        jitter_sec=cfg.jitter_sec,
+        min_interval_sec=min_interval_sec,
+        jitter_sec=jitter_sec,
         max_retries=cfg.max_retries,
         backoff_base_sec=cfg.backoff_base_sec,
         backoff_max_sec=cfg.backoff_max_sec,
@@ -45,7 +51,7 @@ def fixtures_download(
     no_api: bool = typer.Option(True, "--no-api", help="(deprecated) no-op"),
 ) -> None:
     cfg = settings
-    http = _build_http(cfg)
+    http = _build_http(cfg, manual=True)
     dl = FixtureDownloader(http=http)
     summary = dl.download_manifest(manifest_path=manifest, fixtures_root=fixtures_root)
     typer.echo(f"done: total={summary.total} ok={summary.ok} ng={summary.ng}")
@@ -60,7 +66,7 @@ def scrape_once(
 ) -> None:
     race_date = _resolve_race_date(race_date)
     cfg = settings
-    http = _build_http(cfg)
+    http = _build_http(cfg, manual=True)
     runner = ScrapeRunner(
         settings=cfg, http=http, sync_store=IngestStore(cfg.ingest_dir)
     )
@@ -79,7 +85,7 @@ def scrape_scheduled(
 ) -> None:
     race_date = _resolve_race_date(race_date)
     cfg = settings
-    http = _build_http(cfg)
+    http = _build_http(cfg, manual=False)
     runner = ScrapeRunner(
         settings=cfg, http=http, sync_store=IngestStore(cfg.ingest_dir)
     )

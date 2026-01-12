@@ -91,6 +91,6 @@
 ### 3.2 負荷制御・監視
 
 - per-host concurrency は初期値 1（直列）
-- min interval 1.5s + jitter
+- min interval 60s + jitter（scheduled: 60〜300s、manual: 60s）
 
 参照: `source_shared/30_load_control_and_observability.md`

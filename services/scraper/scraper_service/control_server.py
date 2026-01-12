@@ -84,8 +84,8 @@ def _build_http(cfg: Settings) -> HttpClient:
     return HttpClient(
         user_agent=cfg.user_agent,
         accept_language=cfg.accept_language,
-        min_interval_sec=cfg.min_interval_sec,
-        jitter_sec=cfg.jitter_sec,
+        min_interval_sec=cfg.manual_min_interval_sec,
+        jitter_sec=cfg.manual_jitter_sec,
         max_retries=cfg.max_retries,
         backoff_base_sec=cfg.backoff_base_sec,
         backoff_max_sec=cfg.backoff_max_sec,
