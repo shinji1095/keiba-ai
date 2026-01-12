@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/api/endpoints";
 import { useApiCtx } from "@/app/hooks/useApiCtx";
+import { mergeVenues } from "@/shared/venues";
 import { ErrorBox } from "@/shared/ui/ErrorBox";
 import { Loading } from "@/shared/ui/Loading";
 
@@ -14,6 +15,8 @@ export function VenuesPage(): React.JSX.Element {
     queryFn: () => api.listVenues(ctx),
   });
 
+  const venues = mergeVenues(q.data?.items);
+
   return (
     <div>
       <h1 className="pageTitle">Venues</h1>
@@ -22,10 +25,10 @@ export function VenuesPage(): React.JSX.Element {
       {q.isLoading ? <Loading label="Loading venues..." /> : null}
       {q.error ? <ErrorBox error={q.error} /> : null}
 
-      {q.data ? (
+      {venues.length > 0 ? (
         <div className="card">
           <div className="cardHeader">
-            <h2 className="cardTitle">items ({q.data.items.length})</h2>
+            <h2 className="cardTitle">items ({venues.length})</h2>
             <button className="btn" onClick={() => q.refetch()}>
               Refresh
             </button>
@@ -39,7 +42,7 @@ export function VenuesPage(): React.JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {q.data.items.map((v) => (
+              {venues.map((v) => (
                 <tr key={v.baba_code}>
                   <td>{v.baba_code}</td>
                   <td>{v.venue_name}</td>

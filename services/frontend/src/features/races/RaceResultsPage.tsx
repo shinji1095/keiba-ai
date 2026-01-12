@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
 import { useApiCtx } from "@/app/hooks/useApiCtx";
+import { mergeVenues } from "@/shared/venues";
 import { ErrorBox } from "@/shared/ui/ErrorBox";
 import { Loading } from "@/shared/ui/Loading";
 
@@ -24,6 +25,7 @@ export function RaceResultsPage(): React.JSX.Element {
     queryKey: ["venues"],
     queryFn: () => api.listVenues(ctx),
   });
+  const venues = mergeVenues(qVenues.data?.items);
 
   const qEntryResults = useQuery({
     queryKey: ["race-entry-results", raceDate, babaCode, page, pageSize],
@@ -70,7 +72,7 @@ export function RaceResultsPage(): React.JSX.Element {
               }}
             >
               <option value="">(all)</option>
-              {qVenues.data?.items.map((v) => (
+              {venues.map((v) => (
                 <option key={v.baba_code} value={String(v.baba_code)}>
                   {v.baba_code} - {v.venue_name}
                 </option>
@@ -173,5 +175,4 @@ export function RaceResultsPage(): React.JSX.Element {
     </div>
   );
 }
-
 
