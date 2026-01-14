@@ -15,7 +15,10 @@
   - パーサ崩壊検知回数
   - /health（PC → Pi の疎通確認）
   - 定期実行の状態（/scrape/schedule、baba_codes 含む）
-  - cron コンテナの稼働/最終実行
+  - plan スケジューラ（scraper-scheduler）の稼働/最終実行
+  - plan の生成有無（`scrape_plan_YYYY-MM-DD.json`）
+  - plan 実行の進捗（`scrape_plan_state_YYYY-MM-DD.json`）
+  - cron コンテナの稼働/最終実行（legacy）
   - Pi 側ストレージ使用量（raw_html / logs）
   - 定期同期/差分同期の状態（/scrape/sync/status、1日おき）
 - api:

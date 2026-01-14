@@ -12,6 +12,7 @@
 - 2026-01-01: 即時転送モードのテスト要件を追加。
 - 2026-01-02: pull 同期の実装/テスト反映に伴い、同期要件の実装状況を更新。
 - 2026-01-02: 同期定義を Pi 最新/PC pull に更新し、即時転送モード要件を廃止。
+- 2026-01-14: plan 駆動の常駐スケジューラのテスト要件を追加。
 
 # テスト要件
 
@@ -367,6 +368,17 @@
 - テスト分類: 単体テスト
 - 対象機能・モジュール: scraper-service DebaTable parser, ingest store
 - 実装状況: 追加テストあり（services/scraper/tests/test_fixtures_sonoda_20260102.py）
+
+### TR-031: plan 駆動スケジューラ（実行管理）
+- 要件ID: TR-031
+- 要件名: plan に沿った実行管理
+- 要件の説明: plan 生成済みのとき、常駐スケジューラが `scheduled_at <= now` のタスクを一度だけ実行し、実行済み状態を保持できること。
+- 根拠となる仕様・要件ID: docs/31_scraping_flow.md, docs/70_operations_runbook.md#1
+- 関連リスクID: RISK-003
+- テスト観点: 正常系（重複実行防止、plan 未生成時は生成）、異常系（schedule disabled）
+- テスト分類: 単体テスト
+- 対象機能・モジュール: scraper-service plan scheduler/state store
+- 実装状況: 追加テストあり（services/scraper/tests/test_plan_scheduler.py）
 
 ### TR-101: ログイン画面（UI/E2E）
 - 要件ID: TR-101

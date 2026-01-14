@@ -1,19 +1,22 @@
 # Scraping Flow（スクレイピング→正規化→保存）
 
-本書は scraper-service の「実行トリガ → HTML取得 → 正規化 → 保存（Pi） → （任意）PC同期 → DB反映」までの流れを図示する。
+本書は scraper-service の「実行トリガ → 計画生成 → 計画に沿った実行 → HTML取得 → 正規化 → 保存（Pi） → （任意）PC同期 → DB反映」までの流れを図示する。
 
 ```mermaid
 flowchart TD
   subgraph T["Trigger"]
     T1["api-service / cron<br/>POST /control/scrape"] --> CS["scraper_service.control_server<br/>(submit_scrape)"]
-    T2["scraper-cron<br/>services/scraper/cron/cron_run.py"] -->|GET /control/schedule| CS
-    T2 -->|python -m scraper_service.cli<br/>scrape scheduled| RS["ScrapeRunner.run_scheduled"]
+    T2["scraper-scheduler<br/>scraper_service.scheduler.daemon"] -->|GET /control/schedule| CS
+    T2 --> PS["PlanScheduler.build_plan<br/>+ run_plan"]
     CS --> RO["ScrapeRunner.run_once"]
+    T3["scraper-cron (legacy)"] -->|python -m scraper_service.cli<br/>scrape scheduled| RS["ScrapeRunner.run_scheduled"]
   end
 
   subgraph S["Pi: scrape -> normalize -> save"]
     RO --> F["_fetch(page)"]
     RS --> F
+    PS --> EX["ScrapeRunner.execute_plan_item"]
+    EX --> F
 
     F --> U["build_url(page_name, race_key, odds_flg)"]
     U --> H["HttpClient.get_html<br/>(requests + retry/backoff)"]

@@ -8,6 +8,7 @@
 - 2025-12-28: 単体テストの実行方法を追記。
 - 2025-12-28: テスト実行を Docker 環境内に統一。
 - 2026-01-01: frontend の単体テスト（Docker 実行手順）を追記。
+- 2026-01-14: scraper plan スケジューラの単体テスト要件を追記。
 
 ---
 
@@ -53,6 +54,8 @@ docker compose --env-file .env -f docker-compose.pc.yaml exec frontend npm run t
 ```
 
 frontend の単体テストは Vitest を使用します。
+
+scraper の plan スケジューラは単体テストで検証します（`services/scraper/tests/test_plan_scheduler.py`）。
 
 ### 6.2 API（結合テスト）
 起動済みの API コンテナ内で実行します。

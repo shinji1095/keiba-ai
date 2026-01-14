@@ -16,6 +16,19 @@ services:
       - ./services/scraper/src:/app/src
       - ./services/scraper/scrapy.cfg:/app/scrapy.cfg
 
+  scraper-scheduler:
+    build:
+      context: services/scraper
+    environment:
+      TZ: ${TZ}
+      API_BASE_URL: ${PC_API_URL}
+      API_ACCESS_TOKEN: ${API_ACCESS_TOKEN}
+    command: ["python", "-m", "scraper_service.scheduler.daemon"]
+    volumes:
+      - ./services/scraper/data:/app/data
+      - ./services/scraper/src:/app/src
+      - ./services/scraper/scrapy.cfg:/app/scrapy.cfg
+
   scraper-cron:
     build:
       context: services/scraper

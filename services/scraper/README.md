@@ -80,18 +80,31 @@ python -m scraper_service.cli fixtures download --manifest fixtures/manifest.yml
 python -m scraper_service.cli scrape once --race-date 2025-12-26
 ```
 
-### 3.5 Pi cron コンテナ（定期実行）
+### 3.5 Pi plan スケジューラ（常駐）
 
-scraper-cron コンテナが定期実行を担当します。  
-api-service が定期実行の on/off と baba_codes を制御し、cron コンテナはその状態に従って `scrape scheduled` を実行します。
+scraper-scheduler コンテナが plan を生成し、計画時刻に沿ってスクレイピングを実行します。  
+api-service が定期実行の on/off と baba_codes を制御し、スケジューラはその状態に従って plan を生成/実行します。
+
+```bash
+docker compose -f docker-compose.pi.yaml up -d scraper-scheduler
+```
+
+ローカル実行は以下です。
+
+```bash
+python -m scraper_service.cli scrape scheduler
+```
+
+### 3.6 Pi cron コンテナ（legacy）
+
+scraper-cron コンテナは `scrape scheduled` を定期実行する旧方式です。  
+plan 駆動の常駐スケジューラが正となるため、互換用途でのみ利用します。
 
 ```bash
 docker compose -f docker-compose.pi.yaml up -d scraper-cron
 ```
 
-`scrape daemon` は非推奨です（plan固定/無限ループは採用しない）。
-
-### 3.6 手動実行
+### 3.7 手動実行
 
 - frontend → api-service → Pi control API の経路で即時実行する
 - ローカル確認は以下で実行できる
@@ -103,7 +116,7 @@ docker compose -f docker-compose.pi.yaml run --rm scraper scrape once --baba-cod
 > わからない  
 > レース終了のリアルタイム検知が可能かは未確認のため、RaceMarkTable/RefundMoneyList は固定遅延 + 少回数リトライで実装しています。
 
-### 3.7 api-service への同期データ提供（export）
+### 3.8 api-service への同期データ提供（export）
 
 - 提供先: `POST /control/export/*`（認証不要）
 - `INGEST_DIR` 配下に保存した正規化データを JSONL から読み出して返す

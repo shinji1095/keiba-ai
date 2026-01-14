@@ -99,6 +99,13 @@ def scrape_scheduled(
     typer.echo("ok")
 
 
+@scrape_app.command("scheduler")
+def scrape_scheduler() -> None:
+    from scraper_service.scheduler.daemon import main as scheduler_main
+
+    scheduler_main()
+
+
 @sync_app.command("run")
 def sync_run(
     force: bool = typer.Option(False, "--force", help="同期インターバルの判定を無視して実行"),

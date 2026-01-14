@@ -646,6 +646,128 @@ class ScrapeRunner:
                     [p.model_dump(mode="json") for p in payouts],
                 )
 
+    def build_plan(
+        self,
+        *,
+        race_date: str,
+        baba_codes: Optional[list[int]] = None,
+        snapshot_kinds: Optional[list[str]] = None,
+        prefetch_days: int = 7,
+        overwrite: bool = False,
+    ) -> dict[str, object]:
+        scheduled_kinds = _normalize_snapshot_kinds(snapshot_kinds)
+
+        if baba_codes is None:
+            html, _, _ = self._fetch(
+                C.PAGE_TODAY_TOP,
+                race_date=race_date,
+                baba_code=None,
+                race_no=None,
+                odds_flg=None,
+            )
+            baba_codes = parse_today_race_info_top(html)
+        if not baba_codes:
+            raise RuntimeError("failed to determine baba_codes; specify --baba-code")
+
+        # Prefetch future RaceList once per day (best-effort).
+        if prefetch_days > 0:
+            state_path = _prefetch_state_path(self.settings)
+            last_prefetched = _load_last_prefetch_date(state_path)
+            if last_prefetched != race_date:
+                for d in _iter_future_dates(race_date, prefetch_days):
+                    for baba_code in baba_codes:
+                        html, _, _ = self._fetch(
+                            C.PAGE_RACE_LIST,
+                            race_date=d,
+                            baba_code=baba_code,
+                            race_no=None,
+                            odds_flg=None,
+                        )
+                        races_f = parse_race_list(
+                            html, race_date=d, baba_code=baba_code
+                        )
+                        self._append_sync(
+                            "races", [r.model_dump(mode="json") for r in races_f]
+                        )
+                _save_last_prefetch_date(state_path, race_date)
+
+        daily_races_for_plan: list[object] = []
+        for baba_code in baba_codes:
+            html, _, _ = self._fetch(
+                C.PAGE_RACE_LIST,
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=None,
+                odds_flg=None,
+            )
+            races = parse_race_list(html, race_date=race_date, baba_code=baba_code)
+            self._append_sync("races", [r.model_dump(mode="json") for r in races])
+            daily_races_for_plan.extend(races)
+
+        plan = {
+            "race_date": race_date,
+            "snapshot_kinds": scheduled_kinds,
+            "generated_at": iso_now_jst(),
+            "interval_sec": PLAN_INTERVAL_SEC,
+            "tolerance_sec": PLAN_TOLERANCE_SEC,
+            "items": _build_daily_scrape_plan(
+                race_date=race_date,
+                races=daily_races_for_plan,
+                snapshot_kinds=scheduled_kinds,
+            ),
+        }
+
+        plan_path = self.settings.control_dir / f"scrape_plan_{race_date}.json"
+        if overwrite or not plan_path.exists():
+            plan_path.parent.mkdir(parents=True, exist_ok=True)
+            plan_path.write_text(
+                json.dumps(plan, ensure_ascii=True, indent=2), encoding="utf-8"
+            )
+
+        return plan
+
+    def execute_plan_item(self, item: dict) -> None:
+        task_kind = item.get("task_kind")
+        page_name = item.get("page_name")
+        race_key = item.get("race_key") or {}
+        race_date = str(race_key.get("race_date") or "")
+        baba_code = int(race_key.get("baba_code"))
+        race_no_raw = race_key.get("race_no")
+        race_no = int(race_no_raw) if race_no_raw is not None else None
+        snapshot_kind = str(item.get("snapshot_kind") or "final")
+        odds_flg = item.get("odds_flg")
+        odds_flg = int(odds_flg) if odds_flg is not None else None
+
+        if task_kind == "deba_table":
+            self._execute_deba_table(
+                race_date=race_date, baba_code=baba_code, race_no=race_no
+            )
+            return
+        if task_kind == "odds":
+            if race_no is None:
+                raise ValueError("odds task requires race_no")
+            self._execute_odds_item(
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
+                page_name=str(page_name),
+                snapshot_kind=snapshot_kind,
+                odds_flg=odds_flg,
+            )
+            return
+        if task_kind == "race_mark":
+            if race_no is None:
+                raise ValueError("race_mark task requires race_no")
+            self._execute_race_mark(
+                race_date=race_date, baba_code=baba_code, race_no=race_no
+            )
+            return
+        if task_kind == "refund":
+            self._execute_refund(race_date=race_date, baba_code=baba_code)
+            return
+
+        raise ValueError(f"unknown task_kind: {task_kind}")
+
     def run_scheduled(
         self,
         *,
@@ -965,3 +1087,304 @@ class ScrapeRunner:
         if note != "soft_no_odds":
             items = parse_generic_odds_table(html, bet_type="sanrentan")
             post_snapshot(final_url, "sanrentan", None, items)
+
+    def _post_odds_snapshot(
+        self,
+        *,
+        race_date: str,
+        baba_code: int,
+        race_no: int,
+        snapshot_kind: str,
+        is_final: bool,
+        source_url: str,
+        odds_flg: int | None,
+        bet_type: str,
+        items: list,
+        captured_at: str,
+    ) -> None:
+        if not items:
+            return
+        payload = {
+            "race_key": {
+                "race_date": race_date,
+                "baba_code": baba_code,
+                "race_no": race_no,
+            },
+            "bet_type": bet_type,
+            "snapshot_kind": snapshot_kind,
+            "captured_at": captured_at,
+            "source_url": source_url,
+            "odds_flg": odds_flg,
+            "is_final": is_final,
+            "items": [it.model_dump(mode="json") for it in items],
+        }
+        self._append_sync("odds_snapshots", [payload])
+
+    def _execute_odds_item(
+        self,
+        *,
+        race_date: str,
+        baba_code: int,
+        race_no: int,
+        page_name: str,
+        snapshot_kind: str,
+        odds_flg: int | None,
+    ) -> None:
+        captured_at = iso_now_jst()
+        is_final = snapshot_kind == "final"
+
+        html, final_url, note = self._fetch(
+            page_name,
+            race_date=race_date,
+            baba_code=baba_code,
+            race_no=race_no,
+            odds_flg=odds_flg,
+        )
+        if note == "soft_no_odds":
+            return
+
+        if page_name == C.PAGE_ODDS_TANFUKU:
+            parsed = parse_odds_tanfuku(html)
+            self._post_odds_snapshot(
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
+                snapshot_kind=snapshot_kind,
+                is_final=is_final,
+                source_url=final_url,
+                odds_flg=odds_flg,
+                bet_type="tansho",
+                items=parsed.get("tansho", []),
+                captured_at=captured_at,
+            )
+            self._post_odds_snapshot(
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
+                snapshot_kind=snapshot_kind,
+                is_final=is_final,
+                source_url=final_url,
+                odds_flg=odds_flg,
+                bet_type="fukusho",
+                items=parsed.get("fukusho", []),
+                captured_at=captured_at,
+            )
+            return
+
+        if page_name == C.PAGE_ODDS_WAKU:
+            parsed = parse_odds_waku(html)
+            self._post_odds_snapshot(
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
+                snapshot_kind=snapshot_kind,
+                is_final=is_final,
+                source_url=final_url,
+                odds_flg=odds_flg,
+                bet_type="wakuren",
+                items=parsed.get("wakuren", []),
+                captured_at=captured_at,
+            )
+            self._post_odds_snapshot(
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
+                snapshot_kind=snapshot_kind,
+                is_final=is_final,
+                source_url=final_url,
+                odds_flg=odds_flg,
+                bet_type="wakutan",
+                items=parsed.get("wakutan", []),
+                captured_at=captured_at,
+            )
+            return
+
+        if page_name == C.PAGE_ODDS_UMAREN:
+            items = parse_generic_odds_table(html, bet_type="umaren")
+            self._post_odds_snapshot(
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
+                snapshot_kind=snapshot_kind,
+                is_final=is_final,
+                source_url=final_url,
+                odds_flg=odds_flg,
+                bet_type="umaren",
+                items=items,
+                captured_at=captured_at,
+            )
+            return
+
+        if page_name == C.PAGE_ODDS_UMATAN:
+            items = parse_generic_odds_table(html, bet_type="umatan")
+            self._post_odds_snapshot(
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
+                snapshot_kind=snapshot_kind,
+                is_final=is_final,
+                source_url=final_url,
+                odds_flg=odds_flg,
+                bet_type="umatan",
+                items=items,
+                captured_at=captured_at,
+            )
+            return
+
+        if page_name == C.PAGE_ODDS_WIDE:
+            items = parse_generic_odds_table(html, bet_type="wide")
+            self._post_odds_snapshot(
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
+                snapshot_kind=snapshot_kind,
+                is_final=is_final,
+                source_url=final_url,
+                odds_flg=odds_flg,
+                bet_type="wide",
+                items=items,
+                captured_at=captured_at,
+            )
+            return
+
+        if page_name == C.PAGE_ODDS_3LENFUKU:
+            items = parse_generic_odds_table(html, bet_type="sanrenpuku")
+            self._post_odds_snapshot(
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
+                snapshot_kind=snapshot_kind,
+                is_final=is_final,
+                source_url=final_url,
+                odds_flg=odds_flg,
+                bet_type="sanrenpuku",
+                items=items,
+                captured_at=captured_at,
+            )
+            return
+
+        if page_name == C.PAGE_ODDS_3LENTAN:
+            items = parse_generic_odds_table(html, bet_type="sanrentan")
+            self._post_odds_snapshot(
+                race_date=race_date,
+                baba_code=baba_code,
+                race_no=race_no,
+                snapshot_kind=snapshot_kind,
+                is_final=is_final,
+                source_url=final_url,
+                odds_flg=odds_flg,
+                bet_type="sanrentan",
+                items=items,
+                captured_at=captured_at,
+            )
+            return
+
+        raise ValueError(f"unknown odds page_name: {page_name}")
+
+    def _execute_deba_table(
+        self,
+        *,
+        race_date: str,
+        baba_code: int,
+        race_no: int | None,
+    ) -> None:
+        if race_no is None:
+            raise ValueError("deba_table requires race_no")
+        html_deba, final_url, _ = self._fetch(
+            C.PAGE_DEBA_TABLE,
+            race_date=race_date,
+            baba_code=baba_code,
+            race_no=race_no,
+            odds_flg=None,
+        )
+        entries = parse_deba_table(
+            html_deba,
+            race_date=race_date,
+            baba_code=baba_code,
+            race_no=race_no,
+        )
+        self._append_sync(
+            "race_entries",
+            [e.model_dump(mode="json") for e in entries],
+        )
+        card = parse_deba_table_normalized(
+            html_deba,
+            race_date=race_date,
+            baba_code=baba_code,
+            race_no=race_no,
+        )
+        card_payload = card.model_dump(mode="json")
+        card_payload["captured_at"] = iso_now_jst()
+        card_payload["source_url"] = final_url
+        self._append_sync("race_cards", [card_payload])
+
+        start_time = None
+        post_time = getattr(card.race, "post_time", None)
+        if isinstance(post_time, str) and post_time:
+            start_time = post_time if len(post_time) != 5 else f"{post_time}:00"
+        self._append_sync(
+            "races",
+            [
+                RaceUpsert(
+                    race_key=RaceKey(
+                        race_date=race_date, baba_code=baba_code, race_no=race_no
+                    ),
+                    start_time=start_time,
+                    distance_m=getattr(card.race, "distance_m", None),
+                    course=getattr(card.race, "direction", None),
+                    weather=getattr(card.race, "weather", None),
+                    track_condition=getattr(card.race, "track_condition", None),
+                    race_name=getattr(card.race, "race_name", None),
+                    field_size=len(entries) if entries else None,
+                    status=None,
+                ).model_dump(mode="json")
+            ],
+        )
+
+    def _execute_race_mark(
+        self,
+        *,
+        race_date: str,
+        baba_code: int,
+        race_no: int,
+    ) -> None:
+        html_result, _, _ = self._fetch(
+            C.PAGE_RACE_MARK_TABLE,
+            race_date=race_date,
+            baba_code=baba_code,
+            race_no=race_no,
+            odds_flg=None,
+        )
+        results = parse_race_mark_table(
+            html_result,
+            race_date=race_date,
+            baba_code=baba_code,
+            race_no=race_no,
+        )
+        self._append_sync(
+            "race_results",
+            [r.model_dump(mode="json") for r in results],
+        )
+
+    def _execute_refund(
+        self,
+        *,
+        race_date: str,
+        baba_code: int,
+    ) -> None:
+        html_refund, _, _ = self._fetch(
+            C.PAGE_REFUND_MONEY_LIST,
+            race_date=race_date,
+            baba_code=baba_code,
+            race_no=None,
+            odds_flg=None,
+        )
+        payouts = parse_refund_money_list(
+            html_refund,
+            race_date=race_date,
+            baba_code=baba_code,
+        )
+        self._append_sync(
+            "payouts",
+            [p.model_dump(mode="json") for p in payouts],
+        )
