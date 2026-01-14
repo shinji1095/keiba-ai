@@ -75,8 +75,15 @@ def main() -> int:
         snapshot_kinds=snapshot_kinds,
         prefetch_days=prefetch_days,
     )
+    env = os.environ.copy()
+    py_path = env.get("PYTHONPATH", "")
+    if py_path:
+        if "/app" not in py_path.split(":"):
+            env["PYTHONPATH"] = f"/app:{py_path}"
+    else:
+        env["PYTHONPATH"] = "/app"
     try:
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True, cwd="/app", env=env)
     except subprocess.CalledProcessError as exc:
         _log(f"scrape failed: {exc}")
         return int(exc.returncode) if exc.returncode else 1
