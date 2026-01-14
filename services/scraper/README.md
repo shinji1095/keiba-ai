@@ -84,6 +84,7 @@ python -m scraper_service.cli scrape once --race-date 2025-12-26
 
 scraper-scheduler コンテナが plan を生成し、計画時刻に沿ってスクレイピングを実行します。  
 api-service が定期実行の on/off と baba_codes を制御し、スケジューラはその状態に従って plan を生成/実行します。
+plan の実行進捗は `scrape_plan_state_YYYY-MM-DD.json` に 5 件ごとに保存されます。
 
 ```bash
 docker compose -f docker-compose.pi.yaml up -d scraper-scheduler

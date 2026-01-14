@@ -90,7 +90,12 @@ def test_plan_scheduler_executes_due_tasks_once(tmp_path: Path) -> None:
     race_date = "2026-01-14"
     plan_path = control_dir / f"scrape_plan_{race_date}.json"
     past = "2026-01-14T08:00:00+09:00"
-    _write_plan(plan_path, race_date=race_date, generated_at=past, items=[_plan_item(race_date=race_date, scheduled_at=past)])
+    _write_plan(
+        plan_path,
+        race_date=race_date,
+        generated_at=past,
+        items=[_plan_item(race_date=race_date, scheduled_at=past)],
+    )
 
     runner = FakeRunner(control_dir)
     scheduler = PlanScheduler(
@@ -106,6 +111,35 @@ def test_plan_scheduler_executes_due_tasks_once(tmp_path: Path) -> None:
     assert result1.executed == 1
     assert result2.executed == 0
     assert len(runner.executed) == 1
+
+
+def test_plan_scheduler_saves_state_every_5_tasks(tmp_path: Path) -> None:
+    control_dir = tmp_path / "control"
+    schedule_path = control_dir / "schedule.json"
+    _write_schedule(schedule_path, enabled=True, updated_at="2026-01-14T00:00:00+09:00")
+
+    race_date = "2026-01-14"
+    plan_path = control_dir / f"scrape_plan_{race_date}.json"
+    scheduled_at = "2026-01-14T08:00:00+09:00"
+    items = [_plan_item(race_date=race_date, scheduled_at=scheduled_at) for _ in range(6)]
+    _write_plan(plan_path, race_date=race_date, generated_at=scheduled_at, items=items)
+
+    runner = FakeRunner(control_dir)
+    state_store = PlanStateStore(control_dir)
+    scheduler = PlanScheduler(
+        runner=runner,
+        schedule_store=ScheduleStore(schedule_path),
+        state_store=state_store,
+        now_fn=lambda: dt.datetime(2026, 1, 14, 9, 0, tzinfo=JST),
+    )
+
+    result = scheduler.run_once()
+
+    assert result.executed == 6
+    state_path = control_dir / f"scrape_plan_state_{race_date}.json"
+    assert state_path.exists()
+    completed = set(json.loads(state_path.read_text(encoding=\"utf-8\")).get(\"completed\") or [])
+    assert len(completed) == 6
 
 
 def test_plan_scheduler_builds_plan_when_missing(tmp_path: Path) -> None:

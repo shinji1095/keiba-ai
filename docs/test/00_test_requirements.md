@@ -13,6 +13,7 @@
 - 2026-01-02: pull 同期の実装/テスト反映に伴い、同期要件の実装状況を更新。
 - 2026-01-02: 同期定義を Pi 最新/PC pull に更新し、即時転送モード要件を廃止。
 - 2026-01-14: plan 駆動の常駐スケジューラのテスト要件を追加。
+- 2026-01-14: plan 実行進捗の定期保存要件を追加。
 
 # テスト要件
 
@@ -376,6 +377,17 @@
 - 根拠となる仕様・要件ID: docs/31_scraping_flow.md, docs/70_operations_runbook.md#1
 - 関連リスクID: RISK-003
 - テスト観点: 正常系（重複実行防止、plan 未生成時は生成）、異常系（schedule disabled）
+- テスト分類: 単体テスト
+- 対象機能・モジュール: scraper-service plan scheduler/state store
+- 実装状況: 追加テストあり（services/scraper/tests/test_plan_scheduler.py）
+
+### TR-032: plan 実行進捗の定期保存
+- 要件ID: TR-032
+- 要件名: plan 実行の進捗保存
+- 要件の説明: plan 実行中に、一定件数ごとに `scrape_plan_state_YYYY-MM-DD.json` が保存されること（既定: 5件）。
+- 根拠となる仕様・要件ID: docs/70_operations_runbook.md#1
+- 関連リスクID: RISK-003
+- テスト観点: 正常系（一定件数で保存）、境界値（保存件数未満）
 - テスト分類: 単体テスト
 - 対象機能・モジュール: scraper-service plan scheduler/state store
 - 実装状況: 追加テストあり（services/scraper/tests/test_plan_scheduler.py）

@@ -156,6 +156,8 @@ class PlanScheduler:
                 continue
             state.completed.add(key)
             executed += 1
+            if executed % 5 == 0:
+                self._state_store.save(state)
 
         if executed or errors or state.plan_generated_at:
             self._state_store.save(state)
