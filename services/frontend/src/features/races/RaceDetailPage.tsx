@@ -32,6 +32,7 @@ export function RaceDetailPage(): React.JSX.Element {
   const [tab, setTab] = React.useState<TabKey>("summary");
   const [betType, setBetType] = React.useState<BetType>("tansho");
   const [snapshotKind, setSnapshotKind] = React.useState<SnapshotKind>("final");
+  const isTansho = betType === "tansho";
 
   const qRace = useQuery({
     queryKey: ["race", raceId],
@@ -240,8 +241,8 @@ export function RaceDetailPage(): React.JSX.Element {
                   <tr>
                     <th>legs</th>
                     <th>ordered</th>
-                    <th>odds_min</th>
-                    <th>odds_max</th>
+                    {isTansho ? <th>odds</th> : <th>odds_min</th>}
+                    {isTansho ? null : <th>odds_max</th>}
                     <th>popularity</th>
                     <th>raw</th>
                   </tr>
@@ -252,7 +253,7 @@ export function RaceDetailPage(): React.JSX.Element {
                       <td>{it.legs.join("-")}</td>
                       <td>{it.is_ordered ? "true" : "false"}</td>
                       <td>{it.odds_min ?? ""}</td>
-                      <td>{it.odds_max ?? ""}</td>
+                      {isTansho ? null : <td>{it.odds_max ?? ""}</td>}
                       <td>{it.popularity ?? ""}</td>
                       <td>{it.raw_text ?? ""}</td>
                     </tr>

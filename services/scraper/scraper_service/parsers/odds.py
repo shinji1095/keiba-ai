@@ -85,90 +85,138 @@ def parse_generic_odds_table(html: bytes, *, bet_type: BetType) -> list[OddsItem
     return list(uniq.values())
 
 
+def _expand_header_cells(cells: Iterable) -> list[str]:
+    columns: list[str] = []
+    for cell in cells:
+        text = normalize_space(cell.get_text(" ", strip=True))
+        try:
+            colspan = int(cell.get("colspan", "1"))
+        except ValueError:
+            colspan = 1
+        for _ in range(max(colspan, 1)):
+            columns.append(text)
+    return columns
+
+
+def _find_col_index(columns: list[str], keyword: str) -> Optional[int]:
+    for idx, name in enumerate(columns):
+        if keyword in name:
+            return idx
+    return None
+
+
+def _parse_tanfuku_table(table) -> Optional[dict[BetType, list[OddsItemUpsert]]]:
+    header_row = None
+    thead = table.find("thead")
+    if thead is not None:
+        header_row = thead.find("tr")
+    if header_row is None:
+        header_row = table.find("tr")
+    if header_row is None:
+        return None
+
+    columns = _expand_header_cells(header_row.find_all(["th", "td"]))
+    if not columns:
+        return None
+
+    idx_horse = _find_col_index(columns, "馬番")
+    idx_win = _find_col_index(columns, "単勝")
+    idx_place = _find_col_index(columns, "複勝")
+    if idx_horse is None or idx_win is None or idx_place is None:
+        return None
+
+    place_is_range = idx_place + 1 < len(columns) and "複勝" in columns[idx_place + 1]
+    tansho: dict[int, OddsItemUpsert] = {}
+    fukusho: dict[int, OddsItemUpsert] = {}
+
+    tbody = table.find("tbody")
+    rows = tbody.find_all("tr") if tbody is not None else table.find_all("tr")
+    for tr in rows:
+        tds = tr.find_all("td")
+        if len(tds) <= max(idx_horse, idx_win, idx_place):
+            continue
+
+        horse_ints = extract_ints(tds[idx_horse].get_text(" ", strip=True))
+        if not horse_ints:
+            continue
+        horse_no = horse_ints[0]
+        if horse_no < 1 or horse_no > 18:
+            continue
+
+        win_text = tds[idx_win].get_text(" ", strip=True)
+        win_odds = _parse_float(win_text)
+
+        place_text = tds[idx_place].get_text(" ", strip=True)
+        place_min: Optional[float]
+        place_max: Optional[float]
+        if place_is_range and idx_place + 1 < len(tds):
+            place_min = _parse_float(place_text)
+            place_max = _parse_float(tds[idx_place + 1].get_text(" ", strip=True))
+            if place_min is None and place_max is None:
+                place_min, place_max = parse_odds_range(place_text)
+        else:
+            place_min, place_max = parse_odds_range(place_text)
+
+        if place_min is not None and place_max is None:
+            place_max = place_min
+        if place_max is not None and place_min is None:
+            place_min = place_max
+
+        if win_odds is not None:
+            tansho[horse_no] = OddsItemUpsert(
+                legs=[horse_no],
+                is_ordered=False,
+                odds_min=win_odds,
+                odds_max=win_odds,
+                popularity=None,
+            )
+
+        fukusho[horse_no] = OddsItemUpsert(
+            legs=[horse_no],
+            is_ordered=False,
+            odds_min=place_min,
+            odds_max=place_max,
+            popularity=None,
+        )
+
+    if not tansho and not fukusho:
+        return None
+    return {
+        "tansho": [tansho[k] for k in sorted(tansho.keys())],
+        "fukusho": [fukusho[k] for k in sorted(fukusho.keys())],
+    }
+
+
 def parse_odds_tanfuku(html: bytes) -> dict[BetType, list[OddsItemUpsert]]:
     """Parse OddsTanFuku page which contains both tansho and fukusho.
 
     Implementation:
-    - Prefer the well-structured table (table.odd_popular_table_02) and parse by column positions.
-    - Fallback: split by nearest table after headings, then generic scan.
+    - Parse a header-aware table to avoid mixing unrelated numeric columns.
+    - Avoid generic fallback to prevent mis-parsing (horse/waku numbers).
     """
     soup = BeautifulSoup(html, "lxml")
 
-    # Preferred structure (PC HTML fixtures follow this).
-    table = soup.find("table", class_="odd_popular_table_02")
-    if table is not None:
-        tbody = table.find("tbody")
-        if tbody is not None:
-            tansho: dict[int, OddsItemUpsert] = {}
-            fukusho: dict[int, OddsItemUpsert] = {}
+    tables: list = []
+    primary = soup.find("table", class_="odd_popular_table_02")
+    if primary is not None:
+        tables.append(primary)
 
-            for tr in tbody.find_all("tr"):
-                tds = tr.find_all("td")
-                # expected layout:
-                # 0:枠 1:馬番 2:馬名 3:単勝 4:複勝min 5:複勝max ...
-                if len(tds) < 6:
-                    continue
+    for table in soup.find_all("table"):
+        if table in tables:
+            continue
+        header_row = table.find("tr")
+        if header_row is None:
+            continue
+        header_cols = _expand_header_cells(header_row.find_all(["th", "td"]))
+        if "単勝" in " ".join(header_cols) and "複勝" in " ".join(header_cols):
+            tables.append(table)
 
-                horse_ints = extract_ints(tds[1].get_text(" ", strip=True))
-                if not horse_ints:
-                    continue
-                horse_no = horse_ints[0]
-                if horse_no < 1 or horse_no > 18:
-                    continue
+    for table in tables:
+        parsed = _parse_tanfuku_table(table)
+        if parsed and parsed.get("tansho") and parsed.get("fukusho"):
+            return parsed
 
-                win_odds = _parse_float(tds[3].get_text(" ", strip=True))
-                place_min = _parse_float(tds[4].get_text(" ", strip=True))
-                place_max = _parse_float(tds[5].get_text(" ", strip=True))
-                if place_min is not None and place_max is None:
-                    place_max = place_min
-                if place_max is not None and place_min is None:
-                    place_min = place_max
-
-                if win_odds is not None:
-                    tansho[horse_no] = OddsItemUpsert(
-                        legs=[horse_no],
-                        is_ordered=False,
-                        odds_min=win_odds,
-                        odds_max=win_odds,
-                        popularity=None,
-                    )
-                # allow NULL odds for place odds (発売なし等)
-                fukusho[horse_no] = OddsItemUpsert(
-                    legs=[horse_no],
-                    is_ordered=False,
-                    odds_min=place_min,
-                    odds_max=place_max,
-                    popularity=None,
-                )
-
-            if tansho and fukusho:
-                return {
-                    "tansho": [tansho[k] for k in sorted(tansho.keys())],
-                    "fukusho": [fukusho[k] for k in sorted(fukusho.keys())],
-                }
-
-    def find_table_after(keyword: str):
-        el = soup.find(string=lambda s: s and keyword in s)
-        if not el:
-            return None
-        tag = el.parent
-        return tag.find_next("table")
-
-    t_table = find_table_after("単勝")
-    f_table = find_table_after("複勝")
-
-    out: dict[BetType, list[OddsItemUpsert]] = {}
-    if t_table is not None:
-        out["tansho"] = parse_generic_odds_table(str(t_table).encode("utf-8"), bet_type="tansho")
-    else:
-        out["tansho"] = parse_generic_odds_table(html, bet_type="tansho")
-
-    if f_table is not None:
-        out["fukusho"] = parse_generic_odds_table(str(f_table).encode("utf-8"), bet_type="fukusho")
-    else:
-        out["fukusho"] = parse_generic_odds_table(html, bet_type="fukusho")
-
-    return out
+    return {"tansho": [], "fukusho": []}
 
 
 _LABEL_TO_BETTYPE: list[tuple[str, BetType]] = [

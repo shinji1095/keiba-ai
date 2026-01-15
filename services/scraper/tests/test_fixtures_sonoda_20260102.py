@@ -63,21 +63,30 @@ def test_parse_deba_table_fixtures_sonoda_20260102(race_no: int, expected_horse:
 
 
 @pytest.mark.parametrize(
-    "race_no, horse_no, win_odds, place_min, place_max",
+    "horse_no, win_odds, place_min, place_max",
     [
-        (1, 8, 1.1, 1.0, 1.1),
-        (2, 6, 6.9, 2.1, 3.3),
+        (1, 67.9, 3.2, 7.0),
+        (3, 2.2, 1.0, 1.3),
+        (10, 4.4, 1.2, 2.2),
+        (11, 2.2, 1.0, 1.4),
     ],
 )
-def test_parse_odds_tanfuku_fixtures_sonoda_20260102(
-    race_no: int, horse_no: int, win_odds: float, place_min: float, place_max: float
+def test_parse_odds_tanfuku_fixture_sonoda_20260114(
+    horse_no: int, win_odds: float, place_min: float, place_max: float
 ) -> None:
-    html = _read_fixture(f"27_2026-01-02_{race_no:02d}R/R{race_no:02d}_tanfuku.html")
+    html = _read_fixture("27_2026-01-14_01R/R01_tanfuku.html")
     parsed = parse_odds_tanfuku(html)
     tansho = parsed.get("tansho", [])
     fukusho = parsed.get("fukusho", [])
     assert len(tansho) == 12
     assert len(fukusho) == 12
+
+    for it in tansho:
+        if it.odds_min is not None and it.odds_max is not None:
+            assert it.odds_min == it.odds_max
+    for it in fukusho:
+        if it.odds_min is not None and it.odds_max is not None:
+            assert it.odds_min <= it.odds_max
 
     got_win = next(it for it in tansho if it.legs == [horse_no])
     assert got_win.odds_min == win_odds
