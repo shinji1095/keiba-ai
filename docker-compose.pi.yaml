@@ -36,7 +36,7 @@ services:
       TZ: ${TZ}
       API_BASE_URL: ${PC_API_URL}
       API_ACCESS_TOKEN: ${API_ACCESS_TOKEN}
-      SCRAPER_CRON: ${SCRAPER_CRON:-0 6 * * *}
+      SCRAPER_CRON: ${SCRAPER_CRON:-*/2 * * * *}
       SCRAPER_CONTROL_URL: http://scraper:${SCRAPER_CONTROL_PORT:-8080}
     command: ["/app/cron/entrypoint.sh"]
     volumes:

@@ -1,6 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function tokenResponse() {
   return {
@@ -75,6 +79,11 @@ function toNum(s: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function normNumStr(s: string): string {
+  const n = toNum(s);
+  return n === null ? s.trim() : String(n);
+}
+
 function legsFromStr(s: string): number[] {
   return s
     .split("-")
@@ -88,7 +97,7 @@ test("Sonoda 2026-01-02 1R: UI values match docs/test/data (tansho/fukusho/resul
   const babaCode = 27;
   const raceId = 1;
 
-  const repoRoot = path.resolve(__dirname, "../../..", ".."); // services/frontend/tests/e2e -> repo root
+  const repoRoot = path.resolve(__dirname, "../../../.."); // services/frontend/tests/e2e -> repo root
   const dataDir = path.join(repoRoot, "docs", "test", "data", "27_2026-01-02_01R");
 
   const mdOdds = await fs.readFile(path.join(dataDir, "02_odds_tanfuku.md"), "utf-8");
@@ -275,8 +284,9 @@ test("Sonoda 2026-01-02 1R: UI values match docs/test/data (tansho/fukusho/resul
   await page.getByRole("button", { name: "Fetch odds" }).click();
   for (const r of oddsRows) {
     const horseNo = r["horse_no"];
-    const win = r["win_odds"];
-    const row = page.locator("table.table tbody tr", { hasText: horseNo });
+    const win = normNumStr(r["win_odds"]);
+    const row = page.locator(`table.table tbody tr:has(td:nth-child(1):text-is("${horseNo}"))`);
+    await expect(row).toHaveCount(1);
     await expect(row).toContainText(win);
   }
 
@@ -285,9 +295,10 @@ test("Sonoda 2026-01-02 1R: UI values match docs/test/data (tansho/fukusho/resul
   await page.getByRole("button", { name: "Fetch odds" }).click();
   for (const r of oddsRows) {
     const horseNo = r["horse_no"];
-    const mn = r["place_odds_min"];
-    const mx = r["place_odds_max"];
-    const row = page.locator("table.table tbody tr", { hasText: horseNo });
+    const mn = normNumStr(r["place_odds_min"]);
+    const mx = normNumStr(r["place_odds_max"]);
+    const row = page.locator(`table.table tbody tr:has(td:nth-child(1):text-is("${horseNo}"))`);
+    await expect(row).toHaveCount(1);
     await expect(row).toContainText(mn);
     await expect(row).toContainText(mx);
   }
@@ -298,7 +309,7 @@ test("Sonoda 2026-01-02 1R: UI values match docs/test/data (tansho/fukusho/resul
     const horseNo = r["horse_no"];
     const timeStr = r["time_str"];
     if (!timeStr) continue;
-    const row = page.locator("table.table tbody tr", { hasText: horseNo });
+    const row = page.locator(`table.table tbody tr:has(td:nth-child(2):text-is("${horseNo}"))`);
     await expect(row).toContainText(timeStr);
   }
 
@@ -307,12 +318,10 @@ test("Sonoda 2026-01-02 1R: UI values match docs/test/data (tansho/fukusho/resul
   // tansho 8 110 / umatan 8-11 4350 / sanrentan 8-11-9 8830
   await expect(page.getByText("tansho")).toBeVisible();
   await expect(page.getByText("110")).toBeVisible();
-  await expect(page.getByText("8-11")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "8-11", exact: true }).first()).toBeVisible();
   await expect(page.getByText("4350")).toBeVisible();
-  await expect(page.getByText("8-11-9")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "8-11-9", exact: true })).toBeVisible();
   await expect(page.getByText("8830")).toBeVisible();
 });
-
-
 
 

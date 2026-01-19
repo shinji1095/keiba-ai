@@ -379,6 +379,125 @@ export interface PayoutListResponse {
   "items": Payout[];
 }
 
+export interface SpecRaceCardRace {
+  "race_id": string;
+  "race_date": string;
+  "baba_code": number;
+  "race_no": number;
+  "post_time"?: string | null;
+  "race_name": string;
+  "surface"?: string | null;
+  "distance_m"?: number | null;
+  "direction"?: string | null;
+  "weather"?: string | null;
+  "track_condition"?: string | null;
+}
+
+export interface SpecPerson {
+  "person_id": number;
+  "role": string;
+  "name": string;
+  "affiliation": string;
+}
+
+export interface SpecHorse {
+  "horse_id": number;
+  "name": string;
+  "sex"?: string | null;
+  "age"?: number | null;
+  "coat"?: string | null;
+  "birth_month"?: number | null;
+  "birth_day"?: number | null;
+  "birth_md_raw"?: string | null;
+  "sire"?: string | null;
+  "dam"?: string | null;
+  "dam_sire"?: string | null;
+  "breeder"?: string | null;
+}
+
+export interface SpecPerf {
+  "horse_id": number;
+  "first_cnt": number;
+  "second_cnt": number;
+  "third_cnt": number;
+  "out_cnt": number;
+  "starts": number;
+}
+
+export interface SpecBestTime {
+  "horse_id": number;
+  "baba_code": number;
+  "surface": string;
+  "distance_m": number;
+  "best_time_sec"?: number | null;
+  "best_time_good_sec"?: number | null;
+  "best_time_raw"?: string | null;
+  "best_time_good_raw"?: string | null;
+}
+
+export interface SpecRaceEntry {
+  "race_id": string;
+  "horse_no": number;
+  "waku"?: number | null;
+  "horse_id"?: number | null;
+  "burden_weight_display": number;
+  "apprentice_allowance_symbol"?: string | null;
+  "apprentice_allowance_kg"?: number | null;
+  "burden_weight_base"?: number | null;
+  "body_weight"?: number | null;
+  "body_weight_diff"?: number | null;
+  "win_odds"?: number | null;
+  "popularity"?: number | null;
+  "jockey_person_id"?: number | null;
+  "trainer_person_id"?: number | null;
+  "owner_person_id"?: number | null;
+  "perf_total_id"?: number | null;
+  "perf_dirt_left_id"?: number | null;
+  "perf_dirt_right_id"?: number | null;
+  "perf_track_id"?: number | null;
+  "perf_distance_id"?: number | null;
+  "best_time_id"?: number | null;
+}
+
+export interface SpecLast5 {
+  "race_id": string;
+  "horse_no": number;
+  "order_in_last5": number;
+  "finish_pos"?: number | null;
+  "past_race_date"?: string | null;
+  "track_condition"?: string | null;
+  "runners"?: number | null;
+  "place"?: string | null;
+  "direction"?: string | null;
+  "distance_m"?: number | null;
+  "horse_no_in_race"?: number | null;
+  "popularity"?: number | null;
+  "body_weight"?: number | null;
+  "jockey_name"?: string | null;
+  "burden_weight"?: number | null;
+  "time_raw"?: string | null;
+  "time_sec"?: number | null;
+  "passing_order_raw"?: string | null;
+  "passing_order_arr"?: number[] | null;
+  "last3f"?: number | null;
+  "time_diff"?: number | null;
+  "winner_name"?: string | null;
+}
+
+export interface SpecRaceCardResponse {
+  "race": SpecRaceCardRace;
+  "persons": SpecPerson[];
+  "horses": SpecHorse[];
+  "race_entries": SpecRaceEntry[];
+  "perf_total": SpecPerf[];
+  "perf_dirt_left": SpecPerf[];
+  "perf_dirt_right": SpecPerf[];
+  "perf_track": SpecPerf[];
+  "perf_distance": SpecPerf[];
+  "best_time": SpecBestTime[];
+  "last5": SpecLast5[];
+}
+
 export interface BatchUpsertResponse {
   "accepted": number;
   "upserted": number;

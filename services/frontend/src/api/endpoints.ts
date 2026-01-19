@@ -35,6 +35,7 @@ import {
   ScrapeSyncScheduleRequest,
   ScrapeSyncStatus,
   SnapshotKind,
+  SpecRaceCardResponse,
   TokenResponse,
   UserRegisterRequest,
   VenueListResponse,
@@ -136,6 +137,13 @@ export const api = {
 
   listRacePayouts: (ctx: ApiCtx, raceId: number) =>
     apiFetch<PayoutListResponse>({ ...ctx, path: `/races/${raceId}/payouts`, method: "GET" }),
+
+  getSpecRaceCard: (ctx: ApiCtx, babaCode: number, raceDate: string, raceNo: number) =>
+    apiFetch<SpecRaceCardResponse>({
+      ...ctx,
+      path: `/spec/race-cards/${encodeURIComponent(String(babaCode))}/${encodeURIComponent(raceDate)}/${encodeURIComponent(String(raceNo))}`,
+      method: "GET",
+    }),
 
   scrapeRacesUpsert: (ctx: ApiCtx, req: RaceUpsertBatchRequest) =>
     apiFetch<BatchUpsertResponse>({ ...ctx, path: "/scrape/races", method: "POST", body: req }),

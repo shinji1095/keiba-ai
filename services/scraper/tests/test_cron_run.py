@@ -34,7 +34,7 @@ def test_cron_run_skips_when_disabled(monkeypatch) -> None:
 
     calls: list[list[str]] = []
 
-    def fake_run(cmd, check=True):
+    def fake_run(cmd, check=True, **_kwargs):
         _ = check
         calls.append(cmd)
         return SimpleNamespace(returncode=0)
@@ -58,7 +58,7 @@ def test_cron_run_executes_when_enabled(monkeypatch) -> None:
 
     calls: list[list[str]] = []
 
-    def fake_run(cmd, check=True):
+    def fake_run(cmd, check=True, **_kwargs):
         _ = check
         calls.append(cmd)
         return SimpleNamespace(returncode=0)

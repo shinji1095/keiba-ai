@@ -70,9 +70,10 @@ test("test data viewer shows races and files", async ({ page }) => {
 
   await page.getByRole("button", { name: "出馬表（正規化）" }).click();
   await expect(page.getByText("Test Heading")).toBeVisible();
-  await expect(page.getByText("A")).toBeVisible();
-  await expect(page.getByText("D")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "A", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "D", exact: true })).toBeVisible();
 });
+
 
 
 

@@ -27,6 +27,7 @@ tags:
   - name: venues
   - name: races
   - name: scrape
+  - name: spec
 
 paths:
   /health:
@@ -906,6 +907,51 @@ paths:
                 $ref: "#/components/schemas/BatchUpsertResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+
+  /spec/race-cards/{baba_code}/{race_date}/{race_no}:
+    get:
+      tags: [spec]
+      summary: Get spec race card (DebaTable normalized)
+      description: |
+        出馬表（DebaTable）由来の正規化データ（馬/人/着別成績/最高タイム/直近5走）を返す。
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: baba_code
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          description: 競馬場コード
+        - in: path
+          name: race_date
+          required: true
+          schema:
+            type: string
+            format: date
+          description: YYYY-MM-DD (JST)
+        - in: path
+          name: race_no
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 12
+          description: レース番号
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpecRaceCardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
 components:
   securitySchemes:
@@ -1911,6 +1957,387 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Payout"
+
+    # -------------------------
+    # Spec: race card (DebaTable normalized)
+    # -------------------------
+    SpecRaceCardRace:
+      type: object
+      required: [race_id, race_date, baba_code, race_no, race_name]
+      properties:
+        race_id:
+          type: string
+          example: "27_2026-01-02_01"
+        race_date:
+          type: string
+          format: date
+        baba_code:
+          type: integer
+          format: int32
+        race_no:
+          type: integer
+          format: int32
+        post_time:
+          type: string
+          format: time
+          nullable: true
+        race_name:
+          type: string
+        surface:
+          type: string
+          nullable: true
+        distance_m:
+          type: integer
+          format: int32
+          nullable: true
+        direction:
+          type: string
+          nullable: true
+        weather:
+          type: string
+          nullable: true
+        track_condition:
+          type: string
+          nullable: true
+
+    SpecPerson:
+      type: object
+      required: [person_id, role, name, affiliation]
+      properties:
+        person_id:
+          type: integer
+          format: int64
+        role:
+          type: string
+          example: jockey
+        name:
+          type: string
+        affiliation:
+          type: string
+
+    SpecHorse:
+      type: object
+      required: [horse_id, name]
+      properties:
+        horse_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        sex:
+          type: string
+          nullable: true
+        age:
+          type: integer
+          format: int32
+          nullable: true
+        coat:
+          type: string
+          nullable: true
+        birth_month:
+          type: integer
+          format: int32
+          nullable: true
+        birth_day:
+          type: integer
+          format: int32
+          nullable: true
+        birth_md_raw:
+          type: string
+          nullable: true
+        sire:
+          type: string
+          nullable: true
+        dam:
+          type: string
+          nullable: true
+        dam_sire:
+          type: string
+          nullable: true
+        breeder:
+          type: string
+          nullable: true
+
+    SpecPerf:
+      type: object
+      required: [horse_id, first_cnt, second_cnt, third_cnt, out_cnt, starts]
+      properties:
+        horse_id:
+          type: integer
+          format: int64
+        first_cnt:
+          type: integer
+          format: int32
+        second_cnt:
+          type: integer
+          format: int32
+        third_cnt:
+          type: integer
+          format: int32
+        out_cnt:
+          type: integer
+          format: int32
+        starts:
+          type: integer
+          format: int32
+
+    SpecBestTime:
+      type: object
+      required: [horse_id, baba_code, surface, distance_m]
+      properties:
+        horse_id:
+          type: integer
+          format: int64
+        baba_code:
+          type: integer
+          format: int32
+        surface:
+          type: string
+        distance_m:
+          type: integer
+          format: int32
+        best_time_sec:
+          type: number
+          format: float
+          nullable: true
+        best_time_good_sec:
+          type: number
+          format: float
+          nullable: true
+        best_time_raw:
+          type: string
+          nullable: true
+        best_time_good_raw:
+          type: string
+          nullable: true
+
+    SpecRaceEntry:
+      type: object
+      required: [race_id, horse_no, burden_weight_display]
+      properties:
+        race_id:
+          type: string
+        horse_no:
+          type: integer
+          format: int32
+        waku:
+          type: integer
+          format: int32
+          nullable: true
+        horse_id:
+          type: integer
+          format: int64
+          nullable: true
+        burden_weight_display:
+          type: number
+          format: float
+        apprentice_allowance_symbol:
+          type: string
+          nullable: true
+        apprentice_allowance_kg:
+          type: integer
+          format: int32
+          nullable: true
+        burden_weight_base:
+          type: number
+          format: float
+          nullable: true
+        body_weight:
+          type: integer
+          format: int32
+          nullable: true
+        body_weight_diff:
+          type: integer
+          format: int32
+          nullable: true
+        win_odds:
+          type: number
+          format: float
+          nullable: true
+        popularity:
+          type: integer
+          format: int32
+          nullable: true
+        jockey_person_id:
+          type: integer
+          format: int64
+          nullable: true
+        trainer_person_id:
+          type: integer
+          format: int64
+          nullable: true
+        owner_person_id:
+          type: integer
+          format: int64
+          nullable: true
+        perf_total_id:
+          type: integer
+          format: int64
+          nullable: true
+        perf_dirt_left_id:
+          type: integer
+          format: int64
+          nullable: true
+        perf_dirt_right_id:
+          type: integer
+          format: int64
+          nullable: true
+        perf_track_id:
+          type: integer
+          format: int64
+          nullable: true
+        perf_distance_id:
+          type: integer
+          format: int64
+          nullable: true
+        best_time_id:
+          type: integer
+          format: int64
+          nullable: true
+
+    SpecLast5:
+      type: object
+      required: [race_id, horse_no, order_in_last5]
+      properties:
+        race_id:
+          type: string
+        horse_no:
+          type: integer
+          format: int32
+        order_in_last5:
+          type: integer
+          format: int32
+        finish_pos:
+          type: integer
+          format: int32
+          nullable: true
+        past_race_date:
+          type: string
+          format: date
+          nullable: true
+        track_condition:
+          type: string
+          nullable: true
+        runners:
+          type: integer
+          format: int32
+          nullable: true
+        place:
+          type: string
+          nullable: true
+        direction:
+          type: string
+          nullable: true
+        distance_m:
+          type: integer
+          format: int32
+          nullable: true
+        horse_no_in_race:
+          type: integer
+          format: int32
+          nullable: true
+        popularity:
+          type: integer
+          format: int32
+          nullable: true
+        body_weight:
+          type: integer
+          format: int32
+          nullable: true
+        jockey_name:
+          type: string
+          nullable: true
+        burden_weight:
+          type: number
+          format: float
+          nullable: true
+        time_raw:
+          type: string
+          nullable: true
+        time_sec:
+          type: number
+          format: float
+          nullable: true
+        passing_order_raw:
+          type: string
+          nullable: true
+        passing_order_arr:
+          type: array
+          items:
+            type: integer
+            format: int32
+          nullable: true
+        last3f:
+          type: number
+          format: float
+          nullable: true
+        time_diff:
+          type: number
+          format: float
+          nullable: true
+        winner_name:
+          type: string
+          nullable: true
+
+    SpecRaceCardResponse:
+      type: object
+      required:
+        [
+          race,
+          persons,
+          horses,
+          race_entries,
+          perf_total,
+          perf_dirt_left,
+          perf_dirt_right,
+          perf_track,
+          perf_distance,
+          best_time,
+          last5,
+        ]
+      properties:
+        race:
+          $ref: "#/components/schemas/SpecRaceCardRace"
+        persons:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpecPerson"
+        horses:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpecHorse"
+        race_entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpecRaceEntry"
+        perf_total:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpecPerf"
+        perf_dirt_left:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpecPerf"
+        perf_dirt_right:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpecPerf"
+        perf_track:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpecPerf"
+        perf_distance:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpecPerf"
+        best_time:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpecBestTime"
+        last5:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpecLast5"
 
     # -------------------------
     # Scrape ingest requests

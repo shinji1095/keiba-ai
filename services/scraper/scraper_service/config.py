@@ -22,9 +22,9 @@ class Settings(BaseSettings):
     sync_interval_days: int = 2
 
     # Load control (C2 fixed)
-    # Scheduled runs: 1-5 minutes between requests (60s + 0-240s jitter).
+    # Scheduled runs: 1-2 minutes between requests (60s + 0-60s jitter).
     min_interval_sec: float = 60.0
-    jitter_sec: float = 240.0
+    jitter_sec: float = 60.0
     # Manual runs: fixed 1 minute between requests.
     manual_min_interval_sec: float = 60.0
     manual_jitter_sec: float = 0.0

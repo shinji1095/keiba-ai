@@ -73,6 +73,98 @@ test("Race Detail shows summary/entries/odds/results/payouts (all required)", as
     });
   });
 
+  await page.route("**/api/spec/race-cards/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        race: {
+          race_id: `${babaCode}_${raceDate}_01`,
+          race_date: raceDate,
+          baba_code: babaCode,
+          race_no: 1,
+          post_time: "10:40:00",
+          race_name: "Ｃ３三４歳以上",
+          surface: "ダート",
+          distance_m: 1400,
+          direction: "右",
+          weather: "晴",
+          track_condition: "良",
+        },
+        persons: [],
+        horses: [{ horse_id: 101, name: "Horse-1", sex: "牝", age: 7 }],
+        race_entries: [
+          {
+            race_id: `${babaCode}_${raceDate}_01`,
+            horse_no: 1,
+            waku: 1,
+            horse_id: 101,
+            burden_weight_display: 55.0,
+            apprentice_allowance_symbol: null,
+            apprentice_allowance_kg: null,
+            burden_weight_base: 55.0,
+            body_weight: 458,
+            body_weight_diff: 1,
+            win_odds: 17.2,
+            popularity: 3,
+            jockey_person_id: null,
+            trainer_person_id: null,
+            owner_person_id: null,
+            perf_total_id: 1,
+            perf_dirt_left_id: 1,
+            perf_dirt_right_id: 1,
+            perf_track_id: 1,
+            perf_distance_id: 1,
+            best_time_id: 1,
+          },
+        ],
+        perf_total: [{ horse_id: 101, first_cnt: 1, second_cnt: 5, third_cnt: 4, out_cnt: 8, starts: 18 }],
+        perf_dirt_left: [{ horse_id: 101, first_cnt: 0, second_cnt: 0, third_cnt: 0, out_cnt: 0, starts: 0 }],
+        perf_dirt_right: [{ horse_id: 101, first_cnt: 1, second_cnt: 5, third_cnt: 4, out_cnt: 8, starts: 18 }],
+        perf_track: [{ horse_id: 101, first_cnt: 1, second_cnt: 5, third_cnt: 4, out_cnt: 8, starts: 18 }],
+        perf_distance: [{ horse_id: 101, first_cnt: 1, second_cnt: 5, third_cnt: 4, out_cnt: 8, starts: 18 }],
+        best_time: [
+          {
+            horse_id: 101,
+            baba_code: babaCode,
+            surface: "ダート",
+            distance_m: 1400,
+            best_time_sec: 92.9,
+            best_time_good_sec: 92.9,
+            best_time_raw: "1:32.9",
+            best_time_good_raw: "1:32.9",
+          },
+        ],
+        last5: [
+          {
+            race_id: `${babaCode}_${raceDate}_01`,
+            horse_no: 1,
+            order_in_last5: 1,
+            finish_pos: 4,
+            past_race_date: "2025-12-17",
+            track_condition: "良",
+            runners: 10,
+            place: "園田",
+            direction: "右",
+            distance_m: 1400,
+            horse_no_in_race: 1,
+            popularity: 3,
+            body_weight: 457,
+            jockey_name: "廣瀬航",
+            burden_weight: 55.0,
+            time_raw: "1:36.0",
+            time_sec: 96.0,
+            passing_order_raw: "4-4-3-2",
+            passing_order_arr: [4, 4, 3, 2],
+            last3f: 42.4,
+            time_diff: 0.8,
+            winner_name: "イッシン",
+          },
+        ],
+      }),
+    });
+  });
+
   await page.route("**/api/races**", async (route) => {
     const url = route.request().url();
     if (url.includes("/api/races?")) {
@@ -224,7 +316,13 @@ test("Race Detail shows summary/entries/odds/results/payouts (all required)", as
   // entries
   await page.getByRole("button", { name: "entries" }).click();
   await expect(page.locator("table.table tbody tr")).toHaveCount(12);
-  await expect(page.getByText("Horse-1")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Horse-1", exact: true })).toBeVisible();
+  await expect(page.getByText("1-5-4-8 (18)")).toBeVisible();
+
+  // entries: expand details for horse 1 (spec last5/perf)
+  await page.locator("table.table tbody tr").first().getByRole("button", { name: "+" }).click();
+  await expect(page.getByText("着別成績 / 競走成績（直近5走）")).toBeVisible();
+  await expect(page.getByText("1:36.0")).toBeVisible();
 
   // odds: verify each required bet_type shows items count
   await page.getByRole("button", { name: "odds" }).click();

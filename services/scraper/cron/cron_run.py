@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import subprocess
@@ -9,6 +10,16 @@ import urllib.request
 
 def _log(msg: str) -> None:
     sys.stderr.write(f"{msg}\n")
+
+
+def _try_lock(path: str):
+    f = open(path, "w", encoding="utf-8")
+    try:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        f.close()
+        return None
+    return f
 
 
 def _fetch_schedule(base_url: str) -> dict:
@@ -39,6 +50,12 @@ def _build_cmd(
 
 
 def main() -> int:
+    lock_path = os.getenv("SCRAPER_CRON_LOCK", "/tmp/scraper-cron.lock").strip() or "/tmp/scraper-cron.lock"
+    lock_file = _try_lock(lock_path)
+    if lock_file is None:
+        _log("another cron_run is running; skip")
+        return 0
+
     base_url = os.getenv("SCRAPER_CONTROL_URL", "").strip()
     if not base_url:
         _log("SCRAPER_CONTROL_URL is required")
@@ -88,6 +105,7 @@ def main() -> int:
         _log(f"scrape failed: {exc}")
         return int(exc.returncode) if exc.returncode else 1
 
+    _ = lock_file  # keep lock held until process exit
     return 0
 
 

@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/api/endpoints";
 import { useApiCtx } from "@/app/hooks/useApiCtx";
-import { BetType, SnapshotKind } from "@/api/generated";
+import { BetType, SnapshotKind, SpecPerf, SpecRaceCardResponse } from "@/api/generated";
+import { ApiHttpError } from "@/api/http";
 import { ErrorBox } from "@/shared/ui/ErrorBox";
 import { Loading } from "@/shared/ui/Loading";
 
@@ -20,9 +21,32 @@ const betTypes: BetType[] = [
   "sanrentan",
 ];
 
-const snapshotKinds: SnapshotKind[] = ["t_minus_5m", "t_minus_1m", "final"];
+const snapshotKinds: SnapshotKind[] = ["t_minus_60m", "t_minus_30m", "t_minus_5m", "t_minus_1m", "final"];
 
 type TabKey = "summary" | "entries" | "odds" | "results" | "payouts";
+
+type OddsTrendPoint = {
+  snapshot_kind: SnapshotKind;
+  captured_at: string;
+  odds_min: number | null;
+  odds_max: number | null;
+  popularity: number | null;
+};
+
+const trendKinds: SnapshotKind[] = ["t_minus_60m", "t_minus_30m", "t_minus_20m", "t_minus_10m", "t_minus_5m", "t_minus_1m", "final"];
+
+function perfLabel(perf?: SpecPerf | null): string {
+  if (!perf) return "-";
+  return `${perf.first_cnt}-${perf.second_cnt}-${perf.third_cnt}-${perf.out_cnt} (${perf.starts})`;
+}
+
+function indexByHorseId<T extends { horse_id: number }>(items: T[]): Map<number, T> {
+  return new Map(items.map((it) => [it.horse_id, it]));
+}
+
+function buildSpecEntryByHorseNo(card: SpecRaceCardResponse): Map<number, SpecRaceCardResponse["race_entries"][number]> {
+  return new Map(card.race_entries.map((e) => [e.horse_no, e]));
+}
 
 export function RaceDetailPage(): React.JSX.Element {
   const ctx = useApiCtx();
@@ -32,7 +56,10 @@ export function RaceDetailPage(): React.JSX.Element {
   const [tab, setTab] = React.useState<TabKey>("summary");
   const [betType, setBetType] = React.useState<BetType>("tansho");
   const [snapshotKind, setSnapshotKind] = React.useState<SnapshotKind>("final");
+  const [trendBetType, setTrendBetType] = React.useState<BetType>("tansho");
+  const [trendHorseNo, setTrendHorseNo] = React.useState<number>(1);
   const isTansho = betType === "tansho";
+  const trendSupported = trendBetType === "tansho" || trendBetType === "fukusho";
 
   const qRace = useQuery({
     queryKey: ["race", raceId],
@@ -52,6 +79,32 @@ export function RaceDetailPage(): React.JSX.Element {
     enabled: tab === "odds" && Number.isFinite(raceId),
   });
 
+  const qOddsTrend = useQuery({
+    queryKey: ["raceOddsTrend", raceId, trendBetType, trendHorseNo],
+    queryFn: async (): Promise<OddsTrendPoint[]> => {
+      if (!trendSupported) return [];
+      const out: OddsTrendPoint[] = [];
+      for (const kind of trendKinds) {
+        try {
+          const res = await api.getRaceOdds(ctx, raceId, { snapshot_kind: kind, bet_type: trendBetType });
+          const item = res.items.find((it) => it.legs.length === 1 && it.legs[0] === trendHorseNo);
+          out.push({
+            snapshot_kind: kind,
+            captured_at: res.snapshot.captured_at,
+            odds_min: item?.odds_min ?? null,
+            odds_max: item?.odds_max ?? null,
+            popularity: item?.popularity ?? null,
+          });
+        } catch (err) {
+          if (err instanceof ApiHttpError && err.status === 404) continue;
+          throw err;
+        }
+      }
+      return out;
+    },
+    enabled: false,
+  });
+
   const qResults = useQuery({
     queryKey: ["raceResults", raceId],
     queryFn: () => api.listRaceResults(ctx, raceId),
@@ -63,6 +116,24 @@ export function RaceDetailPage(): React.JSX.Element {
     queryFn: () => api.listRacePayouts(ctx, raceId),
     enabled: tab === "payouts" && Number.isFinite(raceId),
   });
+
+  const raceKey = qRace.data?.race_key;
+  const qSpecCard = useQuery({
+    queryKey: ["specRaceCard", raceKey?.race_date, raceKey?.baba_code, raceKey?.race_no],
+    queryFn: () => api.getSpecRaceCard(ctx, raceKey!.baba_code, raceKey!.race_date, raceKey!.race_no),
+    enabled: tab === "entries" && !!raceKey,
+  });
+  const showSpecError = qSpecCard.error && !(qSpecCard.error instanceof ApiHttpError && qSpecCard.error.status === 404);
+
+  const [expandedHorseNos, setExpandedHorseNos] = React.useState<Set<number>>(new Set());
+  const toggleHorse = (horseNo: number) => {
+    setExpandedHorseNos((prev) => {
+      const next = new Set(prev);
+      if (next.has(horseNo)) next.delete(horseNo);
+      else next.add(horseNo);
+      return next;
+    });
+  };
 
   return (
     <div>
@@ -147,6 +218,8 @@ export function RaceDetailPage(): React.JSX.Element {
         <div>
           {qEntries.isLoading ? <Loading label="Loading entries..." /> : null}
           {qEntries.error ? <ErrorBox error={qEntries.error} /> : null}
+          {qSpecCard.isLoading ? <Loading label="Loading spec race card..." /> : null}
+          {showSpecError ? <ErrorBox error={qSpecCard.error} /> : null}
           {qEntries.data ? (
             <div className="card">
               <div className="cardHeader">
@@ -156,9 +229,20 @@ export function RaceDetailPage(): React.JSX.Element {
                 </button>
               </div>
 
+              {qSpecCard.data ? (
+                <div className="small" style={{ marginBottom: 10 }}>
+                  spec: /spec/race-cards/{qSpecCard.data.race.baba_code}/{qSpecCard.data.race.race_date}/{qSpecCard.data.race.race_no}
+                </div>
+              ) : (
+                <div className="small" style={{ marginBottom: 10 }}>
+                  spec: (not available) /spec/race-cards/{"{baba_code}"}/{"{race_date}"}/{"{race_no}"}
+                </div>
+              )}
+
               <table className="table">
                 <thead>
                   <tr>
+                    <th></th>
                     <th>post</th>
                     <th>no</th>
                     <th>horse</th>
@@ -167,21 +251,145 @@ export function RaceDetailPage(): React.JSX.Element {
                     <th>handicap_kg</th>
                     <th>body_weight</th>
                     <th>diff</th>
+                    <th>perf_total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {qEntries.data.items.map((e) => (
-                    <tr key={e.race_entry_id}>
-                      <td>{e.post_position ?? ""}</td>
-                      <td>{e.horse_number}</td>
-                      <td>{e.horse_name}</td>
-                      <td>{e.jockey_name ?? ""}</td>
-                      <td>{e.trainer_name ?? ""}</td>
-                      <td>{e.handicap_kg ?? ""}</td>
-                      <td>{e.body_weight ?? ""}</td>
-                      <td>{e.body_weight_diff ?? ""}</td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    const card = qSpecCard.data;
+                    if (!card) {
+                      return qEntries.data.items.map((e) => (
+                        <tr key={e.race_entry_id}>
+                          <td></td>
+                          <td>{e.post_position ?? ""}</td>
+                          <td>{e.horse_number}</td>
+                          <td>{e.horse_name}</td>
+                          <td>{e.jockey_name ?? ""}</td>
+                          <td>{e.trainer_name ?? ""}</td>
+                          <td>{e.handicap_kg ?? ""}</td>
+                          <td>{e.body_weight ?? ""}</td>
+                          <td>{e.body_weight_diff ?? ""}</td>
+                          <td>-</td>
+                        </tr>
+                      ));
+                    }
+
+                    const specEntryByNo = buildSpecEntryByHorseNo(card);
+                    const perfTotalByHorseId = indexByHorseId(card.perf_total);
+                    const perfLeftByHorseId = indexByHorseId(card.perf_dirt_left);
+                    const perfRightByHorseId = indexByHorseId(card.perf_dirt_right);
+                    const perfTrackByHorseId = indexByHorseId(card.perf_track);
+                    const perfDistanceByHorseId = indexByHorseId(card.perf_distance);
+
+                    const last5ByHorseNo = new Map<number, SpecRaceCardResponse["last5"]>();
+                    for (const r of card.last5) {
+                      const arr = last5ByHorseNo.get(r.horse_no) ?? [];
+                      arr.push(r);
+                      last5ByHorseNo.set(r.horse_no, arr);
+                    }
+                    for (const [k, arr] of last5ByHorseNo.entries()) {
+                      arr.sort((a, b) => a.order_in_last5 - b.order_in_last5);
+                      last5ByHorseNo.set(k, arr);
+                    }
+
+                    const colSpan = 10;
+                    return qEntries.data.items.flatMap((e) => {
+                      const horseNo = e.horse_number;
+                      const specEntry = specEntryByNo.get(horseNo);
+                      const horseId = specEntry?.horse_id ?? null;
+                      const perfTotal = horseId ? perfTotalByHorseId.get(horseId) : null;
+                      const isExpanded = expandedHorseNos.has(horseNo);
+                      const last5 = last5ByHorseNo.get(horseNo) ?? [];
+                      const detailsDisabled = !specEntry && last5.length === 0;
+
+                      const mainRow = (
+                        <tr key={e.race_entry_id}>
+                          <td>
+                            <button className="btn" disabled={detailsDisabled} onClick={() => toggleHorse(horseNo)}>
+                              {isExpanded ? "−" : "+"}
+                            </button>
+                          </td>
+                          <td>{e.post_position ?? ""}</td>
+                          <td>{horseNo}</td>
+                          <td>{e.horse_name}</td>
+                          <td>{e.jockey_name ?? ""}</td>
+                          <td>{e.trainer_name ?? ""}</td>
+                          <td>{e.handicap_kg ?? ""}</td>
+                          <td>{e.body_weight ?? ""}</td>
+                          <td>{e.body_weight_diff ?? ""}</td>
+                          <td>{perfLabel(perfTotal)}</td>
+                        </tr>
+                      );
+
+                      if (!isExpanded) return [mainRow];
+
+                      const perfLeft = horseId ? perfLeftByHorseId.get(horseId) : null;
+                      const perfRight = horseId ? perfRightByHorseId.get(horseId) : null;
+                      const perfTrack = horseId ? perfTrackByHorseId.get(horseId) : null;
+                      const perfDistance = horseId ? perfDistanceByHorseId.get(horseId) : null;
+
+                      const detailRow = (
+                        <tr key={`${e.race_entry_id}-details`}>
+                          <td colSpan={colSpan} style={{ paddingTop: 0 }}>
+                            <div className="card" style={{ marginTop: 10, background: "rgba(15, 22, 38, 0.55)" }}>
+                              <div className="cardHeader">
+                                <h3 className="cardTitle">着別成績 / 競走成績（直近5走）</h3>
+                              </div>
+
+                              <div className="row" style={{ gap: 10, marginBottom: 12 }}>
+                                <span className="pill">total {perfLabel(perfTotal)}</span>
+                                <span className="pill">left {perfLabel(perfLeft)}</span>
+                                <span className="pill">right {perfLabel(perfRight)}</span>
+                                <span className="pill">track {perfLabel(perfTrack)}</span>
+                                <span className="pill">distance {perfLabel(perfDistance)}</span>
+                              </div>
+
+                              {last5.length ? (
+                                <table className="table">
+                                  <thead>
+                                    <tr>
+                                      <th>#</th>
+                                      <th>date</th>
+                                      <th>place</th>
+                                      <th>dist</th>
+                                      <th>pos</th>
+                                      <th>runners</th>
+                                      <th>time</th>
+                                      <th>diff</th>
+                                      <th>pop</th>
+                                      <th>bw</th>
+                                      <th>jockey</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {last5.map((r) => (
+                                      <tr key={`${r.horse_no}-${r.order_in_last5}`}>
+                                        <td>{r.order_in_last5}</td>
+                                        <td>{r.past_race_date ?? ""}</td>
+                                        <td>{r.place ?? ""}</td>
+                                        <td>{r.distance_m ?? ""}</td>
+                                        <td>{r.finish_pos ?? ""}</td>
+                                        <td>{r.runners ?? ""}</td>
+                                        <td>{r.time_raw ?? ""}</td>
+                                        <td>{r.time_diff ?? ""}</td>
+                                        <td>{r.popularity ?? ""}</td>
+                                        <td>{r.body_weight ?? ""}</td>
+                                        <td>{r.jockey_name ?? ""}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <div className="small">No last5 data.</div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+
+                      return [mainRow, detailRow];
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -223,6 +431,148 @@ export function RaceDetailPage(): React.JSX.Element {
             <div className="small" style={{ marginTop: 10 }}>
               /races/{"{race_id}"}/odds?snapshot_kind=...&bet_type=...
             </div>
+          </div>
+
+          <div className="card" style={{ marginBottom: 14 }}>
+            <div className="cardHeader">
+              <h2 className="cardTitle">Odds Trend (graph)</h2>
+              <button className="btn" onClick={() => qOddsTrend.refetch()}>
+                Fetch trend
+              </button>
+            </div>
+
+            <div className="row">
+              <label>
+                <div className="small">trend_type</div>
+                <select className="select" value={trendBetType} onChange={(e) => setTrendBetType(e.target.value as BetType)}>
+                  {(["tansho", "fukusho"] as BetType[]).map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <div className="small">horse_no</div>
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  value={String(trendHorseNo)}
+                  onChange={(e) => setTrendHorseNo(Number(e.target.value))}
+                />
+              </label>
+            </div>
+
+            {!trendSupported ? <div className="small">Trend is supported for tansho / fukusho only.</div> : null}
+            {qOddsTrend.isFetching ? <Loading label="Loading odds trend..." /> : null}
+            {qOddsTrend.error ? <ErrorBox error={qOddsTrend.error} /> : null}
+
+            {qOddsTrend.data ? (
+              qOddsTrend.data.length ? (
+                (() => {
+                  const points = qOddsTrend.data.filter((p) => typeof p.odds_min === "number") as Array<
+                    OddsTrendPoint & { odds_min: number }
+                  >;
+                  const hasPlot = points.length > 0;
+                  const w = 720;
+                  const h = 220;
+                  const padL = 40;
+                  const padR = 14;
+                  const padT = 14;
+                  const padB = 34;
+                  const innerW = w - padL - padR;
+                  const innerH = h - padT - padB;
+                  const ys = points.map((p) => p.odds_min);
+                  const yMin = ys.length ? Math.min(...ys) : 0;
+                  const yMax = ys.length ? Math.max(...ys) : 0;
+                  const yLo = yMin === yMax ? yMin - 1 : yMin;
+                  const yHi = yMin === yMax ? yMax + 1 : yMax;
+
+                  const xAt = (i: number) => padL + (innerW * i) / Math.max(1, points.length - 1);
+                  const yAt = (v: number) => padT + innerH * (1 - (v - yLo) / (yHi - yLo));
+
+                  const poly = points.map((p, i) => `${xAt(i)},${yAt(p.odds_min)}`).join(" ");
+
+                  const label = (k: string) => (k === "final" ? "final" : k.replace(/^t_minus_/, "T-"));
+
+                  return (
+                    <div style={{ marginTop: 12 }}>
+                      {hasPlot ? (
+                        <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: 220, display: "block" }}>
+                          <line
+                            x1={padL}
+                            y1={padT}
+                            x2={padL}
+                            y2={padT + innerH}
+                            stroke="rgba(170,182,214,0.5)"
+                            strokeWidth="1"
+                          />
+                          <line
+                            x1={padL}
+                            y1={padT + innerH}
+                            x2={padL + innerW}
+                            y2={padT + innerH}
+                            stroke="rgba(170,182,214,0.5)"
+                            strokeWidth="1"
+                          />
+
+                          <polyline points={poly} fill="none" stroke="rgba(90, 163, 255, 0.95)" strokeWidth="2" />
+                          {points.map((p, i) => (
+                            <circle key={p.snapshot_kind} cx={xAt(i)} cy={yAt(p.odds_min)} r="3" fill="rgba(90, 163, 255, 0.95)" />
+                          ))}
+
+                          <text x={padL} y={padT + innerH + 26} fill="rgba(170,182,214,0.9)" fontSize="12">
+                            {label(points[0].snapshot_kind)}
+                          </text>
+                          {points.length > 1 ? (
+                            <text x={padL + innerW - 36} y={padT + innerH + 26} fill="rgba(170,182,214,0.9)" fontSize="12">
+                              {label(points[points.length - 1].snapshot_kind)}
+                            </text>
+                          ) : null}
+
+                          <text x={0} y={padT + 12} fill="rgba(170,182,214,0.9)" fontSize="12">
+                            {yHi.toFixed(1)}
+                          </text>
+                          <text x={0} y={padT + innerH} fill="rgba(170,182,214,0.9)" fontSize="12">
+                            {yLo.toFixed(1)}
+                          </text>
+                        </svg>
+                      ) : (
+                        <div className="small">No numeric odds to plot.</div>
+                      )}
+
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>snapshot_kind</th>
+                            <th>captured_at</th>
+                            <th>odds_min</th>
+                            <th>odds_max</th>
+                            <th>popularity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {qOddsTrend.data.map((p) => (
+                            <tr key={p.snapshot_kind}>
+                              <td>{p.snapshot_kind}</td>
+                              <td>{p.captured_at}</td>
+                              <td>{p.odds_min ?? ""}</td>
+                              <td>{p.odds_max ?? ""}</td>
+                              <td>{p.popularity ?? ""}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className="small" style={{ marginTop: 10 }}>
+                  No trend data.
+                </div>
+              )
+            ) : null}
           </div>
 
           {qOdds.isLoading ? <Loading label="Loading odds..." /> : null}

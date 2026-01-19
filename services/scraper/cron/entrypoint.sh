@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-: "${SCRAPER_CRON:=0 6 * * *}"
+: "${SCRAPER_CRON:=*/2 * * * *}"
 : "${SCRAPER_CONTROL_URL:=}"
 
 CRON_FILE=/etc/cron.d/scraper
