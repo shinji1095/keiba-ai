@@ -120,8 +120,13 @@ def test_plan_scheduler_saves_state_every_5_tasks(tmp_path: Path) -> None:
 
     race_date = "2026-01-14"
     plan_path = control_dir / f"scrape_plan_{race_date}.json"
+    # NOTE: PlanScheduler de-duplicates by a key that includes scheduled_at.
+    # Use distinct scheduled_at values so 6 tasks are treated as 6 unique items.
+    items = [
+        _plan_item(race_date=race_date, scheduled_at=f"2026-01-14T08:00:0{i}+09:00")
+        for i in range(6)
+    ]
     scheduled_at = "2026-01-14T08:00:00+09:00"
-    items = [_plan_item(race_date=race_date, scheduled_at=scheduled_at) for _ in range(6)]
     _write_plan(plan_path, race_date=race_date, generated_at=scheduled_at, items=items)
 
     runner = FakeRunner(control_dir)
@@ -138,7 +143,7 @@ def test_plan_scheduler_saves_state_every_5_tasks(tmp_path: Path) -> None:
     assert result.executed == 6
     state_path = control_dir / f"scrape_plan_state_{race_date}.json"
     assert state_path.exists()
-    completed = set(json.loads(state_path.read_text(encoding=\"utf-8\")).get(\"completed\") or [])
+    completed = set(json.loads(state_path.read_text(encoding="utf-8")).get("completed") or [])
     assert len(completed) == 6
 
 

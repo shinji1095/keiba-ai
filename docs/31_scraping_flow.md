@@ -31,6 +31,9 @@ flowchart TD
     HTML --> P5["parse_refund_money_list"] --> PAY["PayoutUpsert"] --> A5["_append_sync('payouts')"] --> I5["./data/ingest/payouts.jsonl"]
   end
 
+> 補足（払戻の最終取得タイミング）  
+> `RefundMoneyList` の取得は「開催場×日付で最終レース後に1回」が基本。最終発走時刻（last_start_dt）は RaceList の start_time を一次情報としつつ、欠損時は DebaTable の post_time でも更新して判断する（best-effort）。
+
   subgraph O["Optional: PC pull -> DB (api-service)"]
     I1 -->|/control/export/* (list_latest)| X["api-service sync pull"]
     I2 -->|/control/export/*| X
