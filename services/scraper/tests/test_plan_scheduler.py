@@ -139,6 +139,7 @@ def test_plan_scheduler_saves_state_every_5_tasks(tmp_path: Path) -> None:
     state_path = control_dir / f"scrape_plan_state_{race_date}.json"
     assert state_path.exists()
     completed = set(json.loads(state_path.read_text(encoding="utf-8")).get("completed") or [])
+    completed = set(json.loads(state_path.read_text(encoding="utf-8")).get("completed") or [])
     assert len(completed) == 6
 
 

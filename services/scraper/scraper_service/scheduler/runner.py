@@ -562,6 +562,11 @@ class ScrapeRunner:
                 post_time = getattr(card.race, "post_time", None)
                 if isinstance(post_time, str) and post_time:
                     start_time = post_time if len(post_time) != 5 else f"{post_time}:00"
+                # Update last_start_dt using DebaTable post_time as a fallback.
+                # RaceList start_time can be missing due to HTML changes; DebaTable header is often more stable.
+                deba_start_dt = _race_start_dt(race_date, start_time)
+                if deba_start_dt and (last_start_dt is None or deba_start_dt > last_start_dt):
+                    last_start_dt = deba_start_dt
                 self._append_sync(
                     "races",
                     [
@@ -879,6 +884,10 @@ class ScrapeRunner:
                     post_time = getattr(card.race, "post_time", None)
                     if isinstance(post_time, str) and post_time:
                         start_time = post_time if len(post_time) != 5 else f"{post_time}:00"
+                    # Update last_start_dt using DebaTable post_time as a fallback.
+                    deba_start_dt = _race_start_dt(race_date, start_time)
+                    if deba_start_dt and (last_start_dt is None or deba_start_dt > last_start_dt):
+                        last_start_dt = deba_start_dt
                     self._append_sync(
                         "races",
                         [

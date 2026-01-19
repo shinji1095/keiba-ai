@@ -36,6 +36,7 @@ def test_cron_run_skips_when_disabled(monkeypatch) -> None:
 
     def fake_run(cmd, check=True, **_kwargs):
         _ = check
+        _ = kwargs
         calls.append(cmd)
         return SimpleNamespace(returncode=0)
 
@@ -60,6 +61,7 @@ def test_cron_run_executes_when_enabled(monkeypatch) -> None:
 
     def fake_run(cmd, check=True, **_kwargs):
         _ = check
+        _ = kwargs
         calls.append(cmd)
         return SimpleNamespace(returncode=0)
 

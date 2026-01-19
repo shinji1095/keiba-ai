@@ -392,6 +392,17 @@
 - 対象機能・モジュール: scraper-service plan scheduler/state store
 - 実装状況: 追加テストあり（services/scraper/tests/test_plan_scheduler.py）
 
+### TR-033: RefundMoneyList の最終取得判定（DebaTable post_time フォールバック）
+- 要件ID: TR-033
+- 要件名: RaceList の start_time 欠損時でも払戻（payouts）が取得される
+- 要件の説明: `RefundMoneyList` の最終取得タイミング判定に用いる last_start_dt は RaceList の start_time を一次情報とするが、欠損時は DebaTable の post_time でも更新し、結果として `payouts` が欠損しないこと。
+- 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#3.5, docs/31_scraping_flow.md
+- 関連リスクID: RISK-001
+- テスト観点: 正常系（RaceList start_time 欠損でも RefundMoneyList を取得）、境界値（post_time が不正/欠損の場合は best-effort）
+- テスト分類: 単体テスト
+- 対象機能・モジュール: scraper-service ScrapeRunner.run_once（payouts fetch condition）
+- 実装状況: 未対応（追加予定）
+
 ### TR-101: ログイン画面（UI/E2E）
 - 要件ID: TR-101
 - 要件名: ログイン画面の基本フロー
