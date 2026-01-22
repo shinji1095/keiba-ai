@@ -33,7 +33,29 @@ type OddsTrendPoint = {
   popularity: number | null;
 };
 
-const trendKinds: SnapshotKind[] = ["t_minus_60m", "t_minus_30m", "t_minus_20m", "t_minus_10m", "t_minus_5m", "t_minus_1m", "final"];
+type OddsTrendSeries = {
+  horse_no: number;
+  points: OddsTrendPoint[];
+};
+
+type OddsTrendSnapshot = {
+  snapshot_kind: SnapshotKind;
+  captured_at: string;
+  by_horse_no: Record<number, Pick<OddsTrendPoint, "odds_min" | "odds_max" | "popularity">>;
+};
+
+type OddsTrendAll = {
+  bet_type: BetType;
+  snapshots: OddsTrendSnapshot[];
+  series: OddsTrendSeries[];
+};
+
+const trendKinds: SnapshotKind[] = ["t_minus_60m", "t_minus_30m", "t_minus_5m", "t_minus_1m", "final"];
+
+function colorForHorseNo(horseNo: number): string {
+  const hue = (horseNo * 37) % 360;
+  return `hsl(${hue} 80% 65%)`;
+}
 
 function perfLabel(perf?: SpecPerf | null): string {
   if (!perf) return "-";
@@ -57,7 +79,6 @@ export function RaceDetailPage(): React.JSX.Element {
   const [betType, setBetType] = React.useState<BetType>("tansho");
   const [snapshotKind, setSnapshotKind] = React.useState<SnapshotKind>("final");
   const [trendBetType, setTrendBetType] = React.useState<BetType>("tansho");
-  const [trendHorseNo, setTrendHorseNo] = React.useState<number>(1);
   const isTansho = betType === "tansho";
   const trendSupported = trendBetType === "tansho" || trendBetType === "fukusho";
 
@@ -80,29 +101,59 @@ export function RaceDetailPage(): React.JSX.Element {
   });
 
   const qOddsTrend = useQuery({
-    queryKey: ["raceOddsTrend", raceId, trendBetType, trendHorseNo],
-    queryFn: async (): Promise<OddsTrendPoint[]> => {
-      if (!trendSupported) return [];
-      const out: OddsTrendPoint[] = [];
+    queryKey: ["raceOddsTrendAll", raceId, trendBetType],
+    queryFn: async (): Promise<OddsTrendAll> => {
+      if (!trendSupported) return { bet_type: trendBetType, snapshots: [], series: [] };
+      const snapshots: OddsTrendSnapshot[] = [];
       for (const kind of trendKinds) {
         try {
           const res = await api.getRaceOdds(ctx, raceId, { snapshot_kind: kind, bet_type: trendBetType });
-          const item = res.items.find((it) => it.legs.length === 1 && it.legs[0] === trendHorseNo);
-          out.push({
-            snapshot_kind: kind,
+          const byHorseNo: OddsTrendSnapshot["by_horse_no"] = {};
+          for (const it of res.items) {
+            if (it.legs.length !== 1) continue;
+            const horseNo = it.legs[0];
+            if (!Number.isFinite(horseNo)) continue;
+            byHorseNo[horseNo] = {
+              odds_min: it.odds_min ?? null,
+              odds_max: it.odds_max ?? null,
+              popularity: it.popularity ?? null,
+            };
+          }
+          snapshots.push({
+            snapshot_kind: res.snapshot.snapshot_kind,
             captured_at: res.snapshot.captured_at,
-            odds_min: item?.odds_min ?? null,
-            odds_max: item?.odds_max ?? null,
-            popularity: item?.popularity ?? null,
+            by_horse_no: byHorseNo,
           });
         } catch (err) {
           if (err instanceof ApiHttpError && err.status === 404) continue;
           throw err;
         }
       }
-      return out;
+
+      const horseNosSet = new Set<number>();
+      for (const s of snapshots) {
+        for (const k of Object.keys(s.by_horse_no)) {
+          const horseNo = Number(k);
+          if (Number.isFinite(horseNo)) horseNosSet.add(horseNo);
+        }
+      }
+      const horseNos = [...horseNosSet].sort((a, b) => a - b);
+      const series: OddsTrendSeries[] = horseNos.map((horseNo) => ({
+        horse_no: horseNo,
+        points: snapshots.map((s) => ({
+          snapshot_kind: s.snapshot_kind,
+          captured_at: s.captured_at,
+          odds_min: s.by_horse_no[horseNo]?.odds_min ?? null,
+          odds_max: s.by_horse_no[horseNo]?.odds_max ?? null,
+          popularity: s.by_horse_no[horseNo]?.popularity ?? null,
+        })),
+      }));
+
+      return { bet_type: trendBetType, snapshots, series };
     },
-    enabled: false,
+    enabled: tab === "odds" && Number.isFinite(raceId) && trendSupported,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const qResults = useQuery({
@@ -435,9 +486,9 @@ export function RaceDetailPage(): React.JSX.Element {
 
           <div className="card" style={{ marginBottom: 14 }}>
             <div className="cardHeader">
-              <h2 className="cardTitle">Odds Trend (graph)</h2>
+              <h2 className="cardTitle">Odds Trend (all horses)</h2>
               <button className="btn" onClick={() => qOddsTrend.refetch()}>
-                Fetch trend
+                Refresh
               </button>
             </div>
 
@@ -452,16 +503,6 @@ export function RaceDetailPage(): React.JSX.Element {
                   ))}
                 </select>
               </label>
-
-              <label>
-                <div className="small">horse_no</div>
-                <input
-                  className="input"
-                  inputMode="numeric"
-                  value={String(trendHorseNo)}
-                  onChange={(e) => setTrendHorseNo(Number(e.target.value))}
-                />
-              </label>
             </div>
 
             {!trendSupported ? <div className="small">Trend is supported for tansho / fukusho only.</div> : null}
@@ -469,45 +510,58 @@ export function RaceDetailPage(): React.JSX.Element {
             {qOddsTrend.error ? <ErrorBox error={qOddsTrend.error} /> : null}
 
             {qOddsTrend.data ? (
-              qOddsTrend.data.length ? (
+              qOddsTrend.data.snapshots.length ? (
                 (() => {
-                  const points = qOddsTrend.data.filter((p) => typeof p.odds_min === "number") as Array<
-                    OddsTrendPoint & { odds_min: number }
-                  >;
-                  const hasPlot = points.length > 0;
+                  const snapshots = qOddsTrend.data.snapshots;
+                  const series = qOddsTrend.data.series;
+
                   const w = 720;
-                  const h = 220;
+                  const h = 260;
                   const padL = 40;
                   const padR = 14;
                   const padT = 14;
-                  const padB = 34;
+                  const padB = 44;
                   const innerW = w - padL - padR;
                   const innerH = h - padT - padB;
-                  const ys = points.map((p) => p.odds_min);
-                  const yMin = ys.length ? Math.min(...ys) : 0;
-                  const yMax = ys.length ? Math.max(...ys) : 0;
+
+                  const yValues: number[] = [];
+                  for (const s of series) {
+                    for (const p of s.points) {
+                      const v = p.odds_min ?? p.odds_max;
+                      if (typeof v === "number" && Number.isFinite(v)) yValues.push(v);
+                    }
+                  }
+                  const yMin = yValues.length ? Math.min(...yValues) : 0;
+                  const yMax = yValues.length ? Math.max(...yValues) : 0;
                   const yLo = yMin === yMax ? yMin - 1 : yMin;
                   const yHi = yMin === yMax ? yMax + 1 : yMax;
 
-                  const xAt = (i: number) => padL + (innerW * i) / Math.max(1, points.length - 1);
+                  const xAt = (i: number) => padL + (innerW * i) / Math.max(1, snapshots.length - 1);
                   const yAt = (v: number) => padT + innerH * (1 - (v - yLo) / (yHi - yLo));
-
-                  const poly = points.map((p, i) => `${xAt(i)},${yAt(p.odds_min)}`).join(" ");
-
                   const label = (k: string) => (k === "final" ? "final" : k.replace(/^t_minus_/, "T-"));
+
+                  const paths = series.map((s) => {
+                    const d: string[] = [];
+                    let open = false;
+                    for (let i = 0; i < s.points.length; i++) {
+                      const p = s.points[i];
+                      const v = p.odds_min ?? p.odds_max;
+                      if (typeof v !== "number" || !Number.isFinite(v)) {
+                        open = false;
+                        continue;
+                      }
+                      const cmd = open ? "L" : "M";
+                      d.push(`${cmd}${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`);
+                      open = true;
+                    }
+                    return { horse_no: s.horse_no, d: d.join(" ") };
+                  });
 
                   return (
                     <div style={{ marginTop: 12 }}>
-                      {hasPlot ? (
-                        <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: 220, display: "block" }}>
-                          <line
-                            x1={padL}
-                            y1={padT}
-                            x2={padL}
-                            y2={padT + innerH}
-                            stroke="rgba(170,182,214,0.5)"
-                            strokeWidth="1"
-                          />
+                      {yValues.length ? (
+                        <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: h, display: "block" }}>
+                          <line x1={padL} y1={padT} x2={padL} y2={padT + innerH} stroke="rgba(170,182,214,0.5)" strokeWidth="1" />
                           <line
                             x1={padL}
                             y1={padT + innerH}
@@ -517,19 +571,31 @@ export function RaceDetailPage(): React.JSX.Element {
                             strokeWidth="1"
                           />
 
-                          <polyline points={poly} fill="none" stroke="rgba(90, 163, 255, 0.95)" strokeWidth="2" />
-                          {points.map((p, i) => (
-                            <circle key={p.snapshot_kind} cx={xAt(i)} cy={yAt(p.odds_min)} r="3" fill="rgba(90, 163, 255, 0.95)" />
-                          ))}
+                          {paths.map((p) =>
+                            p.d ? (
+                              <path
+                                key={p.horse_no}
+                                d={p.d}
+                                fill="none"
+                                stroke={colorForHorseNo(p.horse_no)}
+                                strokeWidth="1.6"
+                                strokeOpacity="0.9"
+                              />
+                            ) : null,
+                          )}
 
-                          <text x={padL} y={padT + innerH + 26} fill="rgba(170,182,214,0.9)" fontSize="12">
-                            {label(points[0].snapshot_kind)}
-                          </text>
-                          {points.length > 1 ? (
-                            <text x={padL + innerW - 36} y={padT + innerH + 26} fill="rgba(170,182,214,0.9)" fontSize="12">
-                              {label(points[points.length - 1].snapshot_kind)}
+                          {snapshots.map((s, i) => (
+                            <text
+                              key={s.snapshot_kind}
+                              x={xAt(i)}
+                              y={padT + innerH + 28}
+                              fill="rgba(170,182,214,0.9)"
+                              fontSize="12"
+                              textAnchor="middle"
+                            >
+                              {label(s.snapshot_kind)}
                             </text>
-                          ) : null}
+                          ))}
 
                           <text x={0} y={padT + 12} fill="rgba(170,182,214,0.9)" fontSize="12">
                             {yHi.toFixed(1)}
@@ -542,28 +608,15 @@ export function RaceDetailPage(): React.JSX.Element {
                         <div className="small">No numeric odds to plot.</div>
                       )}
 
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>snapshot_kind</th>
-                            <th>captured_at</th>
-                            <th>odds_min</th>
-                            <th>odds_max</th>
-                            <th>popularity</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {qOddsTrend.data.map((p) => (
-                            <tr key={p.snapshot_kind}>
-                              <td>{p.snapshot_kind}</td>
-                              <td>{p.captured_at}</td>
-                              <td>{p.odds_min ?? ""}</td>
-                              <td>{p.odds_max ?? ""}</td>
-                              <td>{p.popularity ?? ""}</td>
-                            </tr>
+                      {series.length ? (
+                        <div className="row" style={{ gap: 8, marginTop: 10 }}>
+                          {series.map((s) => (
+                            <span key={s.horse_no} className="pill" style={{ borderColor: colorForHorseNo(s.horse_no), color: colorForHorseNo(s.horse_no) }}>
+                              {s.horse_no}
+                            </span>
                           ))}
-                        </tbody>
-                      </table>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })()
