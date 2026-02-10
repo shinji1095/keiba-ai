@@ -28,6 +28,9 @@ services:
     environment:
       TZ: ${TZ}
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+      MLFLOW_MODEL_NAME: ${MLFLOW_MODEL_NAME:-keiba_win_classifier}
+      MLFLOW_MODEL_STAGE: ${MLFLOW_MODEL_STAGE:-Production}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -71,8 +74,14 @@ services:
     environment:
       TZ: ${TZ}
       API_BASE_URL: ${API_BASE_URL}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+      MLFLOW_EXPERIMENT_NAME: ${MLFLOW_EXPERIMENT_NAME:-keiba-win-v1}
+      MLFLOW_MODEL_NAME: ${MLFLOW_MODEL_NAME:-keiba_win_classifier}
     depends_on:
       - api
+      - postgres
+      - mlflow
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.16.2

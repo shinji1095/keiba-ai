@@ -5,8 +5,8 @@ info:
   description: |
     競馬AI（keiba.go.jp 由来データのスクレイピング → DB 蓄積 → 参照）のAPI。
 
-    - 本リリースのスコープ: reverse-proxy / api-service / scraper-service / postgres
-    - スコープ外: pipeline-service(Prefect), worker-service(Celery), MLflow
+    - 本リリースのスコープ: reverse-proxy / api-service / scraper-service / postgres / pipeline-service(Prefect) / mlflow
+    - 本 OpenAPI は api-service のみを記述（pipeline-service / mlflow は別サービス）
 
     ## Authentication (JWT)
     - Access Token: JWT（短命 15分）を `Authorization: Bearer <token>` で送信
@@ -26,6 +26,7 @@ tags:
   - name: admin
   - name: venues
   - name: races
+  - name: ml
   - name: scrape
   - name: spec
 
@@ -41,6 +42,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+
+  /ml/win-prob/{race_id}:
+    get:
+      tags: [ml]
+      summary: Predict win probability (1st / not)
+      parameters:
+        - name: race_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: force_reload
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WinProbResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          $ref: "#/components/responses/BadGateway"
 
   /auth/login:
     post:
@@ -967,6 +996,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
+    BadGateway:
+      description: Bad Gateway
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
     Unauthorized:
       description: Unauthorized
       content:
@@ -1018,6 +1053,50 @@ components:
         status:
           type: string
           example: ok
+
+    # -------------------------
+    # ML
+    # -------------------------
+    WinProbItem:
+      type: object
+      required: [horse_number, horse_name, win_prob]
+      properties:
+        horse_number:
+          type: integer
+          format: int32
+          minimum: 1
+        horse_name:
+          type: string
+        jockey_name:
+          type: string
+          nullable: true
+        trainer_name:
+          type: string
+          nullable: true
+        win_prob:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    WinProbResponse:
+      type: object
+      required: [race_id, model_name, model_version, model_stage, items]
+      properties:
+        race_id:
+          type: integer
+          format: int32
+        model_name:
+          type: string
+        model_version:
+          type: string
+        model_stage:
+          type: string
+          example: Production
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WinProbItem"
 
     # -------------------------
     # Auth

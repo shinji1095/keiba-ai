@@ -7,7 +7,7 @@ WORKDIR /app
 
 # System deps (bcrypt wheels usually available; keep minimal)
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates cron \
+    && apt-get install -y --no-install-recommends ca-certificates cron libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt

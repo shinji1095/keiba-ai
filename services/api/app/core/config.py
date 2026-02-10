@@ -72,6 +72,22 @@ class Settings(BaseSettings):
         alias="SCRAPE_SYNC_STATE_PATH",
     )
 
+    # -----------------------------
+    # MLflow (inference)
+    # -----------------------------
+    mlflow_tracking_uri: Optional[str] = Field(
+        default=None, alias="MLFLOW_TRACKING_URI"
+    )
+    mlflow_model_name: str = Field(
+        default="keiba_win_classifier", alias="MLFLOW_MODEL_NAME"
+    )
+    mlflow_model_stage: str = Field(
+        default="Production", alias="MLFLOW_MODEL_STAGE"
+    )
+    mlflow_model_cache_ttl_sec: int = Field(
+        default=300, alias="MLFLOW_MODEL_CACHE_TTL_SEC"
+    )
+
     def clear_refresh_cookie(self) -> str:
         parts = [
             "refresh_token=",

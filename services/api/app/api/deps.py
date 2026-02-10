@@ -9,6 +9,7 @@ from fastapi.security import (
     OAuth2PasswordBearer,
     SecurityScopes,
 )
+from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.core.security import decode_access_token
@@ -36,7 +37,7 @@ def get_db():
         db.close()
 
 
-DbDep = Annotated[object, Depends(get_db)]
+DbDep = Annotated[Session, Depends(get_db)]
 
 
 def get_current_user(

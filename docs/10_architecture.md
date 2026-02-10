@@ -1,7 +1,7 @@
 # Architecture（サービス境界・配置・データフロー）
 
 作成日: 2025-12-27（Asia/Tokyo）  
-更新日: 2026-01-02（Asia/Tokyo）
+更新日: 2026-01-22（Asia/Tokyo）
 
 更新履歴
 - 2025-12-27: 初版作成。
@@ -12,6 +12,7 @@
 - 2026-01-01: 差分評価の判定主体を api-service に明記。
 - 2026-01-01: raw_fetch_logs をスコープ外とし、即時転送モードを反映。
 - 2026-01-02: 同期定義を Pi 最新/PC pull に更新。
+- 2026-01-22: pipeline-service / MLflow をスコープ内へ（学習→登録→配布の導線を追加）。
 
 ---
 
@@ -38,15 +39,19 @@
   - HTMLフィクスチャの採取（TDD用）
 - **frontend（React / Typescript / Vite）**
   - ダッシュボード
+- **pipeline-service（Prefect）**
+  - 学習パイプラインのオーケストレーション（検証→学習→評価→登録→配布）
+  - DB から学習データを抽出し、MLflow に実験/モデルを記録する
+- **mlflow（Tracking / Registry）**
+  - 実験管理（metrics/params/artifacts）
+  - Model Registry（候補→本番の昇格/ロールバック）
 
 ---
 
 ## 2. 今回スコープ外（将来導入候補）
-- pipeline-service（Prefect）
 - worker-service（Celery）
-- MLflow
 
-> これらは本リリースの契約（API/イベント）に影響しない範囲で後続追加する。
+ > worker-service は本リリースの契約（API/イベント）に影響しない範囲で後続追加する。
 
 ---
 
