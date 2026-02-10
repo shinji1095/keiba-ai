@@ -35,6 +35,7 @@ services:
       POSTGRES_PORT: 5432
       # Pi 側 scraper-service(control API) の到達先（例: http://<pi-lan-ip>:8080）
       SCRAPER_CONTROL_BASE_URL: ${SCRAPER_CONTROL_BASE_URL}
+      SCRAPER_FORWARD_TIMEOUT_SEC: ${SCRAPER_FORWARD_TIMEOUT_SEC}
     depends_on:
       - postgres
 
