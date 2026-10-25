@@ -38,6 +38,6 @@
 - 時間変化するのは odds のみ。snapshot_kind は `t_minus_60m / t_minus_30m / final` を使用。
 - DebaTable は早い時間に1回取得（odds と被らないように配置）。
 - RaceMarkTable / RefundMoneyList は `final` のタイミングでのみ取得。
-- HTTPリクエスト間隔は 1〜5分（運用上は 1分固定でも可）。
+- HTTPリクエスト間隔は 1〜2分（運用上は 1分固定でも可）。
 
 参照: `docs/scraper/01_site_structure.md`
