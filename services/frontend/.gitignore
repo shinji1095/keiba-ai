@@ -4,3 +4,5 @@ dist
 .DS_Store
 .env
 .env.*
+# Generated from the authoritative docs/test/data at build/development time.
+/public/docs/test/data/

@@ -1,20 +1,18 @@
 # Scraping Flow（スクレイピング→正規化→保存）
 
-本書は scraper-service の「実行トリガ → 計画生成 → 計画に沿った実行 → HTML取得 → 正規化 → 保存（Pi） → （任意）PC同期 → DB反映」までの流れを図示する。
+本書は scraper-service の「実行トリガ → 計画生成 → 計画に沿った実行 → HTML取得 → 正規化 → 保存（PC内のscraper） → （任意）PC同期 → DB反映」までの流れを図示する。
 
 ```mermaid
 flowchart TD
   subgraph T["Trigger"]
-    T1["api-service / cron<br/>POST /control/scrape"] --> CS["scraper_service.control_server<br/>(submit_scrape)"]
-    T2["scraper-scheduler<br/>scraper_service.scheduler.daemon"] -->|GET /control/schedule| CS
+    T1["api-service<br/>POST /control/scrape"] --> CS["scraper_service.control_server<br/>(submit_scrape)"]
+    T2["scraper内のscheduler<br/>scraper_service.scheduler.daemon"] -->|共有schedule.json| CS
     T2 --> PS["PlanScheduler.build_plan<br/>+ run_plan"]
     CS --> RO["ScrapeRunner.run_once"]
-    T3["scraper-cron (legacy)"] -->|python -m scraper_service.cli<br/>scrape scheduled| RS["ScrapeRunner.run_scheduled"]
   end
 
-  subgraph S["Pi: scrape -> normalize -> save"]
+  subgraph S["PC: scrape -> normalize -> save"]
     RO --> F["_fetch(page)"]
-    RS --> F
     PS --> EX["ScrapeRunner.execute_plan_item"]
     EX --> F
 
@@ -31,10 +29,8 @@ flowchart TD
     HTML --> P5["parse_refund_money_list"] --> PAY["PayoutUpsert"] --> A5["_append_sync('payouts')"] --> I5["./data/ingest/payouts.jsonl"]
   end
 
-> 補足（払戻の最終取得タイミング）  
-> `RefundMoneyList` の取得は「開催場×日付で最終レース後に1回」が基本。最終発走時刻（last_start_dt）は RaceList の start_time を一次情報としつつ、欠損時は DebaTable の post_time でも更新して判断する（best-effort）。
 
-  subgraph O["Optional: PC pull -> DB (api-service)"]
+  subgraph O["Optional: API pull -> DB (api-service)"]
     I1 -->|/control/export/* (list_latest)| X["api-service sync pull"]
     I2 -->|/control/export/*| X
     I2B -->|/control/export/*| X
@@ -45,3 +41,6 @@ flowchart TD
     API --> DB[(PostgreSQL upsert)]
   end
 ```
+
+> 補足（払戻の最終取得タイミング）
+> `RefundMoneyList` の取得は「開催場×日付で最終レース後に1回」が基本。最終発走時刻（last_start_dt）は RaceList の start_time を一次情報としつつ、欠損時は DebaTable の post_time でも更新して判断する（best-effort）。

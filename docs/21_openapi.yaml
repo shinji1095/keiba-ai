@@ -1,11 +1,11 @@
 openapi: 3.0.3
 info:
   title: Keiba AI API
-  version: 0.2.0
+  version: 1.0.0
   description: |
     競馬AI（keiba.go.jp 由来データのスクレイピング → DB 蓄積 → 参照）のAPI。
 
-    - 本リリースのスコープ: reverse-proxy / api-service / scraper-service / postgres / pipeline-service(Prefect) / mlflow
+    - 本リリースのスコープ: web / api-service / scraper-service / postgres（学習・MLflowは任意起動）
     - 本 OpenAPI は api-service のみを記述（pipeline-service / mlflow は別サービス）
 
     ## Authentication (JWT)
@@ -648,7 +648,7 @@ paths:
       description: |
         frontend などから手動スクレイプを依頼する。
         `race_date` を省略した場合は当日（JST）を対象とする。
-        api-service は Pi 側へ手動実行を指示する。
+        api-service は PC内のscraper側へ手動実行を指示する。
       requestBody:
         required: true
         content:
@@ -705,7 +705,7 @@ paths:
       tags: [scrape]
       summary: Get scrape execution plan
       description: |
-        scraper-service（Pi）が生成した当日プラン（scrape_plan_YYYY-MM-DD.json）を取得する。
+        scraper-service（PC内のscraper）が生成した当日プラン（scrape_plan_YYYY-MM-DD.json）を取得する。
         `race_date` を省略した場合は当日（JST）を対象とする。
       parameters:
         - name: race_date
@@ -797,7 +797,7 @@ paths:
       tags: [scrape]
       summary: Get sync status
       description: |
-        定期同期（JST 1日おき）と差分同期（Pi → PC pull）の状態を返す。
+        定期同期（JST 1日おき）と差分同期（scraper → API pull）の状態を返す。
       responses:
         "200":
           description: OK

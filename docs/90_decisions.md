@@ -81,3 +81,12 @@
 - Consequences:
   - `event_id` で副作用（手動実行タスク等）の二重実行を防ぐことはできないため、クライアント側のリトライ方針や運用で吸収する
   - docs/20_data_contracts.md, docs/21_openapi.yaml, テスト要件/テストを自然キー前提に更新する必要がある
+
+## 2026-10-25: v1.0.0はPC単独運用・コンテナ集約
+
+- Decision: Raspberry Piを使用せず、全処理をPCへ集約する。
+- web（NGINX＋React）、api（FastAPI＋同期cron）、postgres、scraper（制御API＋常駐plan）の4コンテナを通常構成とする。
+- 学習・MLflowは必要時に起動。未使用worker、旧scraper-cron、専用health、Scrapyサンプルは削除する。
+- 起動設定はルートcompose.yaml、フロントの静的検証資料はdocs/test/dataに集約する。
+- 過去のPi配置・cron専用コンテナの決定は本決定で置き換える。データ・API・取得間隔の契約は継続する。
+- 詳細は10_architecture.mdとdeploy/compose/README.mdを参照。

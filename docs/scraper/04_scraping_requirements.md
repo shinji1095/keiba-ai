@@ -24,23 +24,23 @@
 ## 1. 実行モードとタスク
 
 - scraper-service は **常時起動の control API** を提供し、api-service からの手動実行を受け付ける
-- Pi 側に cron コンテナを配置し、定期実行は cron コンテナが scraper-service の control API を呼び出す
-- api-service から cron コンテナに対し定期実行の on/off と baba_codes を制御する
+- 定期実行はscraperコンテナ内の常駐planスケジューラが担当する
+- api-serviceからcontrol APIを介し、定期実行のon/offとbaba_codesを制御する
 - 定期実行は複数競馬場（baba_codes）を指定可能
 - race_date はトリガごとに決定する（未指定は当日JST）
-- **起動時に race_date を固定した plan を作成し、無限ループする方式は採用しない**
-- スクレイピング情報（raw_html/ログ/正規化データ）は Pi 側で保存する
+- 常駐スケジューラはJST日付の更新に追従してplanを生成・実行する
+- スクレイピング情報（raw_html/ログ/正規化データ）は PC内のscraper側で保存する
   - 追加: DebaTable の詳細正規化（`race_cards`: race/persons/horses/perf/best_time/last5）を保存する
-- PC/Pi 間は **api-service が差分評価の判定主体**となり、**Pi → PC** 方向に pull 同期する（既定: 1日おき）
+- 同一PC内のサービス間は **api-service が差分評価の判定主体**となり、**scraper → API** 方向に pull 同期する（既定: 1日おき）
 - 定期実行のオン/オフ状態は frontend から参照できる
-- 定期同期は PC 側の cron コンテナが `/scrape/sync/scheduled` を呼び出し、api-service が JST 日付境界と interval_days に基づいて実行可否を判断する
+- 定期同期は APIコンテナ内のcronが `/scrape/sync/scheduled` を呼び出し、api-service が JST 日付境界と interval_days に基づいて実行可否を判断する
 
 ### 1.1 同期と差分管理
 
 - 差分評価対象: `/scrape/*` に相当する正規化データ
-  - 追加で `race_cards`（DebaTable 詳細正規化）も Pi 側へ保存する（PC 取り込みは将来検討）
+  - 追加で `race_cards`（DebaTable 詳細正規化）も PC内のscraper側へ保存する（APIが取り込み）
 - 同期頻度（既定）: 1日おき（JST）
-- 同期方向: Pi → PC（api-service が pull して取り込む）
+- 同期方向: scraper → API（api-service が pull して取り込む）
 - 差分判定（最小構成、判定主体は api-service）:
   - 差分キー: `scope_key + page_type + snapshot_kind + odds_flg`
   - scope_key:
@@ -48,7 +48,7 @@
     - DebaTable / RaceMarkTable / Odds*: `race_date + baba_code + race_no`
   - fingerprint: 正規化データの `sha256`（payload 由来）
 - 差分同期対象外: `TodayRaceInfoTop`（開催場導線ページは取得対象だが差分同期の判定対象に含めない）
-- 同期ルール: fingerprint が前回と同一なら同期をスキップし、差分のみを Pi → PC 方向で取り込む
+- 同期ルール: fingerprint が前回と同一なら同期をスキップし、差分のみを scraper → API 方向で取り込む
 - 正規化データの差分キー（参考）:
   - races: `race_key`
   - race_entries: `race_key + horse_number`
@@ -76,9 +76,9 @@
 - 定期同期/差分同期の状態確認: `GET /scrape/sync/status`
   - 同期の成功/失敗/スキップ状態を参照できる
 
-### 1.3 Pi 側 Control API（cron 制御 / 手動実行）
+### 1.3 PC内のscraper側 Control API（定期制御 / 手動実行）
 
-- 受信元: api-service のみ（PC→Pi）
+- 受信元: api-service のみ（API→scraper）
 - 認証: 不要（PC 経由の内部通信を想定）
 - 同期データ提供: `POST /control/export/*`
   - レスポンスは `items` に `/scrape/*` と同一スキーマの payload を含める
@@ -89,7 +89,7 @@
   - `baba_codes`: int[]（複数指定可）
 - 手動実行: `POST /control/scrape`
   - 指定項目: `baba_code`（必須）, `race_date`（任意）, `race_no`（任意）
-- cron コンテナは `/control/schedule` の状態に従って実行する
+- 常駐planスケジューラは共有するschedule.jsonの状態に従って実行する
 
 ## 2. 取得対象（最低限）
 

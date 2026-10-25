@@ -5,7 +5,7 @@
 - “壊れたものをデプロイしない” を最優先する
 
 ## 2. CI（Pull Request で必須）
-- テストは **Docker Compose 環境内**で実行する（api/scraper/frontend すべて対象）
+- テストは **Docker Compose 環境内**で実行する（api/scraper/webの開発ターゲットを対象）
 - Python:
   - ruff check / format --check
   - pytest（docker compose exec）
@@ -16,8 +16,7 @@
 
 ## 3. CD（段階導入）
 - Phase 1（手動デプロイ）:
-  - Ubuntu PC: `docker compose --env-file .env -f docker-compose.pc.yaml up -d --build`
-  - Pi: `docker compose --env-file .env -f docker-compose.pi.yaml up -d --build`
+  - PC: `docker compose up -d --build`
 - Phase 2（自動化）:
   - main マージでイメージをビルドし、レジストリへpush
   - ホスト側は “pull & restart” のみ
@@ -30,3 +29,5 @@
 - tag を切る（例: v0.1.0）
 - changelog を更新
 - compose を更新（イメージタグ）
+
+v1.0.0の実行コマンドは `80_test_guideline.md`、CI設定はルート `.github/workflows/ci.yml` を参照。

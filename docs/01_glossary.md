@@ -1,8 +1,8 @@
 # Glossary（用語集）
 
 ## 1. 基本用語
-- **api-service**: PC 側の API/DB。Pi から pull した正規化データの取り込みと差分同期の判定主体。
-- **scraper-service**: Pi 側のスクレイピング実行ノード。取得結果と最新データの保管先（同期の正）。
+- **api-service**: PC 側の API/DB。scraperからpullした正規化データの取り込みと差分同期の判定主体。
+- **scraper-service**: PC内のスクレイピングサービス。取得結果と最新データの保管先（同期の正）。
 - **scrape API**: api-service の `/scrape/*`。正規化データの受理口。
 - **control API**: scraper-service の `/control/*`。手動実行/定期実行の制御と同期データ提供口。
 - **ingest**: scraper-service から api-service へデータを取り込み反映すること。

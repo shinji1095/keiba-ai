@@ -1,7 +1,7 @@
 # データベース参照コマンド集（Docker/Compose）
 
-本書は、Docker（`docker compose`）経由で **DB情報を参照する** ためのコマンド集です。  
-本リポジトリの標準DBは **PostgreSQL**（Compose上の `postgres` サービス）です。ローカル検証用に **SQLite** 構成（`services/api/compose.yml`）もあるため、末尾に補足を載せます。
+本書は、Docker（`docker compose`）経由で **DB情報を参照する** ためのコマンド集です。
+本リポジトリの標準DBは **PostgreSQL**（Compose上の `postgres` サービス）です。API単体テストではSQLiteを使用します。
 
 ---
 
@@ -9,24 +9,18 @@
 
 用途に応じて Compose ファイルを選び、以降のコマンドの `COMPOSE` を置き換えて使ってください。
 
-**重要**：`COMPOSE="docker compose ..."` のように文字列で持つと `COMPOSE ps` は実行できません。  
+**重要**：`COMPOSE="docker compose ..."` のように文字列で持つと `COMPOSE ps` は実行できません。
 このドキュメントでは、コピペで事故りにくいよう **bash 配列**で定義して `"${COMPOSE[@]}" ...` で実行します。
 
 ### 0.1 PC（フル構成）
 
-`docker-compose.pc.yaml` を使います（環境変数は `env.example` をベースに設定）。
+`compose.yaml` を使います（環境変数は `env.example` をベースに設定）。
 
 ```bash
-COMPOSE=(docker compose -f docker-compose.pc.yaml --env-file env.example)
+COMPOSE=(docker compose)
 ```
 
-### 0.2 開発用（deploy/compose）
-
-`deploy/compose/compose.dev.yaml` はデフォルト値付きです（必要に応じて `--env-file` を追加）。
-
-```bash
-COMPOSE=(docker compose -f deploy/compose/compose.dev.yaml)
-```
+v1.0.0では開発環境も同じ `compose.yaml` を使用します。
 
 ---
 
@@ -44,11 +38,9 @@ COMPOSE=(docker compose -f deploy/compose/compose.dev.yaml)
 "${COMPOSE[@]}" logs -n 200 postgres
 ```
 
-### 1.3 Postgres のポート（ホスト側公開）確認
+### 1.3 Postgresへの接続
 
-```bash
-"${COMPOSE[@]}" port postgres 5432
-```
+DBはホストに公開しません。次節のコンテナ内psqlを使用してください。
 
 ### 1.4 Postgres の環境変数（DB名/ユーザー等）
 
@@ -221,34 +213,10 @@ psql "postgresql://<user>:<password>@localhost:5432/<db>"
 
 ---
 
-## 6. （補足）SQLite 構成（`services/api/compose.yml`）
+## 6. テスト用SQLite
 
-`services/api/compose.yml` は `DATABASE_URL=sqlite:////app/data/app.db` です。  
-この場合、DBファイルは **APIコンテナ内の** `/app/data/app.db` にあります。
-
-### 6.1 起動/稼働確認
+通常運用はPostgreSQLです。SQLiteはAPIテストで使用します。
 
 ```bash
-docker compose -f services/api/compose.yml ps
+docker compose run --rm --no-deps -e DATABASE_URL=sqlite:////tmp/tests.db -e MLFLOW_TRACKING_URI= api python -m pytest tests -m "not system"
 ```
-
-### 6.2 テーブル一覧（sqlite3 が入っている場合）
-
-```bash
-docker compose -f services/api/compose.yml exec -T api sqlite3 /app/data/app.db ".tables"
-```
-
-### 6.3 sqlite3 が無い場合（Python で参照）
-
-```bash
-docker compose -f services/api/compose.yml exec -T api python - <<'PY'
-import sqlite3
-conn = sqlite3.connect("/app/data/app.db")
-cur = conn.cursor()
-rows = cur.execute("select name from sqlite_master where type='table' order by name").fetchall()
-for (name,) in rows:
-    print(name)
-PY
-```
-
-

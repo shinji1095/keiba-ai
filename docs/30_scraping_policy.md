@@ -44,4 +44,4 @@
 - 取得頻度・同時接続数・ユーザーエージェント変更は、PRでレビュー必須
 - 破壊的変更は Decision Log に記録する
 
-スクレイピング→正規化→保存（Pi 側）と、PC 側への同期（pull）まで含むデータフローは `docs/31_scraping_flow.md` を参照。
+スクレイピング→正規化→保存（PC内のscraper側）と、PC 側への同期（pull）まで含むデータフローは `docs/31_scraping_flow.md` を参照。

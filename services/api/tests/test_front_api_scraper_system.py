@@ -1,5 +1,6 @@
-import os
 import datetime as dt
+import os
+
 import pytest
 
 from app.core.errors import AppError
@@ -9,28 +10,28 @@ from app.schemas.scrape import ManualScrapeTaskRequest
 def _require_scraper_base_url() -> str:
     base_url = os.getenv("SCRAPER_CONTROL_BASE_URL", "").strip()
     if not base_url:
-        pytest.skip("SCRAPER_CONTROL_BASE_URL is not set (Pi scraper control API)")
+        pytest.skip("SCRAPER_CONTROL_BASE_URL is not set (PC-local scraper control API)")
     return base_url
 
 
 def _skip_or_fail_on_connection_error(exc: Exception) -> None:
-    # In CI/dev environments without Pi connectivity, we don't want to fail hard.
-    # If you want to enforce connectivity, set REQUIRE_PI_SCRAPER=1.
-    require = os.getenv("REQUIRE_PI_SCRAPER", "").strip() in ("1", "true", "yes")
+    # In CI/dev environments without scraper connectivity, we don't want to fail hard.
+    # If you want to enforce connectivity, set REQUIRE_SCRAPER=1.
+    require = os.getenv("REQUIRE_SCRAPER", "").strip() in ("1", "true", "yes")
     if require:
-        raise AssertionError("failed to reach Pi scraper control API") from exc
-    pytest.skip(f"Pi scraper control API is not reachable: {exc}")
+        raise AssertionError("failed to reach PC-local scraper control API") from exc
+    pytest.skip(f"PC-local scraper control API is not reachable: {exc}")
 
 
 def _skip_or_fail_on_busy(exc: Exception) -> None:
-    require = os.getenv("REQUIRE_PI_SCRAPER", "").strip() in ("1", "true", "yes")
+    require = os.getenv("REQUIRE_SCRAPER", "").strip() in ("1", "true", "yes")
     if require:
-        raise AssertionError("Pi scraper is busy but required to accept manual tasks") from exc
-    pytest.skip(f"Pi scraper is busy (skipping): {exc}")
+        raise AssertionError("PC-local scraper is busy but required to accept manual tasks") from exc
+    pytest.skip(f"PC-local scraper is busy (skipping): {exc}")
 
 
 @pytest.mark.system
-def test_pi_scraper_control_health(client) -> None:
+def test_scraper_control_health(client) -> None:
     from app.services.scraper_control_client import ScraperControlClient
 
     _require_scraper_base_url()
@@ -44,7 +45,7 @@ def test_pi_scraper_control_health(client) -> None:
 
 
 @pytest.mark.system
-def test_pi_scraper_control_schedule_can_be_fetched(client) -> None:
+def test_scraper_control_schedule_can_be_fetched(client) -> None:
     from app.services.scrape_control_service import ScrapeControlService
 
     _require_scraper_base_url()
@@ -60,7 +61,7 @@ def test_pi_scraper_control_schedule_can_be_fetched(client) -> None:
 
 
 @pytest.mark.system
-def test_pi_scraper_control_manual_task_can_be_requested(client) -> None:
+def test_scraper_control_manual_task_can_be_requested(client) -> None:
     from app.services.scrape_control_service import ScrapeControlService
 
     _require_scraper_base_url()

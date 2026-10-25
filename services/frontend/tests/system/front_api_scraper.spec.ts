@@ -54,7 +54,7 @@ test("manual scrape task can be requested via reverse-proxy (frontend→api→sc
   await page.getByLabel("race_no (optional)").fill("1");
   await page.getByLabel("reason (optional)").fill("system-test");
 
-  // The Pi scraper may be busy; retry a couple times if we hit 409 conflict.
+  // The PC-local scraper may be busy; retry a couple times if we hit 409 conflict.
   for (let i = 0; i < 3; i++) {
     await page.getByRole("button", { name: "Request" }).click();
     const accepted = page.getByText("task_id:", { exact: false });

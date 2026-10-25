@@ -12,5 +12,5 @@ quote-style = "double"
 testpaths = ["tests"]
 addopts = "-q"
 markers = [
-  "system: cross-service/system level tests (may require external services such as Pi scraper)",
+  "system: cross-service/system level tests (may require external services such as PC-local scraper)",
 ]

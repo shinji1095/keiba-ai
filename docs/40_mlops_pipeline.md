@@ -33,7 +33,7 @@
 
 ## 4. データサイエンティスト向け実験環境
 ### 4.1 起動（PC）
-`docker-compose.pc.yaml` に MLflow（Tracking/Registry）が含まれる。
+`compose.yaml` に任意起動のMLflowを定義する。`docker compose --profile ml up -d --build mlflow` で起動する。
 
 - MLflow UI: `http://localhost:5000`
 - pipeline-service からの接続先: `http://mlflow:5000`（compose 内ネットワーク）
@@ -42,7 +42,7 @@
 pipeline コンテナ上で以下を実行する（例）:
 
 ```bash
-docker compose --env-file .env -f docker-compose.pc.yaml run --rm pipeline \
+docker compose run --rm pipeline \
   python -m pipeline_service.train_win_classifier --promote
 ```
 

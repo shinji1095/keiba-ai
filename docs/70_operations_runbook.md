@@ -13,23 +13,22 @@
   - 取得件数（時間あたり）
   - 失敗率（HTTP/timeout）
   - パーサ崩壊検知回数
-  - /health（PC → Pi の疎通確認）
+  - /health（API → scraper の疎通確認）
   - 定期実行の状態（/scrape/schedule、baba_codes 含む）
-  - plan スケジューラ（scraper-scheduler）の稼働/最終実行
+  - scraper内のplanスケジューラの稼働/最終実行
   - plan の生成有無（`scrape_plan_YYYY-MM-DD.json`）
   - plan 実行の進捗（`scrape_plan_state_YYYY-MM-DD.json`、5件ごとに更新）
-  - cron コンテナの稼働/最終実行（legacy）
-  - Pi 側ストレージ使用量（raw_html / logs）
+  - PC内のscraper側ストレージ使用量（raw_html / logs）
   - 定期同期/差分同期の状態（/scrape/sync/status、1日おき）
 - api:
   - /health
   - エラー率
   - レイテンシ
-  - api-sync cron コンテナの稼働/最終実行
+  - API内の同期cronの稼働/最終実行
 - db:
   - ディスク使用量
   - バックアップ成功/失敗
-- pipeline/worker:
+- pipeline（任意実行）:
   - ジョブ成功率、実行時間
   - 連続失敗回数
 

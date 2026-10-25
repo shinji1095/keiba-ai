@@ -1,26 +1,41 @@
-# 競馬AI Webアプリ（MLOps / TDD / マイクロサービス）
+# 競馬AI Webアプリ v1.0.0
 
-本リポジトリは、Ubuntu PC と Raspberry Pi 5 に分散配置することを前提にしたモノレポ構成のスケルトンです。
+データ収集・保存・閲覧・学習・推論をすべて1台のPCで実行します。
+Raspberry Piは使用しません。起動設定はルートの `compose.yaml` に集約しています。
 
-## 配置方針（推奨）
-- Ubuntu PC:
-  - reverse-proxy（NGINX）
-  - api-service（FastAPI）
-  - postgres（PostgreSQL）
-  - worker-service（Celery）
-  - pipeline-orchestrator（Prefect）
-  - mlflow（Tracking / Registry）
-  - frontend（React + Vite）
-- Raspberry Pi 5:
-  - scraper-service（Scrapy）
-  - inference-service（Hailo 8 推論、必要になってから追加）
+## 起動
 
+```bash
+# 初回のみ。既存の .env は上書きせず env.example と照合する
+cp -n env.example .env
+docker compose up -d --build
+```
 
-## 開発開始（例）
-- PC側: `docker-compose.pc.yaml`
-- Pi側: `docker-compose.pi.yaml`
+画面は `http://localhost`、APIドキュメントは `http://localhost/api/docs` です。
+既存 .env の Pi 向けURLは不要です。内部接続先はComposeで固定しています。
 
-詳細は `deploy/compose/README.md` と `docs/10_architecture.md` を参照してください。
+## 構成
 
-## TODO / 改善点
-- frontend 単体テストのカバレッジ計測（Vitest coverage 導入）
+| コンテナ | 役割 |
+|---|---|
+| web | Reactのビルド成果物をNGINXで配信し、`/api/` をAPIへ転送 |
+| api | FastAPIと定期同期。Supervisorで両プロセスを管理 |
+| postgres | PostgreSQLによる永続保存 |
+| scraper | 取得制御APIと常駐取得スケジューラ。Supervisorで管理 |
+
+取得データはPCの `services/scraper/data/` に保存し、APIが同一PC内のscraperから
+pullしてDBへ反映します。取得間隔・正規化・差分同期の契約は維持します。
+DB・同期状態・MLflow成果物はそれぞれ永続ボリュームへ保存します。
+
+学習・モデル管理は必要なときだけ起動します。
+
+```bash
+docker compose --profile ml up -d mlflow
+docker compose run --build --rm pipeline python -m pipeline_service.train_win_classifier --promote
+```
+
+`services/` に処理のコード、`infra/nginx/` に配信設定、`docs/` に設計・運用方針、
+`spec/` に取得データの詳細仕様、`fixtures/` に検証用HTMLがあります。
+
+移行・運用は `deploy/compose/README.md`、構成は `docs/10_architecture.md`、
+テスト手順は `docs/80_test_guideline.md` を参照してください。

@@ -136,7 +136,7 @@ test("manual scrape → sync → API count verification → UI display (system)"
   await page.getByLabel("race_no (optional)").fill(String(raceNo));
   await page.getByLabel("reason (optional)").fill("system-scrape-sync-test");
 
-  // Retry if Pi busy (409)
+  // Retry if scraper busy (409)
   let accepted = false;
   for (let i = 0; i < 3; i++) {
     await page.getByRole("button", { name: "Request" }).click();
@@ -163,13 +163,13 @@ test("manual scrape → sync → API count verification → UI display (system)"
   }
 
   if (!accepted) {
-    // Environment-dependent (Pi busy)
+    // Environment-dependent (scraper busy)
     test.skip(true, "scraper is busy; skip system scrape-sync test");
   }
 
   const token = await getUserToken(page);
 
-  // Trigger sync (Pi → PC pull)
+  // Trigger sync (scraper → API pull)
   const syncResp = await apiPostJson(page, "/api/scrape/sync", token, {});
   // 202 accepted is typical; 200/409 can happen depending on implementation/state.
   expect([200, 202, 409]).toContain(syncResp.status);

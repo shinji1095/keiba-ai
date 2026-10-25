@@ -25,7 +25,7 @@
 - RISK-001: データ整合性の損失（重複・欠損）。
 - RISK-002: 保護エンドポイントへの不正アクセス。
 - RISK-003: サービス可用性低下または検知遅延。
-- RISK-004: PC と Pi のネットワーク境界違反。
+- RISK-004: PC内のサービス間ネットワーク境界違反。
 
 ## テスト要件
 
@@ -230,7 +230,7 @@
 ### TR-018: 同期状態API
 - 要件ID: TR-018
 - 要件名: 定期同期/差分同期の状態参照
-- 要件の説明: `GET /scrape/sync/status` が Pi → PC pull 同期の状態（1日おき/差分）を返すこと。
+- 要件の説明: `GET /scrape/sync/status` が scraper → API pull 同期の状態（1日おき/差分）を返すこと。
 - 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/sync/status
 - 関連リスクID: RISK-003
 - テスト観点: 正常系
@@ -238,20 +238,20 @@
 - 対象機能・モジュール: api-service scrape sync
 - 実装状況: 未対応（pull 同期の実装/テスト未追加）
 
-### TR-019: cron コンテナによる定期実行トリガ
+### TR-019: 常駐planスケジューラによる定期実行
 - 要件ID: TR-019
-- 要件名: cron→scraper の定期実行制御
-- 要件の説明: cron コンテナが `GET /control/schedule` の結果に従い、`enabled=true` の場合は `scraper_service.cli scrape scheduled` を `baba_codes` 指定で起動し、`enabled=false` の場合は実行しないこと。
-- 根拠となる仕様・要件ID: docs/scraper/04_scraping_requirements.md#1.3, docs/10_architecture.md#3, docs/70_operations_runbook.md#1
+- 要件名: scraper内の定期実行制御
+- 要件の説明: 共有schedule.jsonのenabledとbaba_codesに従ってplanを生成・実行する。旧scraper-cronはv1.0.0で廃止。
+- 根拠となる仕様・要件ID: docs/10_architecture.md, docs/scraper/04_scraping_requirements.md
 - 関連リスクID: RISK-003
-- テスト観点: 正常系／異常系
-- テスト分類: システムテスト
-- 対象機能・モジュール: scraper-cron, scraper-service control API
-- 実装状況: 追加テストあり（services/scraper/tests/test_cron_run.py）
+- テスト観点: 有効/無効、実行時刻、対象競馬場
+- テスト分類: 単体テスト
+- 対象機能・モジュール: scraper_service.scheduler.plan_scheduler
+- 実装状況: services/scraper/tests/test_plan_scheduler.py
 
 ### TR-020: scraper→api 同期データ取り込み
 - 要件ID: TR-020
-- 要件名: Pi から PC への同期取り込み
+- 要件名: scraperからAPIへの同期取り込み
 - 要件の説明: api-service が scraper-service から差分ペイロードを pull し、PC 側に反映されること。
 - 根拠となる仕様・要件ID: docs/10_architecture.md#3, docs/20_data_contracts.md#5.2
 - 関連リスクID: RISK-001, RISK-004
@@ -337,7 +337,7 @@
 - 対象機能・モジュール: frontend sync console, api-service scrape sync
 - 実装状況: 追加テストあり（services/frontend/tests/e2e/ui_flows.spec.ts）
 
-### TR-028: Pi → PC 同期連携
+### TR-028: scraper → API 同期連携
 - 要件ID: TR-028
 - 要件名: 同期ペイロードの pull 取得
 - 要件の説明: api-service が scraper control API（/control/export/*）へリクエストし、同期データを受理できること。
@@ -351,7 +351,7 @@
 ### TR-029: scraper 同期提供の永続化
 - 要件ID: TR-029
 - 要件名: 同期データ提供の読み出し
-- 要件の説明: scraper-service が Pi 側に保存した正規化データを pull 要求で返却できること。
+- 要件の説明: scraper-service が PC内のscraper側に保存した正規化データを pull 要求で返却できること。
 - 根拠となる仕様・要件ID: docs/20_data_contracts.md#5.2, docs/10_architecture.md#3
 - 関連リスクID: RISK-001
 - テスト観点: 正常系
@@ -362,7 +362,7 @@
 ### TR-030: DebaTable 正規化データ（race_cards）
 - 要件ID: TR-030
 - 要件名: 出馬表（DebaTable）の詳細正規化を保存できる
-- 要件の説明: scraper-service が DebaTable HTML から `race_cards`（race/persons/horses/perf/best_time/last5 を含む）を生成し、Pi 側に永続化できること。
+- 要件の説明: scraper-service が DebaTable HTML から `race_cards`（race/persons/horses/perf/best_time/last5 を含む）を生成し、PC内のscraper側に永続化できること。
 - 根拠となる仕様・要件ID: spec/04_postgresql_schema.md, docs/scraper/04_scraping_requirements.md#1.1
 - 関連リスクID: RISK-001
 - テスト観点: 正常系
@@ -483,15 +483,15 @@
 - 対象機能・モジュール: frontend scrape console, api-service scrape routes
 - 実装状況: 既存テストあり（services/frontend/tests/e2e/ui_flows.spec.ts）
 
-### TR-106: PC(api) → Pi(scraper) Control API 疎通（結合）
+### TR-106: PC内のapi → scraper Control API 疎通（結合）
 - 要件ID: TR-106
 - 要件名: scraper control API への到達性
-- 要件の説明: PC 側（api-service）が Pi 側（scraper-service）の control API に到達でき、`GET /health` と `GET /control/schedule` を取得できること。
+- 要件の説明: PC 側（api-service）が PC内のscraper側（scraper-service）の control API に到達でき、`GET /health` と `GET /control/schedule` を取得できること。
 - 根拠となる仕様・要件ID: docs/10_architecture.md#3, docs/scraper/04_scraping_requirements.md#1.3
 - 関連リスクID: RISK-003
 - テスト観点: 正常系／異常系（到達不可時は skip ではなく原因が分かるログ）
 - テスト分類: 結合テスト
-- 対象機能・モジュール: api-service scraper control client, PC→Pi network path
+- 対象機能・モジュール: api-service scraper control client, API→scraper network path
 - 実装状況: 追加テストあり（services/api/tests/test_front_api_scraper_system.py）
 
 ### TR-107: frontend → reverse-proxy → api → scraper（システム）
@@ -500,7 +500,7 @@
 - 要件の説明: frontend（ブラウザ）が reverse-proxy 経由で `/scrape` を開き、api-service 経由で scraper-service の schedule（`GET /scrape/schedule`）を参照できること。
 - 根拠となる仕様・要件ID: docs/10_architecture.md#3, docs/scraper/04_scraping_requirements.md#1.2, docs/21_openapi.yaml:/scrape/schedule
 - 関連リスクID: RISK-003
-- テスト観点: 正常系（表示できる）／異常系（Pi 到達不可時にエラーが表示される）
+- テスト観点: 正常系（表示できる）／異常系（scraper到達不可時にエラーが表示される）
 - テスト分類: システムテスト
 - 対象機能・モジュール: frontend scrape console, reverse-proxy, api-service scrape control, scraper-service control API
 - 実装状況: 追加テストあり（services/frontend/tests/system/front_api_scraper.spec.ts）
@@ -511,7 +511,7 @@
 - 要件の説明: frontend（ブラウザ）が reverse-proxy 経由で `/scrape` を開き、`POST /scrape/manual-tasks` を実行して `task_id` を表示できること（baba_code=32, race_date=2025/12/28, race_no=1）。
 - 根拠となる仕様・要件ID: docs/21_openapi.yaml:/scrape/manual-tasks, `https://www.keiba.go.jp/KeibaWeb/TodayRaceInfo/RaceList?k_raceDate=2025%2f12%2f28&k_babaCode=32`
 - 関連リスクID: RISK-003
-- テスト観点: 正常系（受理される）／異常系（Pi busy=409 は環境都合として skip 可能）
+- テスト観点: 正常系（受理される）／異常系（scraper busy=409 は環境都合として skip 可能）
 - テスト分類: システムテスト
 - 対象機能・モジュール: frontend manual task UI, reverse-proxy, api-service scrape routes, scraper-service control API
 - 実装状況: 追加テストあり（services/frontend/tests/system/front_api_scraper.spec.ts）
@@ -519,10 +519,10 @@
 ### TR-111: 手動スクレイプ → 同期 → 件数検証 → UI表示（システム）
 - 要件ID: TR-111
 - 要件名: 1レース分の出馬表＋主要オッズが欠損なく取得・反映される
-- 要件の説明: system 環境で frontend から手動スクレイプ（baba_code/race_date/race_no 指定）を実行し、その後 api-service の同期（Pi→PC pull）を実行して、API で件数（entries/odds）が期待値どおりであることを検証し、最後に UI（Race Detail）で表示できること。
+- 要件の説明: system 環境で frontend から手動スクレイプ（baba_code/race_date/race_no 指定）を実行し、その後 api-service の同期（scraper→API pull）を実行して、API で件数（entries/odds）が期待値どおりであることを検証し、最後に UI（Race Detail）で表示できること。
 - 根拠となる仕様・要件ID: spec/02_url_patterns.md, spec/03_url_to_data_mapping.md, docs/10_architecture.md#4
 - 関連リスクID: RISK-001, RISK-003
-- テスト観点: 正常系（欠損なく反映される）／異常系（外部サイト到達不可・Pi busy は環境都合として skip 可能）
+- テスト観点: 正常系（欠損なく反映される）／異常系（外部サイト到達不可・scraper busy は環境都合として skip 可能）
 - テスト分類: システムテスト（Playwright）
 - 対象機能・モジュール: frontend scrape console + races UI, api-service sync runner, scraper-service control scrape + export
 - 実装状況: 未対応（追加予定）

@@ -7,14 +7,15 @@
 ## 1. 起動方法（Docker Compose）
 
 ```bash
-docker compose up --build
+# リポジトリルートで実行
+docker compose up -d --build
 ```
 
 起動後:
 
-- API: `http://localhost:8001`
-- Swagger UI: `http://localhost:8001/docs`
-- Health: `GET http://localhost:8001/health`
+- API: `http://localhost/api`
+- Swagger UI: `http://localhost/api/docs`
+- Health: `GET http://localhost/api/health`
 
 ## 2. 認証
 
@@ -39,17 +40,17 @@ api-service ⇔ scraper-service は現時点では認証不要（将来 mTLS で
 
 `env.example`（リポジトリroot）を参照してください。scraper からの pull 同期に必要な設定は以下です。
 
-- `SCRAPER_CONTROL_BASE_URL`（例: `http://scraper-service:8080`）
+- `SCRAPER_CONTROL_BASE_URL`（例: `http://scraper:8080`）
 - `SCRAPER_FORWARD_TIMEOUT_SEC`（control API のタイムアウト秒、既定: `5`）
 - `SCRAPER_MTLS_CERT` / `SCRAPER_MTLS_KEY` / `SCRAPER_MTLS_CA_CERT`（mTLS 用、任意）
 - `SCRAPE_SYNC_STATE_PATH`（同期状態の保存先。既定: `./data/logs/sync_state.json`）
-- `SCRAPE_SYNC_CRON`（api-sync cron の実行間隔。例: `5 0 * * *`）
-- `SCRAPE_SYNC_API_URL`（api-sync cron の接続先。例: `http://api:8001`）
+- `SCRAPE_SYNC_CRON`（APIコンテナ内cronの実行間隔。例: `5 0 * * *`）
+- `SCRAPE_SYNC_API_URL`（内部cronの接続先。Composeでlocalhostに設定）
 
 ## 4. データ永続化
 
-- `DATABASE_URL` を省略した場合は SQLite を `/app/data/app.db` に作成します（開発用）。
-- PC 側の compose（`docker-compose.pc.yaml`）は Postgres 前提で `DATABASE_URL` を指定します。
+- `DATABASE_URL` を省略した場合は SQLite を `./app.db` に作成します（開発用）。
+- PC 側の compose（`compose.yaml`）は Postgres 前提で `DATABASE_URL` を指定します。
 
 ## 5. 開発用メモ
 
@@ -76,7 +77,7 @@ pytest
 
 ### CI（GitHub Actions）
 
-`.github/workflows/ci.yml` に、上記ゲート（ruff + pytest）を実装しています。
+リポジトリルートの `.github/workflows/ci.yml` に、上記ゲート（ruff + pytest）を実装しています。
 
 ## TODO（スクレイピング連携）
 - [ ] 定期実行 on/off と `baba_codes` 管理の永続化（api-service 実装）

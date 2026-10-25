@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, v1.0.0]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and build PC services
+        run: |
+          docker compose --env-file env.example config --quiet
+          docker compose --env-file env.example build api scraper web pipeline
+      - name: API tests
+        run: docker compose --env-file env.example run --rm --no-deps -e DATABASE_URL=sqlite:////tmp/tests.db -e MLFLOW_TRACKING_URI= api python -m pytest tests -m "not system"
+      - name: Scraper tests
+        run: docker compose --env-file env.example run --rm --no-deps scraper python -m pytest tests -m "not integration"
+      - name: Pipeline tests
+        run: docker compose --env-file env.example run --rm --no-deps -e DATABASE_URL= -e PREFECT_SERVER_ANALYTICS_ENABLED=false pipeline python -m pytest tests
+      - name: Build frontend test image
+        run: docker build --target development -f services/frontend/Dockerfile -t keiba-frontend-test .
+      - name: Frontend tests
+        run: |
+          docker run --rm keiba-frontend-test npm run test:unit
+          docker run --rm keiba-frontend-test npm run test:e2e
+      - name: PC stack smoke test
+        run: |
+          docker compose --env-file env.example up -d --wait
+          curl --fail http://localhost/api/health
+          curl --fail http://localhost/api/openapi.json --output /tmp/openapi.json
+          curl --fail http://localhost/docs/test/data/manifest.json --output /tmp/manifest.json
+          curl --fail --header 'Content-Type: application/json' --data '{}' http://localhost/api/scrape/sync
+      - name: Stop test services
+        if: always()
+        run: docker compose --env-file env.example down --volumes

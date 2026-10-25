@@ -97,8 +97,7 @@ test("Sonoda 2026-01-02 1R: UI values match docs/test/data (tansho/fukusho/resul
   const babaCode = 27;
   const raceId = 1;
 
-  const repoRoot = path.resolve(__dirname, "../../../.."); // services/frontend/tests/e2e -> repo root
-  const dataDir = path.join(repoRoot, "docs", "test", "data", "27_2026-01-02_01R");
+  const dataDir = path.resolve(__dirname, "../../public/docs/test/data/27_2026-01-02_01R");
 
   const mdOdds = await fs.readFile(path.join(dataDir, "02_odds_tanfuku.md"), "utf-8");
   const mdResults = await fs.readFile(path.join(dataDir, "07_race_results.md"), "utf-8");

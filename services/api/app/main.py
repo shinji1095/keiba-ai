@@ -3,8 +3,16 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import admin, auth, health, ml, races, scrape, venues
-from app.api.routes import spec_race_cards
+from app.api.routes import (
+    admin,
+    auth,
+    health,
+    ml,
+    races,
+    scrape,
+    spec_race_cards,
+    venues,
+)
 from app.core.config import settings
 from app.core.errors import register_exception_handlers
 from app.db.session import init_db
@@ -13,7 +21,7 @@ from app.db.session import init_db
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
-        version="0.2.0",
+        version="1.0.0",
         description="Keiba AI API",
     )
 

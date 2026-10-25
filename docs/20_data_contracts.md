@@ -1,6 +1,6 @@
 # 20 Data Contracts（DB / API / イベント契約）
 
-作成日: 2025-12-27（Asia/Tokyo）  
+作成日: 2025-12-27（Asia/Tokyo）
 更新日: 2026-01-02（Asia/Tokyo）
 
 更新履歴
@@ -11,7 +11,7 @@
 - 2026-01-01: raw_fetch_logs を契約から削除し、即時転送モードを反映。
 - 2026-01-02: 同期定義を Pi 最新/PC pull に更新。
 
-このドキュメントは、**scraper-service → api-service** の同期契約と **api-service → DB** までの「壊れない約束（契約）」を定義する。  
+このドキュメントは、**scraper-service → api-service** の同期契約と **api-service → DB** までの「壊れない約束（契約）」を定義する。
 実装（コード・内部構造）は変えてもよいが、**契約変更は原則として後方互換**を維持する。
 
 - DB 概念設計: `02_database_design.md`
@@ -23,7 +23,7 @@
 ## 1. 用語・キー
 
 ### 1.1 race_key / race_id
-- **race_key**: `(race_date, baba_code, race_no)`  
+- **race_key**: `(race_date, baba_code, race_no)`
   - `race_date`: `YYYY-MM-DD`（JST）
   - `baba_code`: 開催場コード（例: `18`）
   - `race_no`: `1..12`
@@ -35,7 +35,7 @@
 - `t_minus_60m` / `t_minus_30m` / `t_minus_20m` / `t_minus_10m` / `t_minus_5m` / `t_minus_1m` / `final` がデフォルト（運用で追加可）
 - OpenAPI は **固定 enum にしない**（文字列として拡張可能に扱う）
 - 実取得時刻は **必ず** `captured_at`（timestamp, JST）に保存する
-- 手動取得は `captured_at` と `races.start_time` から **最も近い `snapshot_kind`** を割り当てる  
+- 手動取得は `captured_at` と `races.start_time` から **最も近い `snapshot_kind`** を割り当てる
   - `captured_at >= races.start_time` は `final` とみなす
 
 ### 1.3 bet_type / legs / is_ordered
@@ -71,7 +71,7 @@
 
 ## 3. DB契約（主要テーブル・一意制約）
 
-> 物理DDLの正: `docs/database/25_database_definition.md`（本リポジトリ側）  
+> 物理DDLの正: `docs/database/25_database_definition.md`（本リポジトリ側）
 > DB参照コマンド集: `docs/database/26_database_commands.md`
 
 ### 3.1 races
@@ -137,14 +137,14 @@
 - `/scrape*` と `/scrape/schedule` は内部通信のため **無認証**
 
 ### 5.2 同期イベント（scraper → api / PC pull）
-api-service は **差分評価の判定主体**として、Pi から pull したデータを PC 側に取り込む。  
+api-service は **差分評価の判定主体**として、scraperからpull したデータを PC 側に取り込む。
 イベントは **冪等**でなければならず、自然キーUpsertにより重複を排除する。
 
 - api-service ⇔ scraper-service 間は **認証不要**（将来のアップデートで対応予定）
 - 同期ペイロードは `/scrape/*` の schema を共通利用する（scraper が提供し api が取り込む）
 - 取得元: scraper-service の control API `/control/export/*`（`items` に `/scrape/*` 相当の payload を含める）
   - 追加: `race_cards`（`POST /control/export/race-cards`）は DebaTable の詳細正規化を返す（本リリースの api-service 取り込み対象外）
-- `odds-snapshots`（`/scrape/odds-snapshots` スキーマ）  
+- `odds-snapshots`（`/scrape/odds-snapshots` スキーマ）
   - 目的: 代表時点のオッズ集合を同期（`odds_snapshots` + `odds_items` を Upsert）
   - 入力の最小要件:
     - `race_key`
@@ -173,7 +173,7 @@ api-service は **差分評価の判定主体**として、Pi から pull した
 
 ## 6. イベント契約（将来拡張のための予約）
 
-本リリースでは外部メッセージ基盤（Kafka 等）は導入しない。  
+本リリースでは外部メッセージ基盤（Kafka 等）は導入しない。
 ただし将来のパイプライン接続を容易にするため、**イベントの形（エンベロープ）を予約**する。
 
 ### 6.1 イベントエンベロープ（予約）

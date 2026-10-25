@@ -14,25 +14,20 @@
 
 - React + TypeScript + Vite
 - TanStack Query (データ取得/キャッシュ)
-- Docker / port 5173（開発・E2E 実行のため Playwright ベースイメージを使用）
+- 通常運用: NGINXで静的配信（port 80）。開発・テスト: Playwrightベースのdevelopmentターゲット。
 
 ## 起動（Docker）
 
-リポジトリ **ルート** で実行してください（compose はルートにあります）。
+リポジトリルートで `docker compose up -d --build` を実行し、
+`http://localhost` を開きます。APIは同じ入口の `/api/` です。
+ビルド時に `docs/test/data/` を取り込みます。
+
+開発・テスト用イメージは次で作成できます。
 
 ```bash
-cp env.example .env
-docker compose --env-file .env -f docker-compose.pc.yaml up --build frontend
+docker build --target development -f services/frontend/Dockerfile -t keiba-frontend-test .
+docker run --rm keiba-frontend-test npm run test:unit
 ```
-
-環境変数で API のベースURLを指定できます（例: reverse-proxy が `/api` を公開している場合）:
-
-```bash
-VITE_API_BASE_URL=http://localhost:8001/api \
-  docker compose --env-file .env -f docker-compose.pc.yaml up --build frontend
-```
-
-ブラウザで `http://localhost:5173` を開きます。
 
 ## 起動（ローカル）
 
@@ -40,7 +35,7 @@ VITE_API_BASE_URL=http://localhost:8001/api \
 npm ci
 # docs/test/data を public/ にコピー（Test Data Viewer 用）
 mkdir -p public/docs/test/data
-cp -r ../../docs/test/data/* public/docs/test/data/
+cp -r ../../docs/test/data/. public/docs/test/data/
 npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
@@ -60,7 +55,7 @@ npm run dev -- --host 0.0.0.0 --port 5173
 - `src/app/` : アプリ全体（認証・ルーティング・レイアウト）
 - `src/features/` : 画面単位（Overview / Venues / Races / Admin / Scrape / TestData / Settings）
 - `src/shared/` : 再利用 UI（ErrorBox / Loading / JsonView / MarkdownView）
-- `public/docs/test/data/` : テストデータ（静的配信）
+- `../../docs/test/data/` : テストデータの原本（ビルド時にpublicへ取り込み）
 
 ## 注意
 
