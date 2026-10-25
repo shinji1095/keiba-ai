@@ -44,10 +44,11 @@ npm run dev -- --host 0.0.0.0 --port 5173
 1. `/register` で `POST /auth/register` を実行してユーザーを作成し、user token を取得します。
 2. `/login` で `POST /auth/login` を実行して user token を取得します。
 3. 401 の場合、user token 使用中のみ `POST /auth/refresh` を自動実行してリトライします。
-4. `OAuth Clients` で client_credentials 用のクライアントを作成し、`/auth/token` で service token を発行できます。
-5. `Scrape Console` で `/scrape/*` 系のバッチ投入を手動で呼び出せます。
-6. `Scrape Console` で `POST /scrape/manual-tasks` をリクエストできます（手動スクレイプ投入）。
-7. `Test Data` で `docs/test/data/` の正規化データを閲覧できます（TDD用フィクスチャ）。
+4. 「外部連携」で連携先を登録し、外部連携用トークンを発行できます。
+5. 「データ収集」で自動収集とデータ同期を設定し、データを手動で登録できます。
+6. 「データ収集」の「手動収集」で、競馬場や開催日を指定して収集を依頼できます。
+7. 「テストデータ」で `docs/test/data/` の正規化データを閲覧できます（TDD用フィクスチャ）。
+8. 「収集スケジュール」で自動収集の設定内容とオッズの収集予定を確認できます。
 
 ## フォルダ構成（保守運用向け）
 

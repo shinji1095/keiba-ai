@@ -27,16 +27,16 @@ describe("ScrapeScheduleCard", () => {
       />,
     );
 
-    await userEvent.click(screen.getByLabelText("enabled"));
+    await userEvent.click(screen.getByLabelText("自動実行を有効にする"));
 
-    const input = screen.getByLabelText("baba_codes");
+    const input = screen.getByLabelText("対象の競馬場コード");
     await userEvent.clear(input);
     await userEvent.type(input, "3, 4");
 
     // add one more snapshot kind (multi-select)
-    await userEvent.click(screen.getByLabelText("t_minus_30m (発走30分前)"));
+    await userEvent.click(screen.getByLabelText("発走30分前"));
 
-    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
     expect(onSave).toHaveBeenCalledWith({ enabled: true, baba_codes: [3, 4], snapshot_kinds: ["final", "t_minus_30m"] });
   });
 });

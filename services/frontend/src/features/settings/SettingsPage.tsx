@@ -15,47 +15,47 @@ export function SettingsPage(): React.JSX.Element {
 
   return (
     <div>
-      <h1 className="pageTitle">Settings</h1>
-      <p className="pageDesc">トークンや API base URL を確認します。</p>
+      <h1 className="pageTitle">設定</h1>
+      <p className="pageDesc">認証情報とAPIの接続先を確認・設定します。</p>
 
       <div className="grid2">
         <div className="card">
           <div className="cardHeader">
-            <h2 className="cardTitle">API</h2>
+            <h2 className="cardTitle">API接続先</h2>
           </div>
-          <div className="small">VITE_API_BASE_URL</div>
+          <div className="small">接続先URL</div>
           <div style={{ marginTop: 6, fontFamily: "ui-monospace, monospace" }}>{baseUrl}</div>
 
           <div className="small" style={{ marginTop: 12 }}>
-            docker-compose.yml の環境変数 VITE_API_BASE_URL を変更することで切り替えできます。
+            接続先の変更は、管理者がビルド時の環境変数 VITE_API_BASE_URL で行います。
           </div>
         </div>
 
         <div className="card">
           <div className="cardHeader">
-            <h2 className="cardTitle">User session</h2>
+            <h2 className="cardTitle">ログイン状態</h2>
           </div>
 
           <div className="row" style={{ justifyContent: "space-between" }}>
-            <div className="small">userToken</div>
-            <div className="pill">{auth.userToken ? "SET" : "NONE"}</div>
+            <div className="small">ユーザー認証トークン</div>
+            <div className="pill">{auth.userToken ? "設定済み" : "未設定"}</div>
           </div>
 
           <div className="row" style={{ marginTop: 12, justifyContent: "flex-end" }}>
             <button className="btn danger" onClick={() => auth.logout()} disabled={!auth.userToken}>
-              Logout (clear user token)
+              ログアウト
             </button>
           </div>
 
           <div className="small" style={{ marginTop: 10 }}>
-            /auth/logout を呼び出し、userToken を削除します。
+            ログイン情報を削除してログアウトします。
           </div>
         </div>
       </div>
 
       <div className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
-          <h2 className="cardTitle">Service token</h2>
+          <h2 className="cardTitle">外部連携用トークン</h2>
           <div className="row">
             <label className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
@@ -63,12 +63,12 @@ export function SettingsPage(): React.JSX.Element {
                 checked={auth.useServiceToken}
                 onChange={(e) => auth.setUseServiceToken(e.target.checked)}
               />
-              Use service token
+              外部連携用トークンを使用する
             </label>
           </div>
         </div>
 
-        <div className="small">Bearer access token (保存されます)</div>
+        <div className="small">外部連携用トークン（このブラウザーに保存されます）</div>
         <textarea
           className="textarea"
           value={serviceTokenDraft}
@@ -83,7 +83,7 @@ export function SettingsPage(): React.JSX.Element {
               auth.setServiceToken(serviceTokenDraft.trim() || null);
             }}
           >
-            Save
+            保存
           </button>
 
           <button
@@ -94,12 +94,12 @@ export function SettingsPage(): React.JSX.Element {
               auth.setUseServiceToken(false);
             }}
           >
-            Clear
+            クリア
           </button>
         </div>
 
         <div className="small" style={{ marginTop: 10 }}>
-          Service token は /auth/token（client_credentials）で発行し、/scrape/* の呼び出しに利用します。
+          外部連携用トークンは「外部連携」画面で発行できます。データ登録時の認証に使用します。
         </div>
       </div>
     </div>

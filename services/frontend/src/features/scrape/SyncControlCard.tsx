@@ -1,4 +1,5 @@
 import React from "react";
+import { statusLabel } from "@/shared/labels";
 
 import { ScrapeSyncScheduleRequest, ScrapeSyncStatus } from "@/api/generated";
 import { ErrorBox } from "@/shared/ui/ErrorBox";
@@ -61,28 +62,28 @@ export function SyncControlCard({
   return (
     <div className="card" style={{ marginBottom: 14 }}>
       <div className="cardHeader">
-        <h2 className="cardTitle">Sync Scheduler</h2>
-        <span className={statusClass}>{lastStatus.toUpperCase()}</span>
+        <h2 className="cardTitle">データ同期</h2>
+        <span className={statusClass}>{statusLabel(lastStatus)}</span>
       </div>
 
-      {isLoading ? <Loading label="Loading sync status..." /> : null}
+      {isLoading ? <Loading label="同期の状態を確認中…" /> : null}
       {loadError ? <ErrorBox error={loadError} /> : null}
       {saveError ? <ErrorBox error={saveError} /> : null}
       {triggerError ? <ErrorBox error={triggerError} /> : null}
 
       {status ? (
         <div className="small" style={{ marginBottom: 10 }}>
-          last_synced_at: {formatDate(status.last_synced_at)}
+          最終同期日時： {formatDate(status.last_synced_at)}
           <br />
-          last_attempted_at: {formatDate(status.last_attempted_at)}
+          最終実行日時： {formatDate(status.last_attempted_at)}
           <br />
-          next_scheduled_at: {formatDate(status.next_scheduled_at)}
+          次回実行予定： {formatDate(status.next_scheduled_at)}
           <br />
-          schedule_updated_at: {formatDate(status.schedule_updated_at)}
+          設定更新日時： {formatDate(status.schedule_updated_at)}
           {status.last_error ? (
             <>
               <br />
-              last_error: {status.last_error}
+              直近のエラー： {status.last_error}
             </>
           ) : null}
         </div>
@@ -90,12 +91,12 @@ export function SyncControlCard({
 
       <div className="row">
         <label>
-          <div className="small">enabled</div>
+          <div className="small">自動実行を有効にする</div>
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
         </label>
 
         <label>
-          <div className="small">interval_days</div>
+          <div className="small">同期間隔（日）</div>
           <input
             className="input"
             type="number"
@@ -106,19 +107,19 @@ export function SyncControlCard({
         </label>
 
         <button className="btn" onClick={onRefresh}>
-          Refresh
+          更新
         </button>
 
         <button className="btn" onClick={handleSave} disabled={saving || !intervalValid}>
-          {saving ? "Saving..." : "Save"}
+          {saving ? "保存中…" : "保存"}
         </button>
 
         <button className="btn primary" onClick={onTrigger} disabled={triggering}>
-          {triggering ? "Running..." : "Manual Sync"}
+          {triggering ? "実行中…" : "今すぐ同期"}
         </button>
       </div>
 
-      {!intervalValid ? <div className="small">interval_days は 1 以上で指定してください。</div> : null}
+      {!intervalValid ? <div className="small">同期間隔は1日以上で指定してください。</div> : null}
     </div>
   );
 }

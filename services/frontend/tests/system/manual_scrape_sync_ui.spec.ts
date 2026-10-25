@@ -122,26 +122,26 @@ test("manual scrape → sync → API count verification → UI display (system)"
 
   // Register (creates user + logs in)
   await page.goto("/register");
-  await page.getByLabel("Username").fill(u.username);
-  await page.getByLabel("Password", { exact: true }).fill(u.password);
-  await page.getByLabel("Confirm password").fill(u.password);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await page.getByLabel("ユーザー名").fill(u.username);
+  await page.getByLabel("パスワード", { exact: true }).fill(u.password);
+  await page.getByLabel("パスワード（確認）").fill(u.password);
+  await page.getByRole("button", { name: "登録する" }).click();
+  await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
 
   // Manual scrape request via UI (frontend→api→scraper)
   await page.goto("/scrape");
-  await expect(page.getByRole("heading", { name: "Manual Scrape Task" })).toBeVisible();
-  await page.getByLabel("baba_code (required)").fill(String(babaCode));
-  await page.getByLabel("race_date (optional)").fill(raceDate);
-  await page.getByLabel("race_no (optional)").fill(String(raceNo));
-  await page.getByLabel("reason (optional)").fill("system-scrape-sync-test");
+  await expect(page.getByRole("heading", { name: "手動収集" })).toBeVisible();
+  await page.getByLabel("競馬場コード（必須）").fill(String(babaCode));
+  await page.getByLabel("開催日（任意）").fill(raceDate);
+  await page.getByLabel("レース番号（任意）").fill(String(raceNo));
+  await page.getByLabel("依頼理由（任意）").fill("system-scrape-sync-test");
 
   // Retry if scraper busy (409)
   let accepted = false;
   for (let i = 0; i < 3; i++) {
-    await page.getByRole("button", { name: "Request" }).click();
-    const ok = page.getByText("task_id:", { exact: false });
-    const conflict = page.getByText("scraper is busy (status=409)", { exact: false });
+    await page.getByRole("button", { name: "収集を依頼" }).click();
+    const ok = page.getByText("収集依頼ID：", { exact: false });
+    const conflict = page.getByText("収集処理が実行中です。", { exact: false });
     const anyAlert = page.locator(".alert");
 
     await Promise.race([
@@ -179,21 +179,21 @@ test("manual scrape → sync → API count verification → UI display (system)"
 
   // UI confirmation: Races → Race Detail → Entries & Odds tabs show expected counts
   await page.goto("/races");
-  await expect(page.getByRole("heading", { name: "Races" })).toBeVisible();
-  await page.getByLabel("race_date").fill(raceDate);
-  await page.getByLabel("baba_code (optional)").selectOption(String(babaCode));
-  await page.getByRole("button", { name: "Search" }).click();
+  await expect(page.getByRole("heading", { name: "レース一覧" })).toBeVisible();
+  await page.getByLabel("開催日").fill(raceDate);
+  await page.getByLabel("競馬場（任意）").selectOption(String(babaCode));
+  await page.getByRole("button", { name: "検索" }).click();
 
   await expect(page.getByRole("link", { name: String(raceId) })).toBeVisible();
   await page.getByRole("link", { name: String(raceId) }).click();
-  await expect(page.getByRole("heading", { name: "Race Detail" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "レース詳細" })).toBeVisible();
 
   // Entries
-  await page.getByRole("button", { name: "entries" }).click();
+  await page.getByRole("button", { name: "出走表" }).click();
   await expect(page.locator("table.table tbody tr")).toHaveCount(12);
 
-  // Odds counts (title includes items=...)
-  await page.getByRole("button", { name: "odds" }).click();
+  // Odds counts (title includes the item count)
+  await page.getByRole("button", { name: "オッズ" }).click();
 
   const oddsChecks: Array<{ betType: string; expected: number }> = [
     { betType: "tansho", expected: 12 },
@@ -205,10 +205,10 @@ test("manual scrape → sync → API count verification → UI display (system)"
   ];
 
   for (const c of oddsChecks) {
-    await page.getByLabel("snapshot_kind").selectOption("final");
-    await page.getByLabel("bet_type").selectOption(c.betType);
-    await page.getByRole("button", { name: "Fetch odds" }).click();
-    await expect(page.getByText(new RegExp(`items=${c.expected}\\b`))).toBeVisible();
+    await page.getByLabel("取得タイミング").selectOption("final");
+    await page.getByRole("combobox", { name: "券種", exact: true }).selectOption(c.betType);
+    await page.getByRole("button", { name: "オッズを取得" }).click();
+    await expect(page.getByText(new RegExp(`件数：${c.expected}\\b`))).toBeVisible();
   }
 
   // Ensure we didn't end up with an error box at the end.

@@ -270,17 +270,17 @@ test("Sonoda 2026-01-02 1R: UI values match docs/test/data (tansho/fukusho/resul
 
   // Navigate to Race Detail
   await page.goto("/races");
-  await page.getByLabel("race_date").fill(raceDate);
-  await page.getByLabel("baba_code (optional)").selectOption(String(babaCode));
-  await page.getByRole("button", { name: "Search" }).click();
+  await page.getByLabel("開催日").fill(raceDate);
+  await page.getByLabel("競馬場（任意）").selectOption(String(babaCode));
+  await page.getByRole("button", { name: "検索" }).click();
   await page.getByRole("link", { name: String(raceId) }).click();
-  await expect(page.getByRole("heading", { name: "Race Detail" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "レース詳細" })).toBeVisible();
 
   // odds tansho: check all 12 horses values match docs
-  await page.getByRole("button", { name: "odds" }).click();
-  await page.getByLabel("snapshot_kind").selectOption("final");
-  await page.getByLabel("bet_type").selectOption("tansho");
-  await page.getByRole("button", { name: "Fetch odds" }).click();
+  await page.getByRole("button", { name: "オッズ" }).click();
+  await page.getByLabel("取得タイミング").selectOption("final");
+  await page.getByRole("combobox", { name: "券種", exact: true }).selectOption("単勝");
+  await page.getByRole("button", { name: "オッズを取得" }).click();
   for (const r of oddsRows) {
     const horseNo = r["horse_no"];
     const win = normNumStr(r["win_odds"]);
@@ -290,8 +290,8 @@ test("Sonoda 2026-01-02 1R: UI values match docs/test/data (tansho/fukusho/resul
   }
 
   // odds fukusho: check all 12 horses min/max match docs
-  await page.getByLabel("bet_type").selectOption("fukusho");
-  await page.getByRole("button", { name: "Fetch odds" }).click();
+  await page.getByRole("combobox", { name: "券種", exact: true }).selectOption("fukusho");
+  await page.getByRole("button", { name: "オッズを取得" }).click();
   for (const r of oddsRows) {
     const horseNo = r["horse_no"];
     const mn = normNumStr(r["place_odds_min"]);
@@ -303,7 +303,7 @@ test("Sonoda 2026-01-02 1R: UI values match docs/test/data (tansho/fukusho/resul
   }
 
   // results: verify time_str per horse_no matches docs (spot-check all rows)
-  await page.getByRole("button", { name: "results" }).click();
+  await page.getByRole("button", { name: "競走成績" }).click();
   for (const r of resultsRows) {
     const horseNo = r["horse_no"];
     const timeStr = r["time_str"];
@@ -313,9 +313,9 @@ test("Sonoda 2026-01-02 1R: UI values match docs/test/data (tansho/fukusho/resul
   }
 
   // payouts: verify key payouts exist exactly as docs (subset)
-  await page.getByRole("button", { name: "payouts" }).click();
+  await page.getByRole("button", { name: "払戻金" }).click();
   // tansho 8 110 / umatan 8-11 4350 / sanrentan 8-11-9 8830
-  await expect(page.getByText("tansho")).toBeVisible();
+  await expect(page.getByText("単勝")).toBeVisible();
   await expect(page.getByText("110")).toBeVisible();
   await expect(page.getByRole("cell", { name: "8-11", exact: true }).first()).toBeVisible();
   await expect(page.getByText("4350")).toBeVisible();

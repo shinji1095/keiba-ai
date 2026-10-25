@@ -1,4 +1,5 @@
 import React from "react";
+import { betTypeLabel, snapshotKindLabel, statusLabel } from "@/shared/labels";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -24,6 +25,14 @@ const betTypes: BetType[] = [
 const snapshotKinds: SnapshotKind[] = ["t_minus_60m", "t_minus_30m", "t_minus_5m", "t_minus_1m", "final"];
 
 type TabKey = "summary" | "entries" | "odds" | "results" | "payouts";
+
+const tabLabels: Record<TabKey, string> = {
+  summary: "レース概要",
+  entries: "出走表",
+  odds: "オッズ",
+  results: "競走成績",
+  payouts: "払戻金",
+};
 
 type OddsTrendPoint = {
   snapshot_kind: SnapshotKind;
@@ -188,31 +197,31 @@ export function RaceDetailPage(): React.JSX.Element {
 
   return (
     <div>
-      <h1 className="pageTitle">Race Detail</h1>
-      <p className="pageDesc">/races/{"{race_id}"} (GET) と関連エンドポイント</p>
+      <h1 className="pageTitle">レース詳細</h1>
+      <p className="pageDesc">レース概要・出走表・オッズ・競走成績・払戻金を確認できます。</p>
 
-      {!Number.isFinite(raceId) ? <div className="alert">Invalid race_id</div> : null}
+      {!Number.isFinite(raceId) ? <div className="alert">レースIDが正しくありません。</div> : null}
 
-      {qRace.isLoading ? <Loading label="Loading race..." /> : null}
+      {qRace.isLoading ? <Loading label="レース情報を読み込み中…" /> : null}
       {qRace.error ? <ErrorBox error={qRace.error} /> : null}
 
       {qRace.data ? (
         <div className="card" style={{ marginBottom: 14 }}>
           <div className="cardHeader">
             <h2 className="cardTitle">
-              race_id={qRace.data.race_id} / {qRace.data.race_key.race_date} / baba={qRace.data.race_key.baba_code} /
-              no={qRace.data.race_key.race_no}
+              レースID：{qRace.data.race_id} / {qRace.data.race_key.race_date} / 競馬場コード：{qRace.data.race_key.baba_code} /
+              第{qRace.data.race_key.race_no}レース
             </h2>
-            <span className="pill">{qRace.data.status || "unknown"}</span>
+            <span className="pill">{statusLabel(qRace.data.status)}</span>
           </div>
 
           <div className="row" style={{ gap: 10 }}>
-            <span className="pill">start {qRace.data.start_time || "-"}</span>
-            <span className="pill">distance {qRace.data.distance_m ?? "-"}</span>
-            <span className="pill">course {qRace.data.course ?? "-"}</span>
-            <span className="pill">weather {qRace.data.weather ?? "-"}</span>
-            <span className="pill">track {qRace.data.track_condition ?? "-"}</span>
-            <span className="pill">field {qRace.data.field_size ?? "-"}</span>
+            <span className="pill">発走時刻 {qRace.data.start_time || "-"}</span>
+            <span className="pill">距離 {qRace.data.distance_m ?? "-"}m</span>
+            <span className="pill">コース {qRace.data.course ?? "-"}</span>
+            <span className="pill">天候 {qRace.data.weather ?? "-"}</span>
+            <span className="pill">馬場状態 {qRace.data.track_condition ?? "-"}</span>
+            <span className="pill">出走頭数 {qRace.data.field_size ?? "-"}頭</span>
           </div>
 
           <div style={{ marginTop: 10 }}>{qRace.data.race_name || ""}</div>
@@ -222,7 +231,7 @@ export function RaceDetailPage(): React.JSX.Element {
       <div className="row" style={{ marginBottom: 12 }}>
         {(["summary", "entries", "odds", "results", "payouts"] as TabKey[]).map((k) => (
           <button key={k} className={tab === k ? "btn primary" : "btn"} onClick={() => setTab(k)}>
-            {k}
+            {tabLabels[k]}
           </button>
         ))}
       </div>
@@ -230,63 +239,63 @@ export function RaceDetailPage(): React.JSX.Element {
       {tab === "summary" ? (
         <div className="card">
           <div className="cardHeader">
-            <h2 className="cardTitle">Summary</h2>
+            <h2 className="cardTitle">レース概要</h2>
           </div>
           {qRace.data ? (
             <table className="table">
               <tbody>
                 <tr>
-                  <th>race_id</th>
+                  <th>レースID</th>
                   <td>{qRace.data.race_id}</td>
                 </tr>
                 <tr>
-                  <th>race_key</th>
+                  <th>開催日・競馬場・レース番号</th>
                   <td>
-                    {qRace.data.race_key.race_date} / baba={qRace.data.race_key.baba_code} / no={qRace.data.race_key.race_no}
+                    {qRace.data.race_key.race_date} / 競馬場コード：{qRace.data.race_key.baba_code} / 第{qRace.data.race_key.race_no}レース
                   </td>
                 </tr>
                 <tr>
-                  <th>start_time</th>
+                  <th>発走時刻</th>
                   <td>{qRace.data.start_time || ""}</td>
                 </tr>
                 <tr>
-                  <th>race_name</th>
+                  <th>レース名</th>
                   <td>{qRace.data.race_name || ""}</td>
                 </tr>
                 <tr>
-                  <th>status</th>
-                  <td>{qRace.data.status || ""}</td>
+                  <th>状態</th>
+                  <td>{statusLabel(qRace.data.status)}</td>
                 </tr>
               </tbody>
             </table>
           ) : (
-            <div className="small">No data.</div>
+            <div className="small">データがありません。</div>
           )}
         </div>
       ) : null}
 
       {tab === "entries" ? (
         <div>
-          {qEntries.isLoading ? <Loading label="Loading entries..." /> : null}
+          {qEntries.isLoading ? <Loading label="出走表を読み込み中…" /> : null}
           {qEntries.error ? <ErrorBox error={qEntries.error} /> : null}
-          {qSpecCard.isLoading ? <Loading label="Loading spec race card..." /> : null}
+          {qSpecCard.isLoading ? <Loading label="出走馬の詳細を読み込み中…" /> : null}
           {showSpecError ? <ErrorBox error={qSpecCard.error} /> : null}
           {qEntries.data ? (
             <div className="card">
               <div className="cardHeader">
-                <h2 className="cardTitle">Entries ({qEntries.data.items.length})</h2>
+                <h2 className="cardTitle">出走表 ({qEntries.data.items.length})</h2>
                 <button className="btn" onClick={() => qEntries.refetch()}>
-                  Refresh
+                  更新
                 </button>
               </div>
 
               {qSpecCard.data ? (
                 <div className="small" style={{ marginBottom: 10 }}>
-                  spec: /spec/race-cards/{qSpecCard.data.race.baba_code}/{qSpecCard.data.race.race_date}/{qSpecCard.data.race.race_no}
+                  出走馬の詳細データを取得済みです。
                 </div>
               ) : (
                 <div className="small" style={{ marginBottom: 10 }}>
-                  spec: (not available) /spec/race-cards/{"{baba_code}"}/{"{race_date}"}/{"{race_no}"}
+                  出走馬の詳細データはまだありません。
                 </div>
               )}
 
@@ -294,15 +303,15 @@ export function RaceDetailPage(): React.JSX.Element {
                 <thead>
                   <tr>
                     <th></th>
-                    <th>post</th>
-                    <th>no</th>
-                    <th>horse</th>
-                    <th>jockey</th>
-                    <th>trainer</th>
-                    <th>handicap_kg</th>
-                    <th>body_weight</th>
-                    <th>diff</th>
-                    <th>perf_total</th>
+                    <th>枠番</th>
+                    <th>馬番</th>
+                    <th>馬名</th>
+                    <th>騎手</th>
+                    <th>調教師</th>
+                    <th>斤量（kg）</th>
+                    <th>馬体重（kg）</th>
+                    <th>馬体重増減（kg）</th>
+                    <th>通算成績</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -388,11 +397,11 @@ export function RaceDetailPage(): React.JSX.Element {
                               </div>
 
                               <div className="row" style={{ gap: 10, marginBottom: 12 }}>
-                                <span className="pill">total {perfLabel(perfTotal)}</span>
-                                <span className="pill">left {perfLabel(perfLeft)}</span>
-                                <span className="pill">right {perfLabel(perfRight)}</span>
-                                <span className="pill">track {perfLabel(perfTrack)}</span>
-                                <span className="pill">distance {perfLabel(perfDistance)}</span>
+                                <span className="pill">通算 {perfLabel(perfTotal)}</span>
+                                <span className="pill">左回り {perfLabel(perfLeft)}</span>
+                                <span className="pill">右回り {perfLabel(perfRight)}</span>
+                                <span className="pill">当競馬場 {perfLabel(perfTrack)}</span>
+                                <span className="pill">同距離 {perfLabel(perfDistance)}</span>
                               </div>
 
                               {last5.length ? (
@@ -400,16 +409,16 @@ export function RaceDetailPage(): React.JSX.Element {
                                   <thead>
                                     <tr>
                                       <th>#</th>
-                                      <th>date</th>
-                                      <th>place</th>
-                                      <th>dist</th>
-                                      <th>pos</th>
-                                      <th>runners</th>
-                                      <th>time</th>
-                                      <th>diff</th>
-                                      <th>pop</th>
-                                      <th>bw</th>
-                                      <th>jockey</th>
+                                      <th>開催日</th>
+                                      <th>競馬場</th>
+                                      <th>距離（m）</th>
+                                      <th>着順</th>
+                                      <th>頭数</th>
+                                      <th>走破タイム</th>
+                                      <th>タイム差</th>
+                                      <th>人気</th>
+                                      <th>馬体重（kg）</th>
+                                      <th>騎手</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -431,7 +440,7 @@ export function RaceDetailPage(): React.JSX.Element {
                                   </tbody>
                                 </table>
                               ) : (
-                                <div className="small">No last5 data.</div>
+                                <div className="small">直近5走のデータがありません。</div>
                               )}
                             </div>
                           </td>
@@ -453,60 +462,60 @@ export function RaceDetailPage(): React.JSX.Element {
           <div className="card" style={{ marginBottom: 14 }}>
             <div className="row">
               <label>
-                <div className="small">snapshot_kind</div>
+                <div className="small">取得タイミング</div>
                 <select className="select" value={snapshotKind} onChange={(e) => setSnapshotKind(e.target.value as SnapshotKind)}>
                   {snapshotKinds.map((k) => (
                     <option key={k} value={k}>
-                      {k}
+                      {snapshotKindLabel(k)}
                     </option>
                   ))}
                 </select>
               </label>
 
               <label>
-                <div className="small">bet_type</div>
+                <div className="small">券種</div>
                 <select className="select" value={betType} onChange={(e) => setBetType(e.target.value as BetType)}>
                   {betTypes.map((k) => (
                     <option key={k} value={k}>
-                      {k}
+                      {betTypeLabel(k)}
                     </option>
                   ))}
                 </select>
               </label>
 
               <button className="btn" onClick={() => qOdds.refetch()}>
-                Fetch odds
+                オッズを取得
               </button>
             </div>
 
             <div className="small" style={{ marginTop: 10 }}>
-              /races/{"{race_id}"}/odds?snapshot_kind=...&bet_type=...
+              取得タイミングと券種を選んでオッズを確認できます。
             </div>
           </div>
 
           <div className="card" style={{ marginBottom: 14 }}>
             <div className="cardHeader">
-              <h2 className="cardTitle">Odds Trend (all horses)</h2>
+              <h2 className="cardTitle">全馬のオッズ推移</h2>
               <button className="btn" onClick={() => qOddsTrend.refetch()}>
-                Refresh
+                更新
               </button>
             </div>
 
             <div className="row">
               <label>
-                <div className="small">trend_type</div>
+                <div className="small">グラフの券種</div>
                 <select className="select" value={trendBetType} onChange={(e) => setTrendBetType(e.target.value as BetType)}>
                   {(["tansho", "fukusho"] as BetType[]).map((k) => (
                     <option key={k} value={k}>
-                      {k}
+                      {betTypeLabel(k)}
                     </option>
                   ))}
                 </select>
               </label>
             </div>
 
-            {!trendSupported ? <div className="small">Trend is supported for tansho / fukusho only.</div> : null}
-            {qOddsTrend.isFetching ? <Loading label="Loading odds trend..." /> : null}
+            {!trendSupported ? <div className="small">オッズ推移は単勝・複勝に対応しています。</div> : null}
+            {qOddsTrend.isFetching ? <Loading label="オッズ推移を読み込み中…" /> : null}
             {qOddsTrend.error ? <ErrorBox error={qOddsTrend.error} /> : null}
 
             {qOddsTrend.data ? (
@@ -538,7 +547,7 @@ export function RaceDetailPage(): React.JSX.Element {
 
                   const xAt = (i: number) => padL + (innerW * i) / Math.max(1, snapshots.length - 1);
                   const yAt = (v: number) => padT + innerH * (1 - (v - yLo) / (yHi - yLo));
-                  const label = (k: string) => (k === "final" ? "final" : k.replace(/^t_minus_/, "T-"));
+                  const label = snapshotKindLabel;
 
                   const paths = series.map((s) => {
                     const d: string[] = [];
@@ -605,7 +614,7 @@ export function RaceDetailPage(): React.JSX.Element {
                           </text>
                         </svg>
                       ) : (
-                        <div className="small">No numeric odds to plot.</div>
+                        <div className="small">グラフに表示できるオッズがありません。</div>
                       )}
 
                       {series.length ? (
@@ -622,39 +631,39 @@ export function RaceDetailPage(): React.JSX.Element {
                 })()
               ) : (
                 <div className="small" style={{ marginTop: 10 }}>
-                  No trend data.
+                  オッズ推移のデータがありません。
                 </div>
               )
             ) : null}
           </div>
 
-          {qOdds.isLoading ? <Loading label="Loading odds..." /> : null}
+          {qOdds.isLoading ? <Loading label="オッズを読み込み中…" /> : null}
           {qOdds.error ? <ErrorBox error={qOdds.error} /> : null}
 
           {qOdds.data ? (
             <div className="card">
               <div className="cardHeader">
                 <h2 className="cardTitle">
-                  Odds ({qOdds.data.snapshot.snapshot_kind}, {qOdds.data.snapshot.bet_type}) items={qOdds.data.items.length}
+                  オッズ（{snapshotKindLabel(qOdds.data.snapshot.snapshot_kind)}・{betTypeLabel(qOdds.data.snapshot.bet_type)}） 件数：{qOdds.data.items.length}
                 </h2>
               </div>
 
               <table className="table">
                 <thead>
                   <tr>
-                    <th>legs</th>
-                    <th>ordered</th>
-                    {isTansho ? <th>odds</th> : <th>odds_min</th>}
-                    {isTansho ? null : <th>odds_max</th>}
-                    <th>popularity</th>
-                    <th>raw</th>
+                    <th>組み合わせ</th>
+                    <th>着順指定</th>
+                    {isTansho ? <th>オッズ</th> : <th>オッズ下限</th>}
+                    {isTansho ? null : <th>オッズ上限</th>}
+                    <th>人気</th>
+                    <th>取得元の表記</th>
                   </tr>
                 </thead>
                 <tbody>
                   {qOdds.data.items.slice(0, 300).map((it) => (
                     <tr key={it.odds_item_id}>
                       <td>{it.legs.join("-")}</td>
-                      <td>{it.is_ordered ? "true" : "false"}</td>
+                      <td>{it.is_ordered ? "あり" : "なし"}</td>
                       <td>{it.odds_min ?? ""}</td>
                       {isTansho ? null : <td>{it.odds_max ?? ""}</td>}
                       <td>{it.popularity ?? ""}</td>
@@ -666,7 +675,7 @@ export function RaceDetailPage(): React.JSX.Element {
 
               {qOdds.data.items.length > 300 ? (
                 <div className="small" style={{ marginTop: 10 }}>
-                  表示は先頭 300 件に制限しています（items={qOdds.data.items.length}）。
+                  表示は先頭 300 件に制限しています（全{qOdds.data.items.length}件）。
                 </div>
               ) : null}
             </div>
@@ -676,31 +685,31 @@ export function RaceDetailPage(): React.JSX.Element {
 
       {tab === "results" ? (
         <div>
-          {qResults.isLoading ? <Loading label="Loading results..." /> : null}
+          {qResults.isLoading ? <Loading label="競走成績を読み込み中…" /> : null}
           {qResults.error ? <ErrorBox error={qResults.error} /> : null}
 
           {qResults.data ? (
             <div className="card">
               <div className="cardHeader">
-                <h2 className="cardTitle">Results ({qResults.data.items.length})</h2>
+                <h2 className="cardTitle">競走成績 ({qResults.data.items.length})</h2>
                 <button className="btn" onClick={() => qResults.refetch()}>
-                  Refresh
+                  更新
                 </button>
               </div>
 
               <table className="table">
                 <thead>
                   <tr>
-                    <th>finish_position</th>
-                    <th>horse_no</th>
-                    <th>time</th>
-                    <th>margin</th>
-                    <th>last3f</th>
-                    <th>popularity</th>
-                    <th>corner1</th>
-                    <th>corner2</th>
-                    <th>corner3</th>
-                    <th>corner4</th>
+                    <th>着順</th>
+                    <th>馬番</th>
+                    <th>走破タイム</th>
+                    <th>着差</th>
+                    <th>上がり3F</th>
+                    <th>人気</th>
+                    <th>1コーナー</th>
+                    <th>2コーナー</th>
+                    <th>3コーナー</th>
+                    <th>4コーナー</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -727,31 +736,31 @@ export function RaceDetailPage(): React.JSX.Element {
 
       {tab === "payouts" ? (
         <div>
-          {qPayouts.isLoading ? <Loading label="Loading payouts..." /> : null}
+          {qPayouts.isLoading ? <Loading label="払戻金を読み込み中…" /> : null}
           {qPayouts.error ? <ErrorBox error={qPayouts.error} /> : null}
 
           {qPayouts.data ? (
             <div className="card">
               <div className="cardHeader">
-                <h2 className="cardTitle">Payouts ({qPayouts.data.items.length})</h2>
+                <h2 className="cardTitle">払戻金 ({qPayouts.data.items.length})</h2>
                 <button className="btn" onClick={() => qPayouts.refetch()}>
-                  Refresh
+                  更新
                 </button>
               </div>
 
               <table className="table">
                 <thead>
                   <tr>
-                    <th>bet_type</th>
-                    <th>legs</th>
-                    <th>payout_yen</th>
-                    <th>popularity</th>
+                    <th>券種</th>
+                    <th>組み合わせ</th>
+                    <th>払戻金（円）</th>
+                    <th>人気</th>
                   </tr>
                 </thead>
                 <tbody>
                   {qPayouts.data.items.map((p) => (
                     <tr key={p.payout_id}>
-                      <td>{p.bet_type}</td>
+                      <td>{betTypeLabel(p.bet_type)}</td>
                       <td>{p.legs.join("-")}</td>
                       <td>{p.payout_yen}</td>
                       <td>{p.popularity ?? ""}</td>

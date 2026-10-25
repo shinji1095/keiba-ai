@@ -1,4 +1,5 @@
 import React from "react";
+import { scrapeTargetLabel, snapshotKindLabel } from "@/shared/labels";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/api/endpoints";
@@ -22,7 +23,7 @@ function formatCodes(codes?: number[] | null): string {
 
 function formatKinds(kinds?: string[] | null): string {
   if (!kinds || kinds.length === 0) return "-";
-  return kinds.join(", ");
+  return kinds.map(snapshotKindLabel).join("、");
 }
 
 export function ScrapeSchedulePage(): React.JSX.Element {
@@ -59,51 +60,51 @@ export function ScrapeSchedulePage(): React.JSX.Element {
 
   return (
     <div>
-      <h1 className="pageTitle">Scrape Schedule</h1>
-      <p className="pageDesc">定期スクレイピングの実行予定（scrape plan）を表示します。</p>
+      <h1 className="pageTitle">収集スケジュール</h1>
+      <p className="pageDesc">自動収集の設定と、オッズを取得する予定を確認できます。</p>
 
-      {qSchedule.isLoading ? <Loading label="Loading schedule..." /> : null}
+      {qSchedule.isLoading ? <Loading label="収集設定を読み込み中…" /> : null}
       {qSchedule.error ? <ErrorBox error={qSchedule.error} /> : null}
 
       {qSchedule.data ? (
         <div className="card" style={{ marginBottom: 14 }}>
           <div className="cardHeader">
-            <h2 className="cardTitle">Current Schedule</h2>
-            <span className={qSchedule.data.enabled ? "pill ok" : "pill"}>{qSchedule.data.enabled ? "ENABLED" : "DISABLED"}</span>
+            <h2 className="cardTitle">現在の収集設定</h2>
+            <span className={qSchedule.data.enabled ? "pill ok" : "pill"}>{qSchedule.data.enabled ? "有効" : "無効"}</span>
             <button className="btn" onClick={() => qSchedule.refetch()}>
-              Refresh
+              更新
             </button>
           </div>
-          <div className="small">baba_codes: {formatCodes(qSchedule.data.baba_codes)}</div>
-          <div className="small">snapshot_kinds: {formatKinds(qSchedule.data.snapshot_kinds)}</div>
-          <div className="small">prefetch_days: {qSchedule.data.prefetch_days ?? "-"}</div>
-          <div className="small">updated_at: {qSchedule.data.updated_at}</div>
+          <div className="small">対象の競馬場コード： {formatCodes(qSchedule.data.baba_codes)}</div>
+          <div className="small">オッズの取得タイミング： {formatKinds(qSchedule.data.snapshot_kinds)}</div>
+          <div className="small">先読み日数： {qSchedule.data.prefetch_days ?? "-"}</div>
+          <div className="small">設定更新日時： {qSchedule.data.updated_at}</div>
         </div>
       ) : null}
 
       <div className="card">
         <div className="cardHeader">
-          <h2 className="cardTitle">Odds Plan</h2>
+          <h2 className="cardTitle">オッズの収集予定</h2>
           <button className="btn" onClick={() => qPlan.refetch()}>
-            Refresh
+            更新
           </button>
         </div>
 
         <div className="row" style={{ marginBottom: 10 }}>
           <label>
-            <div className="small">race_date (JST)</div>
+            <div className="small">開催日（日本時間）</div>
             <input className="input" type="date" value={raceDate} onChange={(e) => setRaceDate(e.target.value)} />
           </label>
         </div>
 
-        {qPlan.isLoading ? <Loading label="Loading scrape plan..." /> : null}
+        {qPlan.isLoading ? <Loading label="収集予定を読み込み中…" /> : null}
         {qPlan.error && !planNotFound ? <ErrorBox error={qPlan.error} /> : null}
-        {planNotFound ? <div className="alert">scrape plan が見つかりません（scrape scheduled 実行後に生成されます）。</div> : null}
+        {planNotFound ? <div className="alert">収集予定がありません。自動収集の処理が実行されると作成されます。</div> : null}
 
         {qPlan.data ? (
           <div className="small" style={{ marginBottom: 10 }}>
-            generated_at: {qPlan.data.generated_at} / snapshot_kinds: {qPlan.data.snapshot_kinds.join(", ")} / interval_sec:{" "}
-            {qPlan.data.interval_sec} / tolerance_sec: {qPlan.data.tolerance_sec} / items: {qPlan.data.items.length}
+            予定作成日時： {qPlan.data.generated_at} / オッズの取得タイミング： {qPlan.data.snapshot_kinds.map(snapshotKindLabel).join("、")} / 取得間隔（秒）：{" "}
+            {qPlan.data.interval_sec} / 許容遅延（秒）： {qPlan.data.tolerance_sec} / 件数： {qPlan.data.items.length}
           </div>
         ) : null}
 
@@ -111,34 +112,34 @@ export function ScrapeSchedulePage(): React.JSX.Element {
           <table className="table">
             <thead>
               <tr>
-                <th>scheduled_at</th>
-                <th>target_at</th>
-                <th>task_kind</th>
-                <th>baba_code</th>
-                <th>race_no</th>
-                <th>page_name</th>
-                <th>snapshot_kind</th>
-                <th>odds_flg</th>
-                <th>priority</th>
-                <th>delay_sec</th>
-                <th>within_tolerance</th>
-                <th>start_time</th>
+                <th>実行予定日時</th>
+                <th>目標取得日時</th>
+                <th>処理の種類</th>
+                <th>競馬場コード</th>
+                <th>レース番号</th>
+                <th>取得するページ</th>
+                <th>取得タイミング</th>
+                <th>オッズ区分</th>
+                <th>優先度</th>
+                <th>遅延（秒）</th>
+                <th>許容範囲</th>
+                <th>発走時刻</th>
               </tr>
             </thead>
             <tbody>
               {planItems.map((it, idx) => (
-                <tr key={`${it.race_key.race_date}-${it.race_key.baba_code}-${it.race_key.race_no}-${it.snapshot_kind}-${idx}`}>
+                <tr key={`${it.race_key.race_date}-${it.race_key.baba_code}-${it.race_key.race_no}-${snapshotKindLabel(it.snapshot_kind)}-${idx}`}>
                   <td>{it.scheduled_at}</td>
                   <td>{it.target_at}</td>
-                  <td>{it.task_kind}</td>
+                  <td>{scrapeTargetLabel(it.task_kind)}</td>
                   <td>{it.race_key.baba_code}</td>
                   <td>{it.race_key.race_no ?? "-"}</td>
-                  <td>{it.page_name}</td>
-                  <td>{it.snapshot_kind}</td>
+                  <td>{scrapeTargetLabel(it.page_name)}</td>
+                  <td>{snapshotKindLabel(it.snapshot_kind)}</td>
                   <td>{it.odds_flg ?? "-"}</td>
                   <td>{it.priority}</td>
                   <td>{it.delay_sec}</td>
-                  <td>{it.within_tolerance ? "ok" : "late"}</td>
+                  <td>{it.within_tolerance ? "範囲内" : "遅延"}</td>
                   <td>{it.start_time ?? "-"}</td>
                 </tr>
               ))}

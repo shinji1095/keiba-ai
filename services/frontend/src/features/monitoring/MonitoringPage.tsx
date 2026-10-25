@@ -1,4 +1,5 @@
 import React from "react";
+import { scrapeTargetLabel, snapshotKindLabel } from "@/shared/labels";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { monitoringApi, ScrapeJob } from "@/api/monitoring";
@@ -42,7 +43,7 @@ function venueName(code?: number) {
 }
 function target(job: ScrapeJob) {
   const race = job.target.race_key ?? job.target;
-  return `${race.race_date ?? ""} ${venueName(race.baba_code)} ${race.race_no ? `${race.race_no}R` : "全レース"} ${job.target.page_name ?? ""}`;
+  return `${race.race_date ?? ""} ${venueName(race.baba_code)} ${race.race_no ? `${race.race_no}R` : "全レース"} ${scrapeTargetLabel(job.target.page_name ?? "")}`;
 }
 function duration(job: ScrapeJob) {
   const seconds = Math.max(
@@ -186,7 +187,7 @@ export function MonitoringPage() {
     <div className="monitorPage">
       <header className="monitorHeader">
         <div>
-          <div className="monitorEyebrow">SYSTEM MONITOR</div>
+          <div className="monitorEyebrow">稼働モニター</div>
           <h1 className="pageTitle">スクレイピング・PC稼働状況</h1>
           <p className="pageDesc">PCの余力とデータ収集の進み具合を、ひとつの画面で。</p>
         </div>
@@ -226,8 +227,8 @@ export function MonitoringPage() {
           <strong>
             {status.data?.schedule
               ? status.data.schedule.enabled
-                ? "自動取得 ON"
-                : "自動取得 OFF"
+                ? "自動取得 有効"
+                : "自動取得 無効"
               : "状態を確認中"}
           </strong>
           <span className="small">スケジューラ最終応答 {jst(scheduler?.heartbeat_at)}</span>
@@ -667,7 +668,7 @@ export function MonitoringPage() {
                   <td>
                     {target(job)}
                     <div className="small">
-                      {job.worker === "manual" ? "手動" : "定期"} · {job.target.snapshot_kind ?? ""}
+                      {job.worker === "manual" ? "手動" : "定期"} · {snapshotKindLabel(job.target.snapshot_kind ?? "")}
                     </div>
                   </td>
                   <td>

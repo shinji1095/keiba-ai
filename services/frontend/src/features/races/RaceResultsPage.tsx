@@ -43,13 +43,13 @@ export function RaceResultsPage(): React.JSX.Element {
 
   return (
     <div>
-      <h1 className="pageTitle">Race Results</h1>
-      <p className="pageDesc">競走成績（出走表＋結果）を一覧します（ページング対応）。</p>
+      <h1 className="pageTitle">競走成績</h1>
+      <p className="pageDesc">出走馬ごとの着順・走破タイム・着差などを確認できます。</p>
 
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="row">
           <label>
-            <div className="small">race_date</div>
+            <div className="small">開催日</div>
             <input
               className="input"
               type="date"
@@ -62,7 +62,7 @@ export function RaceResultsPage(): React.JSX.Element {
           </label>
 
           <label>
-            <div className="small">baba_code (optional)</div>
+            <div className="small">競馬場（任意）</div>
             <select
               className="select"
               value={babaCode}
@@ -71,7 +71,7 @@ export function RaceResultsPage(): React.JSX.Element {
                 setPage(1);
               }}
             >
-              <option value="">(all)</option>
+              <option value="">すべて</option>
               {venues.map((v) => (
                 <option key={v.baba_code} value={String(v.baba_code)}>
                   {v.baba_code} - {v.venue_name}
@@ -81,7 +81,7 @@ export function RaceResultsPage(): React.JSX.Element {
           </label>
 
           <label>
-            <div className="small">page_size</div>
+            <div className="small">1ページの表示件数</div>
             <select
               className="select"
               value={String(pageSize)}
@@ -98,29 +98,29 @@ export function RaceResultsPage(): React.JSX.Element {
           </label>
 
           <button className="btn" onClick={() => qEntryResults.refetch()}>
-            Refresh
+            更新
           </button>
         </div>
       </div>
 
-      {qVenues.isLoading ? <div className="small">Loading venues...</div> : null}
+      {qVenues.isLoading ? <div className="small">競馬場を読み込み中…</div> : null}
       {qVenues.error ? <ErrorBox error={qVenues.error} /> : null}
 
-      {qEntryResults.isLoading ? <Loading label="Loading results..." /> : null}
+      {qEntryResults.isLoading ? <Loading label="競走成績を読み込み中…" /> : null}
       {qEntryResults.error ? <ErrorBox error={qEntryResults.error} /> : null}
 
       {qEntryResults.data ? (
         <div className="card">
           <div className="cardHeader">
             <h2 className="cardTitle">
-              items ({qEntryResults.data.items.length}) / page={qEntryResults.data.page} / page_size={qEntryResults.data.page_size}
+              競走成績一覧（{qEntryResults.data.items.length}件） / {qEntryResults.data.page}ページ / 1ページ{qEntryResults.data.page_size}件
             </h2>
             <div className="row">
               <button className="btn" disabled={!canPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                Prev
+                前のページ
               </button>
               <button className="btn" disabled={!canNext} onClick={() => setPage((p) => p + 1)}>
-                Next
+                次のページ
               </button>
             </div>
           </div>
@@ -128,20 +128,20 @@ export function RaceResultsPage(): React.JSX.Element {
           <table className="table">
             <thead>
               <tr>
-                <th>baba</th>
-                <th>race</th>
-                <th>start</th>
-                <th>race_id</th>
-                <th>finish</th>
-                <th>horse_no</th>
-                <th>horse_name</th>
-                <th>jockey</th>
-                <th>handicap_kg</th>
-                <th>body_weight</th>
-                <th>time</th>
-                <th>margin</th>
-                <th>last3f</th>
-                <th>pop</th>
+                <th>競馬場コード</th>
+                <th>レース番号</th>
+                <th>発走時刻</th>
+                <th>レースID</th>
+                <th>着順</th>
+                <th>馬番</th>
+                <th>馬名</th>
+                <th>騎手</th>
+                <th>斤量（kg）</th>
+                <th>馬体重（kg）</th>
+                <th>走破タイム</th>
+                <th>着差</th>
+                <th>上がり3F</th>
+                <th>人気</th>
               </tr>
             </thead>
             <tbody>

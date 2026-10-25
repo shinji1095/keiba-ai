@@ -38,20 +38,20 @@ export function RegisterPage(): React.JSX.Element {
 
   return (
     <div style={{ maxWidth: 520, margin: "64px auto", padding: 16 }}>
-      <h1 className="pageTitle">Register</h1>
-      <p className="pageDesc">/auth/register を使用してユーザーを作成します。</p>
+      <h1 className="pageTitle">ユーザー登録</h1>
+      <p className="pageDesc">ユーザー名とパスワードを設定してアカウントを作成します。</p>
 
       {error ? <ErrorBox error={error} /> : null}
 
       <form className="card" onSubmit={onSubmit}>
         <div className="row" style={{ alignItems: "stretch" }}>
           <label style={{ width: "100%" }}>
-            <div className="small">Username</div>
+            <div className="small">ユーザー名</div>
             <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} />
           </label>
 
           <label style={{ width: "100%" }}>
-            <div className="small">Password</div>
+            <div className="small">パスワード</div>
             <input
               className="input"
               type="password"
@@ -61,7 +61,7 @@ export function RegisterPage(): React.JSX.Element {
           </label>
 
           <label style={{ width: "100%" }}>
-            <div className="small">Confirm password</div>
+            <div className="small">パスワード（確認）</div>
             <input
               className="input"
               type="password"
@@ -73,7 +73,7 @@ export function RegisterPage(): React.JSX.Element {
 
         {passwordMismatch ? (
           <div className="small" style={{ marginTop: 8, color: "var(--danger)" }}>
-            Passwords do not match.
+            パスワードが一致しません。
           </div>
         ) : null}
 
@@ -83,7 +83,7 @@ export function RegisterPage(): React.JSX.Element {
             disabled={busy || !username || !password || !confirmPassword || passwordMismatch}
             type="submit"
           >
-            {busy ? "Creating..." : "Create account"}
+            {busy ? "作成中…" : "登録する"}
           </button>
         </div>
 

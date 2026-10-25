@@ -300,21 +300,21 @@ test("Race Detail shows summary/entries/odds/results/payouts (all required)", as
 
   // Races → filter → Race Detail
   await page.goto("/races");
-  await expect(page.getByRole("heading", { name: "Races" })).toBeVisible();
-  await page.getByLabel("race_date").fill(raceDate);
-  await page.getByLabel("baba_code (optional)").selectOption(String(babaCode));
-  await page.getByRole("button", { name: "Search" }).click();
+  await expect(page.getByRole("heading", { name: "レース一覧" })).toBeVisible();
+  await page.getByLabel("開催日").fill(raceDate);
+  await page.getByLabel("競馬場（任意）").selectOption(String(babaCode));
+  await page.getByRole("button", { name: "検索" }).click();
   await expect(page.getByText("Ｃ３三４歳以上")).toBeVisible();
 
   await page.getByRole("link", { name: String(raceId) }).click();
-  await expect(page.getByRole("heading", { name: "Race Detail" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "レース詳細" })).toBeVisible();
 
   // summary (default)
-  await expect(page.getByText(`race_id=${raceId}`)).toBeVisible();
-  await expect(page.getByText("distance 1400")).toBeVisible();
+  await expect(page.getByText(`レースID：${raceId}`, { exact: false })).toBeVisible();
+  await expect(page.getByText("距離 1400m")).toBeVisible();
 
   // entries
-  await page.getByRole("button", { name: "entries" }).click();
+  await page.getByRole("button", { name: "出走表" }).click();
   await expect(page.locator("table.table tbody tr")).toHaveCount(12);
   await expect(page.getByRole("cell", { name: "Horse-1", exact: true })).toBeVisible();
   await expect(page.getByText("1-5-4-8 (18)")).toBeVisible();
@@ -325,7 +325,7 @@ test("Race Detail shows summary/entries/odds/results/payouts (all required)", as
   await expect(page.getByText("1:36.0")).toBeVisible();
 
   // odds: verify each required bet_type shows items count
-  await page.getByRole("button", { name: "odds" }).click();
+  await page.getByRole("button", { name: "オッズ" }).click();
   const oddsChecks: Array<{ betType: string; expected: number }> = [
     { betType: "tansho", expected: 12 },
     { betType: "fukusho", expected: 12 },
@@ -336,19 +336,19 @@ test("Race Detail shows summary/entries/odds/results/payouts (all required)", as
     { betType: "wide", expected: 66 },
   ];
   for (const c of oddsChecks) {
-    await page.getByLabel("snapshot_kind").selectOption("final");
-    await page.getByLabel("bet_type").selectOption(c.betType);
-    await page.getByRole("button", { name: "Fetch odds" }).click();
-    await expect(page.getByText(new RegExp(`items=${c.expected}\\b`))).toBeVisible();
+    await page.getByLabel("取得タイミング").selectOption("final");
+    await page.getByRole("combobox", { name: "券種", exact: true }).selectOption(c.betType);
+    await page.getByRole("button", { name: "オッズを取得" }).click();
+    await expect(page.getByText(new RegExp(`件数：${c.expected}\\b`))).toBeVisible();
   }
 
   // results (RaceMarkTable)
-  await page.getByRole("button", { name: "results" }).click();
+  await page.getByRole("button", { name: "競走成績" }).click();
   await expect(page.getByText("1:34.4")).toBeVisible();
 
   // payouts (RaceMarkTable)
-  await page.getByRole("button", { name: "payouts" }).click();
-  await expect(page.getByText("tansho")).toBeVisible();
+  await page.getByRole("button", { name: "払戻金" }).click();
+  await expect(page.getByText("単勝")).toBeVisible();
   await expect(page.getByText("110")).toBeVisible();
 
   // no global error boxes

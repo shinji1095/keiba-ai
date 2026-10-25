@@ -33,14 +33,14 @@ describe("SyncControlCard", () => {
       />,
     );
 
-    const enabledCheckbox = screen.getByLabelText("enabled");
+    const enabledCheckbox = screen.getByLabelText("自動実行を有効にする");
     await userEvent.click(enabledCheckbox);
 
     const intervalInput = screen.getByRole("spinbutton");
     await userEvent.clear(intervalInput);
     await userEvent.type(intervalInput, "3");
 
-    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
     expect(onSave).toHaveBeenCalledWith({
       enabled: true,
       interval_days: 3,
@@ -62,7 +62,7 @@ describe("SyncControlCard", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Manual Sync" }));
+    await userEvent.click(screen.getByRole("button", { name: "今すぐ同期" }));
     expect(onTrigger).toHaveBeenCalledTimes(1);
   });
 });

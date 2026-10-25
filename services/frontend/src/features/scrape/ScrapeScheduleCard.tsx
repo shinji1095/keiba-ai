@@ -5,9 +5,9 @@ import { ErrorBox } from "@/shared/ui/ErrorBox";
 import { Loading } from "@/shared/ui/Loading";
 
 const SNAPSHOT_KIND_OPTIONS = [
-  { value: "final", label: "final (発走直前)" },
-  { value: "t_minus_30m", label: "t_minus_30m (発走30分前)" },
-  { value: "t_minus_60m", label: "t_minus_60m (発走60分前)" },
+  { value: "final", label: "発走直前" },
+  { value: "t_minus_30m", label: "発走30分前" },
+  { value: "t_minus_60m", label: "発走60分前" },
 ] as const;
 
 type Props = {
@@ -31,7 +31,7 @@ function parseCodes(input: string): { codes: number[]; error?: string } {
   const tokens = trimmed.split(/[,\s]+/).filter(Boolean);
   const codes = tokens.map((tok) => Number(tok));
   if (codes.some((code) => !Number.isFinite(code))) {
-    return { codes: [], error: "baba_codes は数値のみで指定してください。" };
+    return { codes: [], error: "競馬場コードは数値で入力してください。" };
   }
   return { codes: codes.map((code) => Math.trunc(code)) };
 }
@@ -91,28 +91,28 @@ export function ScrapeScheduleCard({
   return (
     <div className="card" style={{ marginBottom: 14 }}>
       <div className="cardHeader">
-        <h2 className="cardTitle">Scrape Schedule</h2>
-        <span className={enabled ? "pill ok" : "pill"}>{enabled ? "ENABLED" : "DISABLED"}</span>
+        <h2 className="cardTitle">自動収集の設定</h2>
+        <span className={enabled ? "pill ok" : "pill"}>{enabled ? "有効" : "無効"}</span>
       </div>
 
-      {isLoading ? <Loading label="Loading scrape schedule..." /> : null}
+      {isLoading ? <Loading label="自動収集の設定を読み込み中…" /> : null}
       {loadError ? <ErrorBox error={loadError} /> : null}
       {saveError ? <ErrorBox error={saveError} /> : null}
 
       {status ? (
         <div className="small" style={{ marginBottom: 10 }}>
-          updated_at: {formatDate(status.updated_at)}
+          設定更新日時： {formatDate(status.updated_at)}
         </div>
       ) : null}
 
       <div className="row">
         <label>
-          <div className="small">enabled</div>
+          <div className="small">自動実行を有効にする</div>
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
         </label>
 
         <label>
-          <div className="small">baba_codes</div>
+          <div className="small">対象の競馬場コード</div>
           <input
             className="input"
             placeholder="1, 2, 3"
@@ -123,7 +123,7 @@ export function ScrapeScheduleCard({
 
         <div>
           <div className="small" style={{ marginBottom: 6 }}>
-            snapshot_kinds（複数選択可）
+            オッズの取得タイミング（複数選択可）
           </div>
           <div className="small" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {SNAPSHOT_KIND_OPTIONS.map((opt) => (
@@ -140,11 +140,11 @@ export function ScrapeScheduleCard({
         </div>
 
         <button className="btn" onClick={onRefresh}>
-          Refresh
+          更新
         </button>
 
         <button className="btn" onClick={handleSave} disabled={saving}>
-          {saving ? "Saving..." : "Save"}
+          {saving ? "保存中…" : "保存"}
         </button>
       </div>
 

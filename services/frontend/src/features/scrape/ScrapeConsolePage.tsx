@@ -98,12 +98,12 @@ const templates: Record<ScrapeOpKey, unknown> = {
 };
 
 const ops: Record<ScrapeOpKey, Omit<OpDef, "run">> = {
-  races: { label: "POST /scrape/races", template: templates.races },
-  "race-entries": { label: "POST /scrape/race-entries", template: templates["race-entries"] },
-  "odds-snapshots": { label: "POST /scrape/odds-snapshots", template: templates["odds-snapshots"] },
-  "race-results": { label: "POST /scrape/race-results", template: templates["race-results"] },
-  payouts: { label: "POST /scrape/payouts", template: templates.payouts },
-  "race-changes": { label: "POST /scrape/race-changes", template: templates["race-changes"] },
+  races: { label: "レース情報を登録", template: templates.races },
+  "race-entries": { label: "出走表を登録", template: templates["race-entries"] },
+  "odds-snapshots": { label: "オッズを登録", template: templates["odds-snapshots"] },
+  "race-results": { label: "競走成績を登録", template: templates["race-results"] },
+  payouts: { label: "払戻金を登録", template: templates.payouts },
+  "race-changes": { label: "レースの変更情報を登録", template: templates["race-changes"] },
 };
 
 function pretty(x: unknown): string {
@@ -181,12 +181,12 @@ export function ScrapeConsolePage(): React.JSX.Element {
 
   return (
     <div>
-      <h1 className="pageTitle">Scrape Console</h1>
+      <h1 className="pageTitle">データ収集</h1>
       <p className="pageDesc">
-        /scrape/* 系エンドポイントを手動で呼び出します。token mode が Service の場合は serviceToken を使用します。
+        データの自動収集・同期を設定し、手動収集やデータ登録を実行できます。
       </p>
 
-      {!auth.activeToken ? <div className="alert">Token is not set.</div> : null}
+      {!auth.activeToken ? <div className="alert">認証情報が設定されていません。</div> : null}
 
       <ScrapeScheduleCard
         status={qScrapeSchedule.data}
@@ -222,7 +222,7 @@ export function ScrapeConsolePage(): React.JSX.Element {
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="row">
           <label>
-            <div className="small">operation</div>
+            <div className="small">登録するデータ</div>
             <select className="select" value={op} onChange={(e) => setOp(e.target.value as ScrapeOpKey)}>
               {Object.entries(ops).map(([k, v]) => (
                 <option key={k} value={k}>
@@ -232,19 +232,19 @@ export function ScrapeConsolePage(): React.JSX.Element {
             </select>
           </label>
 
-          <div className="pill">{auth.useServiceToken ? "Service token" : "User token"}</div>
+          <div className="pill">{auth.useServiceToken ? "外部連携用トークン" : "ユーザー認証トークン"}</div>
 
           <a className="btn" href="/settings">
-            Settings
+            設定
           </a>
 
           <button className="btn primary" onClick={() => runMutation.mutate()} disabled={runMutation.isPending}>
-            {runMutation.isPending ? "Running..." : "Run"}
+            {runMutation.isPending ? "実行中…" : "実行"}
           </button>
         </div>
 
         <div className="small" style={{ marginTop: 10 }}>
-          Request body (JSON)
+          送信するデータ（JSON）
         </div>
         <textarea className="textarea" value={jsonText} onChange={(e) => setJsonText(e.target.value)} />
       </div>
@@ -254,7 +254,7 @@ export function ScrapeConsolePage(): React.JSX.Element {
       {runMutation.data ? (
         <div className="card">
           <div className="cardHeader">
-            <h2 className="cardTitle">Response</h2>
+            <h2 className="cardTitle">実行結果</h2>
           </div>
           <JsonView value={runMutation.data} />
         </div>

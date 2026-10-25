@@ -1,4 +1,5 @@
 import React from "react";
+import { statusLabel } from "@/shared/labels";
 
 import { ManualScrapeTaskRequest, ManualScrapeTaskResponse } from "@/api/generated";
 import { ErrorBox } from "@/shared/ui/ErrorBox";
@@ -39,13 +40,13 @@ export function ManualScrapeTaskCard({
   const handleRequest = () => {
     const babaCode = parseOptionalInt(babaCodeText);
     if (babaCode === null) {
-      setInputError("baba_code は必須です（数値）。");
+      setInputError("競馬場コードを数値で入力してください。");
       return;
     }
 
     const raceNo = parseOptionalInt(raceNoText);
     if (raceNo !== null && (raceNo < 1 || raceNo > 12)) {
-      setInputError("race_no は 1〜12 で指定してください。");
+      setInputError("レース番号は1〜12で指定してください。");
       return;
     }
 
@@ -62,15 +63,15 @@ export function ManualScrapeTaskCard({
   return (
     <div className="card" style={{ marginBottom: 14 }}>
       <div className="cardHeader">
-        <h2 className="cardTitle">Manual Scrape Task</h2>
-        <span className={response ? "pill ok" : "pill"}>{response ? response.status.toUpperCase() : "IDLE"}</span>
+        <h2 className="cardTitle">手動収集</h2>
+        <span className={response ? "pill ok" : "pill"}>{response ? statusLabel(response.status) : "待機中"}</span>
       </div>
 
       {requestError ? <ErrorBox error={requestError} /> : null}
 
       <div className="row">
         <label>
-          <div className="small">baba_code (required)</div>
+          <div className="small">競馬場コード（必須）</div>
           <input
             className="input"
             inputMode="numeric"
@@ -81,12 +82,12 @@ export function ManualScrapeTaskCard({
         </label>
 
         <label>
-          <div className="small">race_date (optional)</div>
+          <div className="small">開催日（任意）</div>
           <input className="input" type="date" value={raceDate} onChange={(e) => setRaceDate(e.target.value)} />
         </label>
 
         <label>
-          <div className="small">race_no (optional)</div>
+          <div className="small">レース番号（任意）</div>
           <input
             className="input"
             inputMode="numeric"
@@ -99,17 +100,17 @@ export function ManualScrapeTaskCard({
 
       <div className="row" style={{ marginTop: 10, alignItems: "stretch" }}>
         <label style={{ width: "100%" }}>
-          <div className="small">reason (optional)</div>
-          <input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="manual" />
+          <div className="small">依頼理由（任意）</div>
+          <input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="例：取得漏れの再収集" />
         </label>
 
         <button className="btn primary" onClick={handleRequest} disabled={requesting}>
-          {requesting ? "Requesting..." : "Request"}
+          {requesting ? "依頼中…" : "収集を依頼"}
         </button>
 
         {onClear ? (
           <button className="btn" onClick={onClear} disabled={requesting && !response}>
-            Clear
+            クリア
           </button>
         ) : null}
       </div>
@@ -118,9 +119,9 @@ export function ManualScrapeTaskCard({
 
       {response ? (
         <div className="small" style={{ marginTop: 10 }}>
-          task_id: <span style={{ fontFamily: "ui-monospace, monospace" }}>{response.task_id}</span>
+          収集依頼ID： <span style={{ fontFamily: "ui-monospace, monospace" }}>{response.task_id}</span>
           <br />
-          accepted_at: {formatDate(response.accepted_at)}
+          受付日時： {formatDate(response.accepted_at)}
         </div>
       ) : null}
     </div>

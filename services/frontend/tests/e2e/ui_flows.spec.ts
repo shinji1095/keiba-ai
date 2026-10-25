@@ -49,11 +49,11 @@ test("login success navigates to overview", async ({ page }) => {
   await stubHealth(page);
 
   await page.goto("/login");
-  await page.getByLabel("Username").fill("admin");
-  await page.getByLabel("Password").fill("adminpass");
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByLabel("ユーザー名").fill("admin");
+  await page.getByLabel("パスワード").fill("adminpass");
+  await page.getByRole("button", { name: "ログイン" }).click();
 
-  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
 });
 
 test("login failure shows error", async ({ page }) => {
@@ -66,11 +66,11 @@ test("login failure shows error", async ({ page }) => {
   });
 
   await page.goto("/login");
-  await page.getByLabel("Username").fill("admin");
-  await page.getByLabel("Password").fill("wrong");
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByLabel("ユーザー名").fill("admin");
+  await page.getByLabel("パスワード").fill("wrong");
+  await page.getByRole("button", { name: "ログイン" }).click();
 
-  await expect(page.locator(".alert")).toContainText("invalid credentials");
+  await expect(page.locator(".alert")).toContainText("ユーザー名またはパスワードが正しくありません。");
 });
 
 test("register success navigates to overview", async ({ page }) => {
@@ -85,12 +85,12 @@ test("register success navigates to overview", async ({ page }) => {
   await stubHealth(page);
 
   await page.goto("/register");
-  await page.getByLabel("Username").fill("new-user");
-  await page.getByLabel("Password", { exact: true }).fill("pass123");
-  await page.getByLabel("Confirm password").fill("pass123");
-  await page.getByRole("button", { name: "Create account" }).click();
+  await page.getByLabel("ユーザー名").fill("new-user");
+  await page.getByLabel("パスワード", { exact: true }).fill("pass123");
+  await page.getByLabel("パスワード（確認）").fill("pass123");
+  await page.getByRole("button", { name: "登録する" }).click();
 
-  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
 });
 
 test("register failure shows error", async ({ page }) => {
@@ -103,12 +103,12 @@ test("register failure shows error", async ({ page }) => {
   });
 
   await page.goto("/register");
-  await page.getByLabel("Username").fill("new-user");
-  await page.getByLabel("Password", { exact: true }).fill("pass123");
-  await page.getByLabel("Confirm password").fill("pass123");
-  await page.getByRole("button", { name: "Create account" }).click();
+  await page.getByLabel("ユーザー名").fill("new-user");
+  await page.getByLabel("パスワード", { exact: true }).fill("pass123");
+  await page.getByLabel("パスワード（確認）").fill("pass123");
+  await page.getByRole("button", { name: "登録する" }).click();
 
-  await expect(page.locator(".alert")).toContainText("registration failed");
+  await expect(page.locator(".alert")).toContainText("ユーザー登録に失敗しました。");
 });
 
 test("races list and detail show data", async ({ page }) => {
@@ -189,13 +189,13 @@ test("races list and detail show data", async ({ page }) => {
   });
 
   await page.goto("/races");
-  await expect(page.getByRole("heading", { name: "Races" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "レース一覧" })).toBeVisible();
   await expect(page.getByText("Sample Race")).toBeVisible();
 
   await page.getByRole("link", { name: "1" }).click();
-  await expect(page.getByRole("heading", { name: "Race Detail" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "レース詳細" })).toBeVisible();
 
-  await page.getByRole("button", { name: "entries" }).click();
+  await page.getByRole("button", { name: "出走表" }).click();
   await expect(page.getByText("Sample Horse")).toBeVisible();
 });
 
@@ -287,23 +287,23 @@ test("oauth clients manage flow", async ({ page }) => {
 
   await page.goto("/admin/oauth-clients");
 
-  await page.getByLabel("name").fill("scraper");
-  await page.getByLabel("scopes", { exact: false }).fill("scrape:write");
-  await page.getByRole("button", { name: "Create" }).click();
+  await page.getByLabel("連携先名").fill("scraper");
+  await page.getByLabel("権限", { exact: false }).fill("scrape:write");
+  await page.getByRole("button", { name: "登録する" }).click();
 
   await expect(page.getByRole("cell", { name: "client-1" })).toBeVisible();
-  await expect(page.getByText("Clients (1)")).toBeVisible();
+  await expect(page.getByText("連携先一覧 (1)")).toBeVisible();
 
-  await page.getByRole("button", { name: "Rotate secret" }).click();
+  await page.getByRole("button", { name: "認証キーを再発行" }).click();
   await expect(page.getByText("secret-rotated")).toBeVisible();
 
-  await page.getByLabel("client_id").fill("client-1");
-  await page.getByLabel("client_secret").fill("secret-rotated");
-  await page.getByRole("button", { name: "Issue token" }).click();
+  await page.getByLabel("連携先ID").fill("client-1");
+  await page.getByLabel("認証キー").fill("secret-rotated");
+  await page.getByRole("button", { name: "トークンを発行" }).click();
   await expect(page.getByText("access_token")).toBeVisible();
 
-  await page.getByRole("button", { name: "Revoke" }).click();
-  await expect(page.getByText("Clients (0)")).toBeVisible();
+  await page.getByRole("button", { name: "無効にする" }).click();
+  await expect(page.getByText("連携先一覧 (0)")).toBeVisible();
 });
 
 test("scrape console run shows response", async ({ page }) => {
@@ -336,9 +336,9 @@ test("scrape console run shows response", async ({ page }) => {
   });
 
   await page.goto("/scrape");
-  await expect(page.getByRole("heading", { name: "Scrape Console" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "データ収集" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Run" }).click();
+  await page.getByRole("button", { name: "実行" }).click();
   await expect(page.getByText("odds_snapshot_id")).toBeVisible();
 });
 
@@ -394,10 +394,10 @@ test("manual scrape task request shows task id", async ({ page }) => {
   });
 
   await page.goto("/scrape");
-  await expect(page.getByRole("heading", { name: "Manual Scrape Task" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "手動収集" })).toBeVisible();
 
   await page.getByPlaceholder("18").fill("18");
-  await page.getByRole("button", { name: "Request" }).click();
+  await page.getByRole("button", { name: "収集を依頼" }).click();
 
   await expect(page.getByText("task-1")).toBeVisible();
 });
@@ -460,16 +460,16 @@ test("sync scheduler updates and triggers manual sync", async ({ page }) => {
   });
 
   await page.goto("/scrape");
-  await expect(page.getByRole("heading", { name: "Scrape Console" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Scrape Schedule" })).toBeVisible();
-  const syncCard = page.getByRole("heading", { name: "Sync Scheduler" }).locator("..").locator("..");
+  await expect(page.getByRole("heading", { name: "データ収集" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "自動収集の設定" })).toBeVisible();
+  const syncCard = page.getByRole("heading", { name: "データ同期" }).locator("..").locator("..");
   await expect(syncCard).toBeVisible();
 
   await syncCard.getByRole("checkbox").click();
   const intervalInput = syncCard.getByRole("spinbutton");
   await intervalInput.fill("3");
-  await syncCard.getByRole("button", { name: "Save" }).click();
+  await syncCard.getByRole("button", { name: "保存" }).click();
 
-  await syncCard.getByRole("button", { name: "Manual Sync" }).click();
+  await syncCard.getByRole("button", { name: "今すぐ同期" }).click();
   expect(manualSyncCalls).toBe(1);
 });

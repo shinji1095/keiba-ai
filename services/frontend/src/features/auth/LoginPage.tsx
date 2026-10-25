@@ -33,20 +33,20 @@ export function LoginPage(): React.JSX.Element {
 
   return (
     <div style={{ maxWidth: 520, margin: "64px auto", padding: 16 }}>
-      <h1 className="pageTitle">Login</h1>
-      <p className="pageDesc">/auth/login を使用してログインし、access token を保持します。</p>
+      <h1 className="pageTitle">ログイン</h1>
+      <p className="pageDesc">ユーザー名とパスワードを入力してログインしてください。</p>
 
       {error ? <ErrorBox error={error} /> : null}
 
       <form className="card" onSubmit={onSubmit}>
         <div className="row" style={{ alignItems: "stretch" }}>
           <label style={{ width: "100%" }}>
-            <div className="small">Username</div>
+            <div className="small">ユーザー名</div>
             <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} />
           </label>
 
           <label style={{ width: "100%" }}>
-            <div className="small">Password</div>
+            <div className="small">パスワード</div>
             <input
               className="input"
               type="password"
@@ -58,15 +58,15 @@ export function LoginPage(): React.JSX.Element {
 
         <div className="row" style={{ justifyContent: "flex-end", marginTop: 12 }}>
           <Link className="btn" to="/register" state={{ from }}>
-            Sign up
+            ユーザー登録
           </Link>
           <button className="btn primary" disabled={busy || !username || !password} type="submit">
-            {busy ? "Signing in..." : "Sign in"}
+            {busy ? "ログイン中…" : "ログイン"}
           </button>
         </div>
 
         <div className="small" style={{ marginTop: 10 }}>
-          Refresh token は HttpOnly Cookie を前提としており、この画面では表示されません。
+          ログインの有効期限は自動で更新されます。
         </div>
 
         <div className="small" style={{ marginTop: 10 }}>

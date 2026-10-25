@@ -62,7 +62,7 @@ test("test data viewer shows races and files", async ({ page }) => {
 
   await page.goto("/test-data");
 
-  await expect(page.getByRole("heading", { name: "Test Data Viewer" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "テストデータ" })).toBeVisible();
   await expect(page.getByText("園田 2026-01-02 1R")).toBeVisible();
 
   await page.getByRole("button", { name: "園田 2026-01-02 1R" }).click();

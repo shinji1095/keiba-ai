@@ -41,20 +41,20 @@ export function TodayRacesPage(): React.JSX.Element {
 
   return (
     <div>
-      <h1 className="pageTitle">Today Races</h1>
+      <h1 className="pageTitle">本日の出走表</h1>
       <p className="pageDesc">
-        当日（{raceDate}）のレース出走表を一覧します（斤量/馬体重/ジョッキー等を含む）。ページング対応。
+        本日（{raceDate}）の出走馬・騎手・斤量・馬体重を確認できます。
       </p>
 
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="row">
           <label>
-            <div className="small">race_date</div>
+            <div className="small">開催日</div>
             <input className="input" type="date" value={raceDate} disabled />
           </label>
 
           <label>
-            <div className="small">baba_code (optional)</div>
+            <div className="small">競馬場（任意）</div>
             <select
               className="select"
               value={babaCode}
@@ -63,7 +63,7 @@ export function TodayRacesPage(): React.JSX.Element {
                 setPage(1);
               }}
             >
-              <option value="">(all)</option>
+              <option value="">すべて</option>
               {venues.map((v) => (
                 <option key={v.baba_code} value={String(v.baba_code)}>
                   {v.baba_code} - {v.venue_name}
@@ -73,7 +73,7 @@ export function TodayRacesPage(): React.JSX.Element {
           </label>
 
           <label>
-            <div className="small">page_size</div>
+            <div className="small">1ページの表示件数</div>
             <select
               className="select"
               value={String(pageSize)}
@@ -90,29 +90,29 @@ export function TodayRacesPage(): React.JSX.Element {
           </label>
 
           <button className="btn" onClick={() => qEntries.refetch()}>
-            Refresh
+            更新
           </button>
         </div>
       </div>
 
-      {qVenues.isLoading ? <div className="small">Loading venues...</div> : null}
+      {qVenues.isLoading ? <div className="small">競馬場を読み込み中…</div> : null}
       {qVenues.error ? <ErrorBox error={qVenues.error} /> : null}
 
-      {qEntries.isLoading ? <Loading label="Loading race entries..." /> : null}
+      {qEntries.isLoading ? <Loading label="出走表を読み込み中…" /> : null}
       {qEntries.error ? <ErrorBox error={qEntries.error} /> : null}
 
       {qEntries.data ? (
         <div className="card">
           <div className="cardHeader">
             <h2 className="cardTitle">
-              items ({qEntries.data.items.length}) / page={qEntries.data.page} / page_size={qEntries.data.page_size}
+              出走馬一覧（{qEntries.data.items.length}件） / {qEntries.data.page}ページ / 1ページ{qEntries.data.page_size}件
             </h2>
             <div className="row">
               <button className="btn" disabled={!canPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                Prev
+                前のページ
               </button>
               <button className="btn" disabled={!canNext} onClick={() => setPage((p) => p + 1)}>
-                Next
+                次のページ
               </button>
             </div>
           </div>
@@ -120,15 +120,15 @@ export function TodayRacesPage(): React.JSX.Element {
           <table className="table">
             <thead>
               <tr>
-                <th>baba_code</th>
-                <th>race_no</th>
-                <th>start_time</th>
-                <th>race_id</th>
-                <th>horse_no</th>
-                <th>horse_name</th>
-                <th>jockey</th>
-                <th>handicap_kg</th>
-                <th>body_weight</th>
+                <th>競馬場コード</th>
+                <th>レース番号</th>
+                <th>発走時刻</th>
+                <th>レースID</th>
+                <th>馬番</th>
+                <th>馬名</th>
+                <th>騎手</th>
+                <th>斤量（kg）</th>
+                <th>馬体重（kg）</th>
               </tr>
             </thead>
             <tbody>

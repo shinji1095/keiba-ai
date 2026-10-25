@@ -19,26 +19,26 @@ export function VenuesPage(): React.JSX.Element {
 
   return (
     <div>
-      <h1 className="pageTitle">Venues</h1>
-      <p className="pageDesc">/venues (GET): 競馬場コード一覧</p>
+      <h1 className="pageTitle">競馬場一覧</h1>
+      <p className="pageDesc">競馬場の名前とコードを確認できます。</p>
 
-      {q.isLoading ? <Loading label="Loading venues..." /> : null}
+      {q.isLoading ? <Loading label="競馬場を読み込み中…" /> : null}
       {q.error ? <ErrorBox error={q.error} /> : null}
 
       {venues.length > 0 ? (
         <div className="card">
           <div className="cardHeader">
-            <h2 className="cardTitle">items ({venues.length})</h2>
+            <h2 className="cardTitle">競馬場一覧 ({venues.length})</h2>
             <button className="btn" onClick={() => q.refetch()}>
-              Refresh
+              更新
             </button>
           </div>
 
           <table className="table">
             <thead>
               <tr>
-                <th>baba_code</th>
-                <th>venue_name</th>
+                <th>競馬場コード</th>
+                <th>競馬場名</th>
               </tr>
             </thead>
             <tbody>

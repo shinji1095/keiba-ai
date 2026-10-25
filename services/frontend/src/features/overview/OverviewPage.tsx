@@ -2,15 +2,13 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/api/endpoints";
-import { useApiCtx } from "@/app/hooks/useApiCtx";
 import { getApiBaseUrl } from "@/api/http";
 import { useAuth } from "@/app/auth/useAuth";
 import { ErrorBox } from "@/shared/ui/ErrorBox";
 import { Loading } from "@/shared/ui/Loading";
-import { JsonView } from "@/shared/ui/JsonView";
+import { statusLabel } from "@/shared/labels";
 
 export function OverviewPage(): React.JSX.Element {
-  const ctx = useApiCtx();
   const auth = useAuth();
   const baseUrl = getApiBaseUrl();
 
@@ -21,30 +19,30 @@ export function OverviewPage(): React.JSX.Element {
 
   return (
     <div>
-      <h1 className="pageTitle">Overview</h1>
-      <p className="pageDesc">OpenAPI (21_openapi.yaml) に記載されたエンドポイント向けの管理画面です。</p>
+      <h1 className="pageTitle">ホーム</h1>
+      <p className="pageDesc">競馬データの閲覧や収集、システムの稼働状況を確認できます。</p>
 
       <div className="grid2">
         <div className="card">
           <div className="cardHeader">
-            <h2 className="cardTitle">System</h2>
-            <span className={qHealth.data ? "pill ok" : "pill bad"}>{qHealth.data ? "OK" : "UNKNOWN"}</span>
+            <h2 className="cardTitle">システムの状態</h2>
+            <span className={qHealth.data ? "pill ok" : "pill bad"}>{qHealth.data ? "正常" : "不明"}</span>
           </div>
 
-          {qHealth.isLoading ? <Loading label="Loading /health..." /> : null}
+          {qHealth.isLoading ? <Loading label="システムの状態を確認中…" /> : null}
           {qHealth.error ? <ErrorBox error={qHealth.error} /> : null}
-          {qHealth.data ? <JsonView value={qHealth.data} /> : null}
+          {qHealth.data ? <div className="small">稼働状態：{statusLabel(qHealth.data.status)}</div> : null}
         </div>
 
         <div className="card">
           <div className="cardHeader">
-            <h2 className="cardTitle">Client</h2>
-            <span className="pill">{auth.activeToken ? "AUTHENTICATED" : "NO TOKEN"}</span>
+            <h2 className="cardTitle">接続・認証</h2>
+            <span className="pill">{auth.activeToken ? "認証済み" : "未認証"}</span>
           </div>
 
-          <div className="small">API base URL: {baseUrl}</div>
+          <div className="small">API接続先： {baseUrl}</div>
           <div className="small" style={{ marginTop: 10 }}>
-            Active token mode: {auth.useServiceToken ? "Service" : "User"}
+            使用中の認証方法： {auth.useServiceToken ? "外部連携" : "ユーザー"}
           </div>
 
           <div style={{ marginTop: 14 }} className="small">
@@ -53,18 +51,18 @@ export function OverviewPage(): React.JSX.Element {
           <div className="row" style={{ marginTop: 8 }}>
             <a className="btn" href="/scrape/status">稼働モニター</a>
             <a className="btn" href="/races">
-              Races
+              レース一覧
             </a>
             <a className="btn" href="/admin/oauth-clients">
-              OAuth Clients
+              外部連携
             </a>
             <a className="btn" href="/scrape">
-              Scrape Console
+              データ収集
             </a>
           </div>
 
           <div style={{ marginTop: 14 }} className="small">
-            401 の場合、User token 使用中のみ /auth/refresh を自動呼び出しします。
+            ユーザー認証の有効期限が切れた場合は、自動で更新を試みます。
           </div>
         </div>
       </div>
