@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
 import threading
@@ -7,14 +8,14 @@ import uuid
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-import datetime as dt
 from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
 from scraper_service.config import Settings, settings
-from scraper_service.ingest.store import IngestStore
 from scraper_service.http.client import HttpClient
+from scraper_service.ingest.store import IngestStore
+from scraper_service.monitoring import MonitorStore
 from scraper_service.scheduler.runner import ScrapeRunner
 from scraper_service.utils.time import iso_now_jst, today_jst_str
 
@@ -136,6 +137,7 @@ class ControlApp:
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._lock = threading.Lock()
         self._current: Optional[Future] = None
+        self.monitor = MonitorStore(cfg.control_dir)
 
     def get_schedule(self) -> ScheduleState:
         return self._store.load()
@@ -176,13 +178,25 @@ class ControlApp:
             if self._current is not None and not self._current.done():
                 raise BusyError("scrape already running")
             job_id = uuid.uuid4().hex
-            self._current = self._executor.submit(self._run_scrape, req)
+            self._current = self._executor.submit(self._run_monitored_scrape, job_id, req)
             return job_id
+
+    def _run_monitored_scrape(self, job_id, req):
+        self.monitor.start_job(job_id, "manual", {
+            "race_date": req.race_date, "baba_code": req.baba_code, "race_no": req.race_no,
+        })
+        try:
+            self._run_scrape(req)
+        except Exception as exc:
+            self.monitor.finish_job(job_id, error=exc)
+            raise
+        else:
+            self.monitor.finish_job(job_id)
 
     def _run_scrape(self, req: ScrapeRequest) -> None:
         cfg = self._cfg
         http = _build_http(cfg)
-        runner = ScrapeRunner(settings=cfg, http=http, sync_store=self._sync_store)
+        runner = ScrapeRunner(settings=cfg, http=http, sync_store=self._sync_store, monitor=self.monitor)
         runner.run_once(
             race_date=req.race_date,
             baba_codes=[req.baba_code],
@@ -235,6 +249,34 @@ class ControlHandler(BaseHTTPRequestHandler):
         path = parsed.path
         if path in ("/health", "/"):
             self._send_json(200, {"status": "ok"})
+            return
+        if path == "/control/status":
+            race_date = today_jst_str()
+            try:
+                plan = self._read_scrape_plan(race_date)
+                state_path = self._app._cfg.control_dir / f"scrape_plan_state_{race_date}.json"
+                state = json.loads(state_path.read_text()) if state_path.exists() else {}
+                same_plan = plan and state.get("plan_generated_at") == plan.get("generated_at")
+                result = self._app.monitor.status(plan, state.get("completed", []) if same_plan else [])
+                result["schedule"] = self._app.get_schedule().to_dict()
+                self._send_json(200, result)
+            except (OSError, ValueError) as exc:
+                self._send_json(503, {"error": str(exc)})
+            return
+        if path == "/control/jobs":
+            qs = parse_qs(parsed.query)
+            try:
+                page = max(1, int(qs.get("page", ["1"])[0]))
+                baba_code = int(qs["baba_code"][0]) if "baba_code" in qs else None
+                result = self._app.monitor.jobs(race_date=qs.get("race_date", [None])[0],
+                    baba_code=baba_code, status=qs.get("status", [None])[0], page=page)
+                self._send_json(200, result)
+            except ValueError:
+                self._send_json(400, {"error": "invalid query"})
+            return
+        if path.startswith("/control/jobs/"):
+            job = self._app.monitor.job(path.rsplit("/", 1)[-1])
+            self._send_json(200 if job else 404, job or {"error": "job not found"})
             return
         if path == "/control/schedule":
             state = self._app.get_schedule()
@@ -396,6 +438,9 @@ def main() -> None:
     schedule_path = settings.schedule_path
 
     app = ControlApp(settings, schedule_path)
+    # Manual jobs run in the control process and are interrupted by its restart.
+    app.monitor.start_worker("control", recover_worker="manual")
+    app.monitor.heartbeat_thread("control", threading.Event())
     server = ControlHTTPServer((host, port), ControlHandler, app)
     server.serve_forever()
 

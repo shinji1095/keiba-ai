@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.db.models.oauth_client import OAuthClient
+from app.db.models.monitoring import SystemMetric, MetricMinute, MonitoringAlarm, MonitoringEvent
 from app.db.models.odds import OddsItem, OddsSnapshot
 from app.db.models.payout import Payout
 from app.db.models.race import Race
@@ -28,6 +29,10 @@ from app.db.models.spec_racecourse import SpecRacecourse
 __all__ = [
     "User",
     "OAuthClient",
+    "SystemMetric",
+    "MetricMinute",
+    "MonitoringAlarm",
+    "MonitoringEvent",
     "Venue",
     "Race",
     "RaceEntry",

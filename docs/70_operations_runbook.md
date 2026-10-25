@@ -9,6 +9,9 @@
 - 2025-12-28: cronコンテナの運用と同期頻度を反映。
 
 ## 1. 監視対象（最低限）
+- PC全体の監視画面: `/scrape/status`。CPU・メモリ・ディスク・ネットワークをグラフで表示。
+  ホストOS上の収集プロセス設定は [ホスト監視の設定](../deploy/monitor/README.md)、
+  判定・保持期間などの詳細は [監視画面仕様](13_scraper_monitoring_spec.md) を参照。
 - scraper:
   - 取得件数（時間あたり）
   - 失敗率（HTTP/timeout）

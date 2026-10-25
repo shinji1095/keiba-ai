@@ -29,8 +29,207 @@ tags:
   - name: ml
   - name: scrape
   - name: spec
+  - name: monitoring
 
 paths:
+  /system/metrics:
+    get:
+      tags:
+      - monitoring
+      summary: Latest Metrics
+      operationId: latest_metrics_system_metrics_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - bearerAuth: []
+    post:
+      tags:
+      - monitoring
+      summary: Receive Metrics
+      operationId: receive_metrics_system_metrics_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MetricSample'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricReceipt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - bearerAuth: []
+  /system/metrics/history:
+    get:
+      tags:
+      - monitoring
+      summary: Metric History
+      operationId: metric_history_system_metrics_history_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: hours
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Hours
+          enum:
+          - 1
+          - 24
+          - 168
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricHistory'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /system/events:
+    get:
+      tags:
+      - monitoring
+      summary: Metric Events
+      operationId: metric_events_system_events_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricEventList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - bearerAuth: []
+  /scrape/status:
+    get:
+      tags:
+      - monitoring
+      summary: Scrape Status
+      operationId: scrape_status_scrape_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - bearerAuth: []
+  /scrape/jobs:
+    get:
+      tags:
+      - monitoring
+      summary: Scrape Jobs
+      operationId: scrape_jobs_scrape_jobs_get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: race_date
+        in: query
+        required: false
+        schema:
+          title: Race Date
+          nullable: true
+          type: string
+      - name: baba_code
+        in: query
+        required: false
+        schema:
+          title: Baba Code
+          nullable: true
+          type: integer
+      - name: status
+        in: query
+        required: false
+        schema:
+          title: Status
+          nullable: true
+          type: string
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Page
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /scrape/jobs/{job_id}:
+    get:
+      tags:
+      - monitoring
+      summary: Scrape Job
+      operationId: scrape_job_scrape_jobs__job_id__get
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /health:
     get:
       tags: [health]
@@ -1028,6 +1227,400 @@ components:
             $ref: "#/components/schemas/ErrorEnvelope"
 
   schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    MetricEventList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/MonitoringEventView'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: MetricEventList
+    MetricHistory:
+      properties:
+        host_id:
+          title: Host Id
+          nullable: true
+          type: string
+        start:
+          type: string
+          format: date-time
+          title: Start
+        end:
+          type: string
+          format: date-time
+          title: End
+        resolution_sec:
+          type: integer
+          title: Resolution Sec
+        points:
+          items:
+            $ref: '#/components/schemas/HistoryPoint'
+          type: array
+          title: Points
+      type: object
+      required:
+      - host_id
+      - start
+      - end
+      - resolution_sec
+      - points
+      title: MetricHistory
+    HistoryPoint:
+      properties:
+        at:
+          type: string
+          format: date-time
+          title: At
+        values:
+          additionalProperties:
+            type: number
+          type: object
+          title: Values
+        max_values:
+          additionalProperties:
+            type: number
+          type: object
+          title: Max Values
+        sample_counts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Sample Counts
+      type: object
+      required:
+      - at
+      - values
+      - max_values
+      - sample_counts
+      title: HistoryPoint
+    MetricReceipt:
+      properties:
+        accepted:
+          type: boolean
+          title: Accepted
+        duplicate:
+          type: boolean
+          title: Duplicate
+      type: object
+      required:
+      - accepted
+      - duplicate
+      title: MetricReceipt
+    MetricSample:
+      properties:
+        host_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Host Id
+        hostname:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Hostname
+        scope:
+          type: string
+          enum:
+          - host
+          - vm
+          - container
+          title: Scope
+        boot_id:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Boot Id
+        sequence:
+          type: integer
+          minimum: 0.0
+          title: Sequence
+        sampled_at:
+          type: string
+          format: date-time
+          title: Sampled At
+        uptime_sec:
+          type: number
+          minimum: 0.0
+          title: Uptime Sec
+        cpu_count:
+          type: integer
+          maximum: 4096.0
+          minimum: 1.0
+          title: Cpu Count
+        cpu_percent:
+          title: Cpu Percent
+          nullable: true
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+        cpu_per_core:
+          items:
+            nullable: true
+            type: number
+            maximum: 100.0
+            minimum: 0.0
+          type: array
+          maxItems: 4096
+          title: Cpu Per Core
+        memory_total_bytes:
+          type: integer
+          minimum: 1.0
+          title: Memory Total Bytes
+        memory_available_bytes:
+          type: integer
+          minimum: 0.0
+          title: Memory Available Bytes
+        memory_percent:
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+          title: Memory Percent
+        swap_total_bytes:
+          type: integer
+          minimum: 0.0
+          title: Swap Total Bytes
+        swap_used_bytes:
+          type: integer
+          minimum: 0.0
+          title: Swap Used Bytes
+        disks:
+          items:
+            $ref: '#/components/schemas/DiskMetric'
+          type: array
+          maxItems: 64
+          title: Disks
+        net_rx_bytes_sec:
+          title: Net Rx Bytes Sec
+          nullable: true
+          type: number
+          minimum: 0.0
+        net_tx_bytes_sec:
+          title: Net Tx Bytes Sec
+          nullable: true
+          type: number
+          minimum: 0.0
+        disk_read_bytes_sec:
+          title: Disk Read Bytes Sec
+          nullable: true
+          type: number
+          minimum: 0.0
+        disk_write_bytes_sec:
+          title: Disk Write Bytes Sec
+          nullable: true
+          type: number
+          minimum: 0.0
+        temperature_c:
+          title: Temperature C
+          nullable: true
+          type: number
+        temperature_sensor:
+          title: Temperature Sensor
+          nullable: true
+          type: string
+          maxLength: 120
+        network_interfaces:
+          items:
+            type: string
+          type: array
+          maxItems: 64
+          title: Network Interfaces
+        errors:
+          items:
+            type: string
+          type: array
+          maxItems: 100
+          title: Errors
+      additionalProperties: false
+      type: object
+      required:
+      - host_id
+      - hostname
+      - scope
+      - boot_id
+      - sequence
+      - sampled_at
+      - uptime_sec
+      - cpu_count
+      - memory_total_bytes
+      - memory_available_bytes
+      - memory_percent
+      - swap_total_bytes
+      - swap_used_bytes
+      title: MetricSample
+    DiskMetric:
+      properties:
+        path:
+          type: string
+          maxLength: 512
+          title: Path
+        label:
+          type: string
+          maxLength: 120
+          title: Label
+        total_bytes:
+          type: integer
+          minimum: 0.0
+          title: Total Bytes
+        used_bytes:
+          type: integer
+          minimum: 0.0
+          title: Used Bytes
+        available_bytes:
+          type: integer
+          minimum: 0.0
+          title: Available Bytes
+        percent:
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+          title: Percent
+      type: object
+      required:
+      - path
+      - label
+      - total_bytes
+      - used_bytes
+      - available_bytes
+      - percent
+      title: DiskMetric
+    MetricStatus:
+      properties:
+        status:
+          type: string
+          enum:
+          - ok
+          - unknown
+          - stale
+          - unavailable
+          - warning
+          - critical
+          title: Status
+        sample:
+          nullable: true
+          $ref: '#/components/schemas/MetricSample'
+        age_sec:
+          title: Age Sec
+          nullable: true
+          type: number
+        alerts:
+          items:
+            $ref: '#/components/schemas/MonitoringEventView'
+          type: array
+          title: Alerts
+        server_time:
+          type: string
+          format: date-time
+          title: Server Time
+        received_at:
+          title: Received At
+          nullable: true
+          type: string
+          format: date-time
+        thresholds:
+          $ref: '#/components/schemas/MetricThresholds'
+      type: object
+      required:
+      - status
+      - sample
+      - age_sec
+      - alerts
+      - server_time
+      - thresholds
+      title: MetricStatus
+    MetricThresholds:
+      properties:
+        cpu:
+          items:
+            type: number
+          type: array
+          title: Cpu
+        memory:
+          items:
+            type: number
+          type: array
+          title: Memory
+        disk:
+          items:
+            type: number
+          type: array
+          title: Disk
+      type: object
+      required:
+      - cpu
+      - memory
+      - disk
+      title: MetricThresholds
+    MonitoringEventView:
+      properties:
+        id:
+          type: string
+          title: Id
+        resource:
+          type: string
+          title: Resource
+        level:
+          type: string
+          title: Level
+        message:
+          type: string
+          title: Message
+        started_at:
+          type: string
+          format: date-time
+          title: Started At
+        resolved_at:
+          title: Resolved At
+          nullable: true
+          type: string
+          format: date-time
+      type: object
+      required:
+      - id
+      - resource
+      - level
+      - message
+      - started_at
+      - resolved_at
+      title: MonitoringEventView
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+
     ErrorEnvelope:
       type: object
       required: [error]

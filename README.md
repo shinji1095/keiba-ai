@@ -27,6 +27,9 @@ docker compose up -d --build
 pullしてDBへ反映します。取得間隔・正規化・差分同期の契約は維持します。
 DB・同期状態・MLflow成果物はそれぞれ永続ボリュームへ保存します。
 
+稼働モニターは `http://localhost/scrape/status`。CPU・メモリ・ディスクなどをグラフで確認できます。
+PC全体の計測を開始するには [ホスト監視の設定手順](deploy/monitor/README.md) に従って収集プロセスを起動してください。
+
 学習・モデル管理は必要なときだけ起動します。
 
 ```bash

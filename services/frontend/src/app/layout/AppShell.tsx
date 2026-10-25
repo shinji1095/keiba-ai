@@ -17,7 +17,7 @@ export function AppShell(): React.JSX.Element {
 
         <nav className="nav">
           {navItems.map((it) => (
-            <NavLink key={it.to} to={it.to} className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
+            <NavLink key={it.to} to={it.to} end={it.to === "/scrape"} className={({ isActive }) => (isActive ? "navItem active" : "navItem")}>
               {it.label}
             </NavLink>
           ))}

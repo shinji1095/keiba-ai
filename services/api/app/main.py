@@ -8,6 +8,7 @@ from app.api.routes import (
     auth,
     health,
     ml,
+    monitoring,
     races,
     scrape,
     spec_race_cards,
@@ -37,6 +38,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     app.include_router(health.router)
+    app.include_router(monitoring.router)
     app.include_router(auth.router, prefix="/auth", tags=["auth"])
     app.include_router(admin.router, prefix="/admin", tags=["admin"])
     app.include_router(venues.router, tags=["venues"])

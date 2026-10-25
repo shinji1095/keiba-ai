@@ -71,6 +71,13 @@ class Settings(BaseSettings):
         default=Path("./data/logs/sync_state.json"),
         alias="SCRAPE_SYNC_STATE_PATH",
     )
+    monitor_cpu_warning: float = Field(default=80, ge=0, le=100)
+    monitor_cpu_critical: float = Field(default=95, ge=0, le=100)
+    monitor_memory_warning: float = Field(default=80, ge=0, le=100)
+    monitor_memory_critical: float = Field(default=90, ge=0, le=100)
+    monitor_disk_warning: float = Field(default=80, ge=0, le=100)
+    monitor_disk_critical: float = Field(default=90, ge=0, le=100)
+    monitor_disk_min_free_bytes: int = Field(default=0, ge=0)
 
     # -----------------------------
     # MLflow (inference)

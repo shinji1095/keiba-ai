@@ -1,0 +1,15 @@
+[Unit]
+Description=Keiba AI host metrics collector
+After=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/keiba-monitor.env
+ExecStart=/usr/bin/python3 ${MONITOR_COLLECTOR_PATH}
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+UMask=0077
+
+[Install]
+WantedBy=default.target

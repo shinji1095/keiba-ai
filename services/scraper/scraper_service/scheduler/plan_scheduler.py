@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from scraper_service.control_server import ScheduleState, ScheduleStore
+from scraper_service.monitoring import MonitorStore, scheduled_job_id
+from scraper_service.monitoring import plan_item_key as _plan_item_key
 from scraper_service.utils.time import JST
 
 
@@ -19,23 +21,6 @@ def _parse_dt(value: Optional[str]) -> Optional[dt.datetime]:
         return dt.datetime.fromisoformat(value)
     except ValueError:
         return None
-
-
-def _plan_item_key(item: dict) -> str:
-    race_key = item.get("race_key") or {}
-    odds_flg = item.get("odds_flg")
-    return "|".join(
-        [
-            str(race_key.get("race_date", "")),
-            str(race_key.get("baba_code", "")),
-            str(race_key.get("race_no", "")),
-            str(item.get("task_kind", "")),
-            str(item.get("page_name", "")),
-            str(item.get("snapshot_kind", "")),
-            "" if odds_flg is None else str(odds_flg),
-            str(item.get("scheduled_at", "")),
-        ]
-    )
 
 
 @dataclass
@@ -114,11 +99,20 @@ class PlanScheduler:
         self._now_fn = now_fn or (lambda: dt.datetime.now(JST))
         self._tick_sec = tick_sec
         self._control_dir = state_store.control_dir
+        self._monitor = MonitorStore(self._control_dir)
+        self._runner.monitor = self._monitor
 
     def run_forever(self) -> None:
-        while True:
-            self.run_once()
-            time.sleep(self._tick_sec)
+        self._monitor.start_worker("scheduler")
+        stop = threading.Event()
+        self._monitor.heartbeat_thread("scheduler", stop)
+        try:
+            while True:
+                summary = self.run_once()
+                self._monitor.worker("scheduler", phase=summary.status, last_tick_at=dt.datetime.now(JST).isoformat())
+                time.sleep(self._tick_sec)
+        finally:
+            stop.set()
 
     def run_once(self) -> PlanRunSummary:
         schedule = self._schedule_store.load()
@@ -128,6 +122,7 @@ class PlanScheduler:
         now = self._now_fn()
         race_date = now.astimezone(JST).date().isoformat()
 
+        self._monitor.worker("scheduler", phase="preparing_plan")
         plan, generated = self._load_or_build_plan(race_date, schedule)
         if plan is None:
             return PlanRunSummary(status="missing_plan")
@@ -149,11 +144,15 @@ class PlanScheduler:
             key = _plan_item_key(item)
             if key in state.completed:
                 continue
+            job_id = scheduled_job_id(plan_generated_at, key)
+            self._monitor.start_job(job_id, "scheduler", item, plan_generated_at)
             try:
                 self._runner.execute_plan_item(item)
-            except Exception:
+            except Exception as exc:
+                self._monitor.finish_job(job_id, error=exc, retry=True)
                 errors += 1
                 continue
+            self._monitor.finish_job(job_id)
             state.completed.add(key)
             executed += 1
             if executed % 5 == 0:

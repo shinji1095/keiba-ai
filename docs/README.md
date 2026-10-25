@@ -29,6 +29,9 @@ MLOps とマイクロサービスでは「動くコード」より「継続し�
 16. `80_test_guideline.md`（テスト契約・設計方針・実行方法）
 17. `90_decisions.md`（決定ログ：いつ・誰が・なぜ決めたか）
 
+監視画面:
+- [13_scraper_monitoring_spec.md](13_scraper_monitoring_spec.md)（スクレイピング・PC稼働監視画面。CPU・メモリ・ディスクなどの計測、グラフ、警告、取得進捗）
+
 ## オーナーシップ（推奨）
 - Architecture/Infra: PM + Backend Lead
 - Data Contracts: Backend Lead + ML Lead

@@ -51,6 +51,7 @@ export function OverviewPage(): React.JSX.Element {
             よく使うページ
           </div>
           <div className="row" style={{ marginTop: 8 }}>
+            <a className="btn" href="/scrape/status">稼働モニター</a>
             <a className="btn" href="/races">
               Races
             </a>

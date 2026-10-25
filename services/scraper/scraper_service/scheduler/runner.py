@@ -1,18 +1,20 @@
 from __future__ import annotations
 
+import json
+import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-import time
 from pathlib import Path
 from typing import Optional
-import json
 
 from scraper_service.config import Settings
 from scraper_service.http.client import HttpClient
+from scraper_service.ingest.store import IngestStore
 from scraper_service.keiba import constants as C
 from scraper_service.keiba.models import RaceKey, RaceUpsert
 from scraper_service.keiba.soft_errors import SOFT_NO_ODDS_PATTERNS, SOFT_TEMP_UNAVAILABLE_PATTERNS
 from scraper_service.keiba.urls import ODDS_FLG_FIXED, build_url
+from scraper_service.monitoring import MonitorStore
 from scraper_service.parsers.deba_table import parse_deba_table
 from scraper_service.parsers.deba_table_normalized import parse_deba_table_normalized
 from scraper_service.parsers.odds import (
@@ -20,11 +22,10 @@ from scraper_service.parsers.odds import (
     parse_odds_tanfuku,
     parse_odds_waku,
 )
-from scraper_service.parsers.race_mark_table import parse_race_mark_table
 from scraper_service.parsers.race_list import parse_race_list
+from scraper_service.parsers.race_mark_table import parse_race_mark_table
 from scraper_service.parsers.refund_money_list import parse_refund_money_list
 from scraper_service.parsers.today_top import parse_today_race_info_top
-from scraper_service.ingest.store import IngestStore
 from scraper_service.utils.time import JST, combine_date_time_jst, iso_now_jst
 
 SCHEDULED_ODDS_WINDOWS = [
@@ -424,6 +425,7 @@ class ScrapeRunner:
     settings: Settings
     http: HttpClient
     sync_store: Optional[IngestStore] = None
+    monitor: MonitorStore | None = None
     # in-memory state (not persisted)
     _recent_url_ts: dict[str, datetime] = field(default_factory=dict, init=False)
 
@@ -464,6 +466,10 @@ class ScrapeRunner:
             page_name=page_name,
         )
         res = self.http.get_html(url, page_type=page_name, save_dir=save_dir)
+        if self.monitor:
+            self.monitor.progress()
+            if res.http_status >= 400:
+                raise RuntimeError(f"HTTP {res.http_status}: {page_name}")
         # Record the timestamp for URL cooldown control.
         self._recent_url_ts[url] = datetime.now(JST)
 
@@ -474,7 +480,9 @@ class ScrapeRunner:
     def _append_sync(self, kind: str, payloads: list[dict[str, object]]) -> None:
         if not self.sync_store or not payloads:
             return
-        self.sync_store.append(kind=kind, payloads=payloads)
+        saved = self.sync_store.append(kind=kind, payloads=payloads)
+        if self.monitor:
+            self.monitor.progress(saved=saved)
 
     def run_once(
         self,
